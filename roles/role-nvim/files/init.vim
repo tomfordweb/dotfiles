@@ -61,6 +61,7 @@ colorscheme gruvbox
 map <C-k><C-k> :NERDTreeToggle<cr>
 " Use Ctrl-P to open the fuzzy file opener
 nnoremap <C-p> :Files<cr>
+nnoremap <C-e> :CocList diagnostics<cr>
 
 " COC CONFIG
 " Set internal encoding of vim, not needed on neovim, since coc.nvim using some
