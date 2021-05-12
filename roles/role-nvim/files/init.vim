@@ -43,12 +43,15 @@ augroup END
 " https://github.com/junegunn/vim-plug
 " Plugins
 call plug#begin('~/.nvim/plugged')
-Plug 'tpope/vim-sensible'         " Sensible defaults
+Plug 'tpope/vim-sensible'
+Plug 'tpope/vim-fugitive', { 'on': 'G' }
+Plug 'tpope/vim-commentary'
 Plug 'morhetz/gruvbox'
-Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' } " File navigator
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }     " Install fuzzy finder binary
-Plug 'junegunn/fzf.vim'               " Enable fuzzy finder in Vim
-Plug 'neoclide/coc.nvim', {'branch': 'release'} " Intelisense
+Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' } 
+Plug 'tpope/vim-dadbod', { 'on':  'DB' }               
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }   
+Plug 'junegunn/fzf.vim'               
+Plug 'neoclide/coc.nvim', {'branch': 'release'} 
 " Plugins here !!!!
 call plug#end()
 colorscheme gruvbox

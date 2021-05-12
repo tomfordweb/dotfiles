@@ -5,6 +5,7 @@
   community.general.pacman:
       name:
           - nvim
+          - tmux
       state: present
       update_cache: yes
 
