@@ -15,7 +15,6 @@ set nowrap                " Wrapping sucks (except on markdown)
 autocmd BufRead,BufNewFile *.md,*.txt setlocal wrap " DO wrap on markdown files
 set noswapfile            " Do not leve any backup files
 set mouse=a               " Enable mouse on all modes
-set clipboard=unnamed,unnamedplus     " Use the OS clipboard
 set showmatch
 set termguicolors
 set splitright splitbelow
@@ -60,7 +59,7 @@ colorscheme gruvbox
 " Use Ctrl-k Ctrl-k to open a sidebar with the list of files
 map <C-k><C-k> :NERDTreeToggle<cr>
 " Use Ctrl-P to open the fuzzy file opener
-nnoremap <C-p> :Files<cr>
+nnoremap <C-p> :GFiles<cr>
 nnoremap <C-e> :CocList diagnostics<cr>
 
 " COC CONFIG
