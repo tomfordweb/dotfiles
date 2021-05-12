@@ -1,6 +1,6 @@
 ---
 # tasks file for roles/role-nvim
-- name: install pacman deps (arch)
+- name: install nvim deps (arch)
   when: ansible_facts['distribution'] == 'ArchLinux'
   community.general.pacman:
       name:
@@ -8,6 +8,14 @@
           - tmux
       state: present
       update_cache: yes
+
+- name: install nvim deps (mac)
+  when: ansible_distribution == 'MacOSX'
+  community.general.homebrew:
+    name:
+      - neovim
+      - tmux
+    state: present
 
 - name: Install nvm for intellisense server
   shell: >
@@ -22,7 +30,12 @@
   args:
     creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
 
-- name: Ensure .vimrc config in place
+- name: Create nvim config directory
+  file:
+    path: "{{ ansible_env.HOME }}/.config/nvim"
+    state: directory
+
+- name: Ensure init.vim config in place
   tags: ['vimrc']
   copy:
     src: init.vim
