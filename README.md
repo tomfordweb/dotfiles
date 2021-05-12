@@ -3,6 +3,16 @@
 * Install ansible locally
 * Add community.general `ansible-galaxy collection install community.general`
 
+# Mac Specific things
+I always have a heck of a time getting ansible working right on MacOS.
+
+I tend to just make a python venv in this project folder..
+
+```
+$ python3 -m venv venv 
+$ source venv/bin/activate   
+$ python -m pip install ansible
+```
 # Playbooks
 
 ### `editorconfig.yml`

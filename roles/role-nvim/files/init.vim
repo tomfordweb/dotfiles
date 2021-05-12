@@ -56,6 +56,11 @@ Plug 'neoclide/coc.nvim', {'branch': 'release'}
 call plug#end()
 colorscheme gruvbox
 
+" Use Ctrl-k Ctrl-k to open a sidebar with the list of files
+map <C-k><C-k> :NERDTreeToggle<cr>
+" Use Ctrl-P to open the fuzzy file opener
+nnoremap <C-p> :Files<cr>
+
 " COC CONFIG
 " Set internal encoding of vim, not needed on neovim, since coc.nvim using some
 " unicode characters in the file autoload/float.vim
