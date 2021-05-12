@@ -1,0 +1,31 @@
+---
+# tasks file for roles/role-nvim
+- name: install pacman deps (arch)
+  when: ansible_facts['distribution'] == 'ArchLinux'
+  community.general.pacman:
+      name:
+          - nvim
+      state: present
+      update_cache: yes
+
+- name: Install nvm for intellisense server
+  shell: >
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+  args:
+    creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh" 
+
+- name: Install vimplug for nvim
+  shell: >
+      sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+  args:
+    creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
+
+- name: Ensure .vimrc config in place
+  tags: ['vimrc']
+  copy:
+    src: init.vim
+    dest: "{{ ansible_env.HOME }}/.config/nvim/init.vim"
+    backup: yes
+    mode: 0640
+
