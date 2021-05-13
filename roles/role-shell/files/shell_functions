@@ -1,0 +1,27 @@
+alias gittags="git for-each-ref --format=\"%(taggerdate): %(refname)\" --sort=-taggerdate --count=5 refs/tags"
+alias vim="nvim"
+
+alias ls='ls -F'
+alias ll='ls -lh'
+
+alias ..="cd .."
+
+alias ...="cd ../.."
+
+alias ....="cd ../../.."
+
+alias .....="cd ../../../.."
+
+alias ......="cd ../../../../.."
+
+dock-log() { docker logs --tail=all -f $@ ;}
+dock-port() { docker port $@ ;}
+dock-vol() { docker inspect --format '{{ .Volumes }}' $@ ;}
+dock-ip() { docker inspect --format '{{ .NetworkSettings.IPAddress }}' $@ ;}
+dock-rmc() { docker rm  docker ps -qa --filter 'status=exited' ;}
+dock-rmi() {  docker rmi -f docker images | grep '^<none>' | awk '{print $3}' ;}
+dock-stop() { docker stop $(docker ps -a -q); }
+dock-rm() { docker rm $(docker ps -a -q); }
+
+
+alias gitlg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
