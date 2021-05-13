@@ -5,13 +5,9 @@ alias ls='ls -F'
 alias ll='ls -lh'
 
 alias ..="cd .."
-
 alias ...="cd ../.."
-
 alias ....="cd ../../.."
-
 alias .....="cd ../../../.."
-
 alias ......="cd ../../../../.."
 
 dock-log() { docker logs --tail=all -f $@ ;}
