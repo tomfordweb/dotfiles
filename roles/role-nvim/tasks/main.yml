@@ -43,3 +43,8 @@
     backup: yes
     mode: 0640
 
+- name: apply tmux conf
+  copy:
+    src: tmux.conf
+    dest: "{{ ansible_env.HOME }}/.tmux.conf"
+
