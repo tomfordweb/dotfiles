@@ -35,11 +35,21 @@
     path: "{{ ansible_env.HOME }}/.config/nvim"
     state: directory
 
-- name: Ensure init.vim config in place
-  tags: ['vimrc']
+- name: Move coc init config to nvim folder 
+  copy:
+    src: coc-init.vim
+    dest: "{{ ansible_env.HOME }}/.config/nvim/coc-init.vim"
+    mode: 0640
+
+- name: Move coc settings to nvim folder 
+  copy:
+    src: coc-settings.json
+    dest: "{{ ansible_env.HOME }}/.config/nvim/coc-settings.json"
+    mode: 0640
+
+- name: Move nvim settings to nvim folder
   copy:
     src: init.vim
     dest: "{{ ansible_env.HOME }}/.config/nvim/init.vim"
-    backup: yes
     mode: 0640
 
