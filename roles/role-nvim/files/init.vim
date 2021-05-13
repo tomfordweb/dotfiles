@@ -1,4 +1,5 @@
 call plug#begin('~/.nvim/plugged')
+    Plug 'vim-airline/vim-airline'
     Plug 'tmsvg/pear-tree'
     Plug 'tpope/vim-sensible'
     Plug 'tpope/vim-fugitive', { 'on': 'G' }

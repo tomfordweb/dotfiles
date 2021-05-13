@@ -1,0 +1,23 @@
+# /home/tom/.config/tmuxinator/mhv-dev.yml
+
+name: mhv-dev
+root: ~/
+
+windows:
+  - editor:
+      layout: main-vertical
+      panes:
+        - nvim
+        - echo 'Hello'
+  - containers: 
+      layout: even-horizontal
+      panes:
+        - cd ~/code/mhvillage/mhvillage-frontend && ./start -b -n
+        - cd ~/code/mhvillage/account && ./start 
+        - cd ~/code/mhvillage/mhvillage && ./start -b -n
+  - logs: 
+      layout: even-vertical
+      panes:
+        - cd ~/code/mhvillage/mhvillage/cache/log && tail -f errors.log
+        - cd ~/code/mhvillage/mhvillage/cache/log && tail -f development.log
+        - cd ~/code/mhvillage/mhvillage/cache/logi && tail -f profiler.log
