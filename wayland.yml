@@ -1,0 +1,28 @@
+---
+
+- name: Wayland configuration
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Determine if using wayland
+      shell: loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p Type | awk -F= '{print $2}' | grep -c "wayland"
+      ignore_errors: true
+      changed_when: false
+      register: usingWayland
+
+    - name: Check if already using caps as ctrl
+      shell: gsettings get org.gnome.desktop.input-sources xkb-options | grep "caps:ctrl_modifier"
+      register: capsAsCtrl
+      # grep will exit with 1 when no results found. 
+      # This causes the task not to halt play.
+      ignore_errors: true
+      changed_when: false
+
+    - name: Caps to ctrl
+      shell: >
+        gsettings set org.gnome.desktop.input-sources xkb-options "['caps:ctrl_modifier']"
+      when: 
+        - capsAsCtrl.stdout == ''
+        - usingWayland == 1
+        
