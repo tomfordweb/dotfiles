@@ -3,5 +3,8 @@
     hosts: localhost
     connection: local 
     roles:
+        # Must run first as this sets up bash/zsh environment
+        # Many of the roles after this depend on ~/.shell_functions
+        - role-shell
         - role-nvim
         - role-tmux
