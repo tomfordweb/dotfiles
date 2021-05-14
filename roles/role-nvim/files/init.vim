@@ -44,6 +44,10 @@ set cursorcolumn          " Show vertial column on cursor
 set list lcs=tab:\¦\      "(here is a space)
 let &t_SI = "\e[6 q"      " Make cursor a line in insert
 let &t_EI = "\e[2 q"      " Make cursor a line in insert
+set wildignore=*/node_modules/*,*/vendor/*,*.git*
+
+let NERDTreeShowHidden=1
+
 
 colorscheme gruvbox
 
