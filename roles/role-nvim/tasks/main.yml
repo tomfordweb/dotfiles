@@ -6,6 +6,7 @@
       name:
           - nvim
           - tmux
+          - ripgrep
       state: present
       update_cache: yes
 
@@ -15,6 +16,7 @@
     name:
       - neovim
       - tmux
+      - ripgrep
     state: present
 
 - name: Install nvm for intellisense server
