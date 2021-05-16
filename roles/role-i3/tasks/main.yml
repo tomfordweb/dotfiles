@@ -1,0 +1,24 @@
+---
+- name: Install i3 deps
+  community.general.pacman:
+    name:
+      - i3-gaps
+      - feh
+      - conky
+      - i3status
+
+- name: Install i3 config
+  copy:
+    src: config
+    dest: "{{ ansible_env.HOME }}/.config/i3/config"
+    mode: 0644
+
+- name: conky rc
+  copy:
+    src: conky.conf
+    dest: "{{ ansible_env.HOME }}/.config/conky/conky.conf"
+
+- name: install wallpaper
+  copy:
+    src: wallpaper.jpg
+    dest: "{{ ansible_env.HOME }}/.config/i3/wallpaper.jpg"
