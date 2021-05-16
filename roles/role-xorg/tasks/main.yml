@@ -1,0 +1,23 @@
+---
+# tasks file for roles/role-xorg
+- name: Create Xresources
+  copy:
+    src: Xresources
+    dest: "{{ ansible_env.HOME }}/.Xresources"
+    mode: 0644
+- name: Create xModmap
+  copy:
+    src: Xmodmap
+    dest: "{{ ansible_env.HOME }}/.Xmodmap"
+    mode: 0644
+
+
+- name: Reload xmodmap
+  changed_when: false
+  shell: >
+    xmodmap ~/.Xmodmap
+
+- name: Reload xresources
+  changed_when: false
+  shell: >
+    xrdb ~/.Xresources

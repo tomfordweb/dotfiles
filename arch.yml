@@ -10,4 +10,8 @@
         state: started
   roles:
       - role-xorg
+      - role-shell
+      - role-nvim
+      - role-tmux
+
 
