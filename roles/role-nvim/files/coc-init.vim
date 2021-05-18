@@ -171,7 +171,7 @@ let g:coc_global_extensions = [
     \ 'coc-css',
     \ 'coc-phpls',
     \ 'coc-python',
-	\ 'coc-diagnostic'
+    \ 'coc-diagnostic'
     \]
 
 

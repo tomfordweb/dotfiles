@@ -11,8 +11,9 @@ call plug#begin('~/.nvim/plugged')
     Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }   
     Plug 'junegunn/fzf.vim'               
     Plug 'neoclide/coc.nvim', {'branch': 'release'} 
+    Plug 'neoclide/coc-tsserver', {'do': 'npm ci'}
+    Plug 'neoclide/coc-angular', {'do': 'npm ci'}
     Plug 'beanworks/vim-phpfmt'
-    " Plugins here !!!!
 call plug#end()
 
 let mapleader = ","
