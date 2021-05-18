@@ -1,6 +1,6 @@
 ---
 # tasks file for role-shell
-- name: Install Alacritty
+- name: Install Alacritty arch
   become: yes
   when: ansible_facts['distribution'] == 'Archlinux'
   community.general.pacman:
@@ -8,10 +8,9 @@
       - alacritty
     state: present
 
-- name: Install Alacritty
-  become: yes
+- name: Install Alacritty osx
   when: ansible_facts['distribution'] == 'MacOSX'
-  community.general.homebrew:
+  community.general.homebrew_cask:
     name:
       - alacritty
     state: present
