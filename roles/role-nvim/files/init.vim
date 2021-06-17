@@ -1,5 +1,6 @@
 call plug#begin('~/.nvim/plugged')
     Plug 'vim-airline/vim-airline'
+    Plug 'airblade/vim-gitgutter'
     Plug 'tmsvg/pear-tree' " Parenthesis/Bracket completion
     Plug 'tpope/vim-commentary' 
     Plug 'morhetz/gruvbox' " The only theme
