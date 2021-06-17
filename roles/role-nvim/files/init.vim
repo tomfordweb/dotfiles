@@ -76,7 +76,7 @@ nnoremap <C-e> :CocList diagnostics<cr>
 autocmd FileType yaml,bash,sh setlocal shiftwidth=2 softtabstop=2
 
 " I hate those psr4 inline comments
-autocmd FileType php setlocal commentstring=# %s
+autocmd FileType php setlocal commentstring=#\ %s
 
 
 " Code completion
