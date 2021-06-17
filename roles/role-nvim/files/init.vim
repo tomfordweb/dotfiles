@@ -3,6 +3,7 @@ call plug#begin('~/.nvim/plugged')
     Plug 'airblade/vim-gitgutter'
     Plug 'tmsvg/pear-tree' " Parenthesis/Bracket completion
     Plug 'tpope/vim-commentary' 
+    Plug 'tpope/vim-fugitive' 
     Plug 'morhetz/gruvbox' " The only theme
     Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' } 
     Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }   
