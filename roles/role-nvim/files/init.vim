@@ -1,13 +1,9 @@
 call plug#begin('~/.nvim/plugged')
     Plug 'vim-airline/vim-airline'
-    Plug 'mhinz/vim-startify'
-    Plug 'tmsvg/pear-tree'
-    Plug 'tpope/vim-sensible'
-    Plug 'tpope/vim-fugitive', { 'on': 'G' }
-    Plug 'tpope/vim-commentary'
-    Plug 'morhetz/gruvbox'
+    Plug 'tmsvg/pear-tree' " Parenthesis/Bracket completion
+    Plug 'tpope/vim-commentary' 
+    Plug 'morhetz/gruvbox' " The only theme
     Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' } 
-    Plug 'tpope/vim-dadbod', { 'on':  'DB' }               
     Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }   
     Plug 'junegunn/fzf.vim'               
     Plug 'neoclide/coc.nvim', {'branch': 'release'} 
@@ -27,26 +23,28 @@ set tabstop=4             " Tab size of 4 spaces
 set incsearch             " Search shows partial matches
 set lazyredraw            " Don't animate macros
 set softtabstop=4         " On insert use 4 spaces for tab
-set shiftwidth=2          " Fix indentation errors faster
+set shiftwidth=4          " Fix indentation errors faster
 set expandtab             " Use apropiate number of spaces
 set nowrap                " Wrapping sucks (except on markdown)
 autocmd BufRead,BufNewFile *.md,*.txt setlocal wrap " DO wrap on markdown files
 set noswapfile            " Do not leve any backup files
-set mouse=a               " Enable mouse on all modes
 set scrolloff=5           " Min lines to keep above/below curor
 set syntax=enable
 set showmatch
 set termguicolors
-set visualbell
-set noerrorbells
 set splitright splitbelow
 set title                 " Show filename
 set cursorcolumn          " Show vertial column on cursor
 " set cursorline            " Highlight the current line you are writing on
-set list lcs=tab:\¦\      "(here is a space)
+set list lcs=tab:\¦\      
 let &t_SI = "\e[6 q"      " Make cursor a line in insert
 let &t_EI = "\e[2 q"      " Make cursor a line in insert
 set wildignore=*/node_modules/*,*/vendor/*,*.git*
+
+
+" Shows line number on current line, relative numbers off that
+set number                     " Show current line number
+set relativenumber             " Show relative line numbers
 
 let NERDTreeShowHidden=1
 
@@ -74,6 +72,10 @@ nnoremap <C-e> :CocList diagnostics<cr>
 
 " Language specific configuration
 autocmd FileType yaml,bash,sh setlocal shiftwidth=2 softtabstop=2
+
+" I hate those psr4 inline comments
+autocmd FileType php setlocal commentstring=# %s
+
 
 " Code completion
 runtime coc.vim
