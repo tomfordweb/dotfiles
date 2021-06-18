@@ -77,6 +77,9 @@ map <C-k><C-k> :NERDTreeToggle<cr>
 nnoremap <C-p> :GFiles<cr>
 nnoremap <C-O> :Files<cr>
 
+" Ripgrep
+nnoremap <C-I> :Rg<cr>
+
 " Ctrl-e to show lint errors
 nnoremap <C-e> :CocList diagnostics<cr>
 
