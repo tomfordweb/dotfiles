@@ -75,6 +75,7 @@ map <C-k><C-k> :NERDTreeToggle<cr>
 
 " Use Ctrl-P to open the fuzzy file opener
 nnoremap <C-p> :GFiles<cr>
+nnoremap <C-O> :Files<cr>
 
 " Ctrl-e to show lint errors
 nnoremap <C-e> :CocList diagnostics<cr>

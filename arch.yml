@@ -1,7 +1,7 @@
 ---
 - name: "Arch Linux Installation"
   hosts: localhost
-  connection: local 
+  connection: local
   tasks:
     - name: Enable NetworkManager
       ansible.builtin.systemd:
@@ -9,9 +9,7 @@
         enabled: yes
         state: started
   roles:
-      - role-xorg
-      - role-shell
-      - role-nvim
-      - role-tmux
-
-
+    - role-xorg
+    - role-shell
+    - role-nvim
+    - role-tmux
