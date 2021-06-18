@@ -1,7 +1,7 @@
 call plug#begin('~/.nvim/plugged')
+    Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
     Plug 'vim-airline/vim-airline'
     Plug 'airblade/vim-gitgutter'
-    Plug 'tmsvg/pear-tree' " Parenthesis/Bracket completion
     Plug 'tpope/vim-commentary' 
     Plug 'tpope/vim-fugitive' 
     Plug 'morhetz/gruvbox' " The only theme
@@ -50,6 +50,10 @@ set relativenumber             " Show relative line numbers
 
 let NERDTreeShowHidden=1
 
+" Prettier config
+let g:prettier#autoformat = 1
+let g:prettier#autoformat_require_pragma = 0
+
 
 colorscheme gruvbox
 
@@ -63,6 +67,9 @@ augroup vimrc-remember-cursor-position
   autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
 augroup END
 
+"
+" CUSTOM KEYBINDS
+" 
 " Ctrl-kk - Toggle file browser
 map <C-k><C-k> :NERDTreeToggle<cr>
 
@@ -72,12 +79,21 @@ nnoremap <C-p> :GFiles<cr>
 " Ctrl-e to show lint errors
 nnoremap <C-e> :CocList diagnostics<cr>
 
+" greatest remap ever
+vnoremap <leader>p "_dP
+
+nnoremap <leader>y "+y
+vnoremap <leader>y "+y
+
+nnoremap <leader>Y gg"+yG
+
+nnoremap <leader>d "_d
+vnoremap <leader>d "_d
+
 " Language specific configuration
 autocmd FileType yaml,bash,sh setlocal shiftwidth=2 softtabstop=2
-
 " I hate those psr4 inline comments
 autocmd FileType php setlocal commentstring=#\ %s
-
 
 " Code completion
 runtime coc.vim
