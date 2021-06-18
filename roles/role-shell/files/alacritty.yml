@@ -1,6 +1,14 @@
 # Configuration for Alacritty, the GPU enhanced terminal emulator.
 # Base16 Gruvbox dark, hard - alacritty color config
 # Dawid Kurek (dawikur@gmail.com), morhetz (https://github.com/morhetz/gruvbox)
+#
+decorations: buttonless
+startup_mode: Fullscreen
+draw_bold_text_with_bright_colors: false
+
+cursor:
+  style: Beam
+
 colors:
   # Default colors
   primary:
@@ -40,17 +48,25 @@ draw_bold_text_with_bright_colors: false
 font:
   # Normal (roman) font face
   normal:
-    Default:
-    family: monospace
+    family: MesloLGS NF
     style: Regular
+
+  # Bold font face
   bold:
-    family: monospace
+    family: MesloLGS NF
     style: Bold
+
+  # Italic font face
   italic:
-    family: monospace
+    family: MesloLGS NF
     style: Italic
+
+  # Bold italic font face
   bold_italic:
-    family: monospace
+    family: MesloLGS NF
     style: Bold Italic
-  size: 8.0
-background_opacity: 0.8
+
+  # Point size
+  size: 13.0
+
+background_opacity: 0.9

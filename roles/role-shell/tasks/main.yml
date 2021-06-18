@@ -3,6 +3,7 @@
 - name: Install Alacritty arch
   become: yes
   when: ansible_facts['distribution'] == 'Archlinux'
+  tags: ['terminal']
   community.general.pacman:
     name:
       - alacritty
@@ -10,10 +11,17 @@
 
 - name: Install Alacritty osx
   when: ansible_facts['distribution'] == 'MacOSX'
+  tags: ['terminal']
   community.general.homebrew_cask:
     name:
       - alacritty
     state: present
+
+- name: Alacritty config
+  tags: ['terminal']
+  copy:
+    src: alacritty.yml
+    dest: "{{ ansible_env.HOME }}/.alacritty.yml"
 
 - name: Get the user shell
   ansible.builtin.debug:
