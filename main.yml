@@ -20,6 +20,10 @@
             src: crkbd
             dest: "{{ ansible_env.HOME }}/code/qmk/qmk_firmware/keyboards/crkbd"
         
+        - name: "Copy helix maps"
+          ansible.builtin.copy:
+            src: helix
+            dest: "{{ ansible_env.HOME }}/code/qmk/qmk_firmware/keyboards/helix/rev2/keymaps/tom-custom"
         - name: "Copy rgbkb maps"
           ansible.builtin.copy:
             src: rgbkb/mun/
