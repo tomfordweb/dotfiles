@@ -1,5 +1,7 @@
 call plug#begin('~/.nvim/plugged')
-    Plug 'prettier/vim-prettier', { 'do': 'yarn install' }
+    Plug 'prettier/vim-prettier', {
+      \ 'do': 'yarn install',
+      \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
     Plug 'vim-airline/vim-airline'
     Plug 'airblade/vim-gitgutter'
     Plug 'tpope/vim-commentary' 
@@ -51,8 +53,13 @@ set relativenumber             " Show relative line numbers
 let NERDTreeShowHidden=1
 
 " Prettier config
+" when running at every change you may want to disable quickfix
+let g:prettier#quickfix_enabled = 0
 let g:prettier#autoformat = 1
 let g:prettier#autoformat_require_pragma = 0
+
+autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.svelte,*.yaml,*.html PrettierAsync
+
 
 
 colorscheme gruvbox
