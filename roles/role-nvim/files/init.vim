@@ -60,6 +60,9 @@ let g:prettier#autoformat_require_pragma = 0
 
 autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.graphql,*.md,*.vue,*.svelte,*.yaml,*.html PrettierAsync
 
+" .class files are almost always terribly written php where I come from
+autocmd BufNewFile,BufRead *.class set syntax=php
+
 
 
 colorscheme gruvbox
