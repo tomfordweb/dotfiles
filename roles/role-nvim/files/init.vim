@@ -63,6 +63,9 @@ autocmd BufWritePre *.js,*.jsx,*.mjs,*.ts,*.tsx,*.css,*.less,*.scss,*.json,*.gra
 " .class files are almost always terribly written php where I come from
 autocmd BufNewFile,BufRead *.class set syntax=php
 
+" prevent fzf searches from hitting on filenames
+command! -bang -nargs=* Rg call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, {'options': '--delimiter : --nth 4..'}, <bang>0)
+
 
 
 colorscheme gruvbox
