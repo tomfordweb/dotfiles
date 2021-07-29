@@ -5,6 +5,7 @@ call plug#begin('~/.nvim/plugged')
     Plug 'vim-airline/vim-airline'
     Plug 'airblade/vim-gitgutter'
     Plug 'tpope/vim-commentary' 
+    Plug 'HerringtonDarkholme/yats.vim'
     Plug 'tpope/vim-fugitive' 
     Plug 'morhetz/gruvbox' " The only theme
     Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' } 
@@ -12,7 +13,7 @@ call plug#begin('~/.nvim/plugged')
     Plug 'junegunn/fzf.vim'               
     Plug 'neoclide/coc.nvim', {'branch': 'release'} 
     Plug 'neoclide/coc-tsserver', {'do': 'npm ci'}
-    Plug 'neoclide/coc-angular', {'do': 'npm ci'}
+    Plug 'iamcco/coc-angular', {'do': 'npm ci'}
     Plug 'beanworks/vim-phpfmt'
 call plug#end()
 
