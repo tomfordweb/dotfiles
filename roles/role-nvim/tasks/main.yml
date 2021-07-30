@@ -1,6 +1,10 @@
 ---
-# tasks file for roles/role-nvim
+- name: install nvim npm dependencies
+  community.general.npm:
+    name: prettier
+    global: yes
 
+# tasks file for roles/role-nvim
 - name: install nvim deps (mac)
   when: ansible_distribution == 'MacOSX'
   community.general.homebrew:
