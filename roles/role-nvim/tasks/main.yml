@@ -5,11 +5,17 @@
     global: yes
 
 # tasks file for roles/role-nvim
-- name: install nvim deps (mac)
+- name: install nvim nightly (mac)
   when: ansible_distribution == 'MacOSX'
   community.general.homebrew:
     name:
       - neovim
+    state: head
+#
+- name: install nvim deps (mac)
+  when: ansible_distribution == 'MacOSX'
+  community.general.homebrew:
+    name:
       - tmux
       - ripgrep
     state: present
