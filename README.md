@@ -1,15 +1,13 @@
-# Setup
+# 'nix Setup
 
--   Install ansible locally
--   Add community.general `ansible-galaxy collection install community.general`
-- Add `ansible-galaxy install kewlfft.aur`
+- Install ansible locally
+- Add the following galaxy modules
+  - `ansible-galaxy collection install community.general`
+  - `ansible-galaxy install kewlfft.aur` (necessary for arch, otherwise ignore)
 
+# Mac Setup
 
-# Mac Specific things
-
-I always have a heck of a time getting ansible working right on MacOS.
-
-I tend to just make a python venv in this project folder..
+Just use a venv. I have never been able to get ansible working well on a mac
 
 ```
 $ python3 -m venv venv
@@ -23,20 +21,23 @@ $ python -m pip install ansible
 
 Cross platform text editor and terminal configuration.
 
+- gruvbox, baby
+- alacritty
+- tmux
+- nvim
+- docker
+- local build tools
+
 #### Post Run Steps:
 
--   Set a default node via nvm, I use LTS versions
--   Boot up nvim, it will probably complain about an invalid config.
--   Run `:PluginInstall`
--   Run `source %`
--   nvim "should" be happy now.
+- Set a default node via nvm, I use LTS versions
+- Boot up nvim, embrace the errors
+- Run `:PluginInstall`
+- Run `:so` (source mapping) or just restart it.
 
 ### `arch.yml`
 
-```
-"btw i use arch"
-```
-
--   i3wm config
--   conky
--   xorg modifications
+- i3-gaps config
+- conky
+- xorg modifications
+  - caps as ctrl
