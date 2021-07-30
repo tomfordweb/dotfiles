@@ -2,6 +2,8 @@
 
 -   Install ansible locally
 -   Add community.general `ansible-galaxy collection install community.general`
+- Add `ansible-galaxy install kewlfft.aur`
+
 
 # Mac Specific things
 

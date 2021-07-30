@@ -1,14 +1,5 @@
 ---
 # tasks file for roles/role-nvim
-- name: install nvim deps (arch)
-  become: yes
-  when: ansible_facts['distribution'] == 'Archlinux'
-  community.general.pacman:
-    name:
-      - neovim
-      - tmux
-      - ripgrep
-    state: present
 
 - name: install nvim deps (mac)
   when: ansible_distribution == 'MacOSX'
@@ -38,12 +29,14 @@
     state: directory
 
 - name: Move coc init config to nvim folder
+  tags: ["vimrc"]
   copy:
     src: coc-init.vim
     dest: "{{ ansible_env.HOME }}/.config/nvim/coc-init.vim"
     mode: 0640
 
 - name: Move coc settings to nvim folder
+  tags: ["vimrc"]
   copy:
     src: coc-settings.json
     dest: "{{ ansible_env.HOME }}/.config/nvim/coc-settings.json"

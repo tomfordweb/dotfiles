@@ -13,3 +13,16 @@
     - role-shell
     - role-nvim
     - role-tmux
+
+
+
+# playbook.yml
+- name: "install nvim nightly"
+  hosts: localhost
+  connection: local
+  roles:
+    - kewlfft.aur
+  tasks:
+    - name: "nvim nightly"
+      aur: name=neovim-nightly-bin
+
