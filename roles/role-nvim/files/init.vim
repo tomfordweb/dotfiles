@@ -104,6 +104,8 @@ set wildignore+=**/node_modules/*
 set wildignore+=**/vendor/*
 set wildignore+=**/.git/*
 
+
+set mouse=a
 set list lcs=tab:\¦\      
 let &t_SI = "\e[6 q"      " Make cursor a line in insert
 let &t_EI = "\e[2 q"      " Make cursor a line in inserto
