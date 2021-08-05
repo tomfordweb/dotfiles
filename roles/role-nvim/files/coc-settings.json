@@ -26,17 +26,5 @@
         "warning": "warning"
       }
     }
-  },
-  "diagnostic-languageserver.formatFiletypes": {
-    "php": "phpcbf"
-  },
-  "diagnostic-languageserver.formatters": {
-    "phpcbf": {
-      "command": "./vendor/bin/phpcbf",
-      "rootPatterns": ["composer.json", "composer.lock", "vendor", ".git"],
-      "args": ["%file"],
-      "isStdout": false,
-      "doesWriteToFile": true
-    }
   }
 }
