@@ -1,10 +1,8 @@
 call plug#begin('~/.nvim/plugged')
     " " editor enhancements
-    " Plug 'prettier/vim-prettier', {
-    "   \ 'do': 'yarn install',
-    "   \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
     Plug 'vim-airline/vim-airline'
-    Plug 'airblade/vim-gitgutter' " see git changes in gutter
+    " Plug 'airblade/vim-gitgutter' "see git changes in gutter...not very
+    " performant
     Plug 'tpope/vim-commentary' 
     Plug 'morhetz/gruvbox' " theme
     Plug 'tpope/vim-vinegar'
@@ -19,7 +17,6 @@ call plug#begin('~/.nvim/plugged')
 
     " js/ts
     Plug 'HerringtonDarkholme/yats.vim' " typescript syntax
-    " Plug 'beanworks/vim-phpfmt' " php beautifier
 
     Plug 'neoclide/coc.nvim', {'branch': 'release'} 
     Plug 'neoclide/coc-tsserver', {'do': 'npm ci'}
@@ -193,5 +190,7 @@ try
 catch
 endtry
 
-# COC configuration
+" COC configuration
+" Run these commands:
+" CocInstall coc-phpls
 source $HOME/.config/nvim/coc-init.vim
