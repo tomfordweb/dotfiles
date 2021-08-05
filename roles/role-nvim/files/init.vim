@@ -193,3 +193,5 @@ try
 catch
 endtry
 
+# COC configuration
+source $HOME/.config/nvim/coc-init.vim
