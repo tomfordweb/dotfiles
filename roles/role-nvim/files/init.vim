@@ -85,7 +85,8 @@ set showmatch
 set termguicolors
 set splitright splitbelow
 set title                 " Show filename
-set cursorcolumn          " Show vertial column on cursor
+set nocursorcolumn          
+set nocursorline          
 
 " allows globbing on netrw stuff
 set path+=**
