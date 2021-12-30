@@ -3,22 +3,29 @@
 - name: Install Alacritty arch
   become: yes
   when: ansible_facts['distribution'] == 'Archlinux'
-  tags: ['terminal']
+  tags: ["terminal"]
   community.general.pacman:
     name:
       - alacritty
     state: present
 
+# Update homebrew and upgrade all packages
+- name: Update homebrew and upgrade packages
+  when: ansible_facts['distribution'] == 'MacOSX'
+  community.general.homebrew:
+    update_homebrew: yes
+    upgrade_all: yes
+
 - name: Install Alacritty osx
   when: ansible_facts['distribution'] == 'MacOSX'
-  tags: ['terminal']
+  tags: ["terminal"]
   community.general.homebrew_cask:
     name:
       - alacritty
     state: present
 
 - name: Alacritty config
-  tags: ['terminal']
+  tags: ["terminal"]
   copy:
     src: alacritty.yml
     dest: "{{ ansible_env.HOME }}/.alacritty.yml"
@@ -34,7 +41,7 @@
     regexp: "source %HOME/.shell_functions"
     line: "if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi"
 
-- name: Source shell functions file in zshrc 
+- name: Source shell functions file in zshrc
   when: ansible_facts['user_shell'] == '/bin/zsh'
   ansible.builtin.lineinfile:
     dest: "{{ ansible_env.HOME }}/.zshrc"
@@ -45,5 +52,3 @@
   copy:
     src: shell_functions
     dest: "{{ ansible_env.HOME }}/.shell_functions"
-  
-
