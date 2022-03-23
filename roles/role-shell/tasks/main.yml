@@ -34,6 +34,14 @@
   ansible.builtin.debug:
     var: ansible_facts['user_shell']
 
+- name: ensure bash profile exists
+  copy:
+    content: ""
+    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    force: no
+    mode: 0755
+    
+
 - name: Source shell functions file in bash_profile
   when: ansible_facts['user_shell'] == '/bin/bash'
   ansible.builtin.lineinfile:

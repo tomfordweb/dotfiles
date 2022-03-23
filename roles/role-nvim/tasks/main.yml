@@ -1,9 +1,18 @@
 ---
-- name: install nvim npm dependencies
-  community.general.npm:
-    name: prettier
-    global: yes
+- name: add nvim nightly ppa (popos)
+  when: ansible_distribution == 'Pop!_OS'
+  become: yes
+  ansible.builtin.apt_repository:
+    repo: ppa:neovim-ppa/unstable
+    state: present
 
+- name: install nvim nightly (popos)
+  when: ansible_distribution == 'Pop!_OS'
+  become: yes
+  apt:
+    pkg:
+      - neovim
+    update_cache: yes
 # tasks file for roles/role-nvim
 - name: install nvim nightly (mac)
   when: ansible_distribution == 'MacOSX'
@@ -25,6 +34,11 @@
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
     creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+
+- name: install nvim npm dependencies
+  community.general.npm:
+    name: prettier
+    global: yes
 
 - name: Install vimplug for nvim
   shell: >

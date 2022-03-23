@@ -17,6 +17,16 @@
       - tmuxinator
     state: present
 
+- name: Install
+  when: ansible_distribution == 'Pop!_OS'
+  become: yes
+  apt:
+    name:
+      - ruby
+      - tmux
+      - tmuxinator
+    state: present
+
 # NOTE: probably works on all linux distros
 - name: Install tmuxinator for tmux project scaffolding
   when: ansible_facts['distribution'] == 'Archlinux'
@@ -27,7 +37,7 @@
 - name: Create an alias for tmuxinator
   ansible.builtin.lineinfile:
     dest: "{{ ansible_env.HOME }}/.shell_functions"
-    regexp: '^alias t8r='
+    regexp: "^alias t8r="
     line: "alias t8r='tmuxinator'"
 
 # NOTE: this works on arch, your experience may vary.
@@ -36,7 +46,7 @@
   when: ansible_facts['distribution'] == 'Archlinux'
   ansible.builtin.lineinfile:
     dest: "{{ ansible_env.HOME }}/.shell_functions"
-    regexp: '^export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin'
+    regexp: "^export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin"
     line: "export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin"
 
 # tasks file for role-tmux
@@ -50,4 +60,3 @@
   copy:
     src: tmuxinator/
     dest: "{{ ansible_env.HOME }}/.config/tmuxinator/"
-
