@@ -48,25 +48,25 @@ draw_bold_text_with_bright_colors: false
 font:
   # Normal (roman) font face
   normal:
-    family: MesloLGS NF
+    family: FiraCode NF
     style: Regular
 
   # Bold font face
   bold:
-    family: MesloLGS NF
+    family: Hack NF
     style: Bold
 
   # Italic font face
   italic:
-    family: MesloLGS NF
+    family: FiraCode NF
     style: Italic
 
   # Bold italic font face
   bold_italic:
-    family: MesloLGS NF
+    family: FiraCode NF
     style: Bold Italic
 
   # Point size
   size: 13.0
 
-background_opacity: 0.9
+window.opacity: 0.9

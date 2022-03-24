@@ -12,6 +12,8 @@
   apt:
     pkg:
       - neovim
+      - cargo
+      - pip
     update_cache: yes
 # tasks file for roles/role-nvim
 - name: install nvim nightly (mac)
