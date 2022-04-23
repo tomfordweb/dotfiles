@@ -94,6 +94,7 @@
 - name: nvim -> :PlugInstall
   tags: ["vimrc"]
   shell: nvim +PlugUpdate +qall --headless
+  changed_when: False
 
 - name: Lvim -> :Packer*
   tags: ["vimrc"]
