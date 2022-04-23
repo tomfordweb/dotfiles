@@ -90,3 +90,13 @@
     src: nvim/
     dest: "{{ ansible_env.HOME }}/.config/nvim/"
 
+
+- name: nvim -> :PlugInstall
+  tags: ["vimrc"]
+  shell: nvim +PlugUpdate +qall --headless
+
+- name: Lvim -> :Packer*
+  tags: ["vimrc"]
+  shell: lvim +PackerCompile +qall --headless
+  changed_when: False
+

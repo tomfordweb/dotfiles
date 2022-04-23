@@ -40,9 +40,6 @@ Cross platform text editor and terminal configuration.
 #### Post Run Steps:
 
 - Set a default node via nvm, I use LTS versions
-- Boot up nvim, embrace the errors
-- Run `:PluginInstall`
-- Run `:so` (source mapping) or just restart it.
 
 ### `arch.yml`
 
