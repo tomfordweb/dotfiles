@@ -18,7 +18,6 @@
       - pip
     update_cache: True
 
-
 # tasks file for roles/role-nvim
 - name: install nvim nightly (mac)
   when: ansible_distribution == 'MacOSX'
@@ -54,19 +53,18 @@
     creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
 
 - name: Download lvim installer
-  get_url: 
+  get_url:
     dest: /tmp/lvim-installer.sh
     url: https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh
-    
+
 - name: Execute the lvim-installer.sh
-  script: 
+  script:
     cmd: /tmp/lvim-installer.sh -y
 
 - name: Remove the lvim-installer.sh
-  file: 
-    path: /tmp/lvim-installer.sh 
+  file:
+    path: /tmp/lvim-installer.sh
     state: absent
-
 
 - name: Create nvim config directory
   file:
@@ -74,22 +72,16 @@
     state: directory
 
 - name: Move lvim config over
+  tags: ["vimrc"]
   copy:
     src: lvim/
     dest: "{{ ansible_env.HOME }}/.config/lvim/"
-
-- name: Install my lvim config
-  tags: ["vimrc"]
-  file:
-    path: "{{ ansible_env.HOME }}/.config/lvim"
-    state: directory
 
 - name: Install my nvim config
   tags: ["vimrc"]
   copy:
     src: nvim/
     dest: "{{ ansible_env.HOME }}/.config/nvim/"
-
 
 - name: nvim -> :PlugInstall
   tags: ["vimrc"]
@@ -98,6 +90,5 @@
 
 - name: Lvim -> :Packer*
   tags: ["vimrc"]
-  shell: lvim +PackerCompile +qall --headless
+  shell: lvim +PackerInstall +PackerCompile +qall --headless
   changed_when: False
-
