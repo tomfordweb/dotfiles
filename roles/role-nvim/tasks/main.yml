@@ -79,6 +79,7 @@
     dest: "{{ ansible_env.HOME }}/.config/lvim/"
 
 - name: Install my lvim config
+  tags: ["vimrc"]
   file:
     path: "{{ ansible_env.HOME }}/.config/nvim"
     state: directory

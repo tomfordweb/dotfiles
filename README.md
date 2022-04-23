@@ -19,14 +19,23 @@ $ python -m pip install ansible
 
 ### `devmachine.yml`
 
+```
+ansible-playbook devmachine.yml --ask-become-pass
+```
+
 Cross platform text editor and terminal configuration.
 
-- gruvbox, baby
+- gruvbox
 - alacritty
 - tmux
 - nvim
+- lunarvim
 - docker
 - local build tools
+
+#### Tags:
+
+- `vimrc` - update vim configs
 
 #### Post Run Steps:
 
