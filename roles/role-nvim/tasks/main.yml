@@ -1,20 +1,24 @@
 ---
 - name: add nvim nightly ppa (popos)
   when: ansible_distribution == 'Pop!_OS'
-  become: yes
+  become: True
   ansible.builtin.apt_repository:
     repo: ppa:neovim-ppa/unstable
     state: present
 
-- name: install nvim nightly (popos)
+- name: install nvim nightly and *vim dependencies (popos)
   when: ansible_distribution == 'Pop!_OS'
-  become: yes
+  become: True
   apt:
     pkg:
+      - ripgrep
+      - packer
       - neovim
       - cargo
       - pip
-    update_cache: yes
+    update_cache: True
+
+
 # tasks file for roles/role-nvim
 - name: install nvim nightly (mac)
   when: ansible_distribution == 'MacOSX'
@@ -22,7 +26,7 @@
     name:
       - neovim
     state: head
-#
+
 - name: install nvim deps (mac)
   when: ansible_distribution == 'MacOSX'
   community.general.homebrew:
@@ -49,28 +53,39 @@
   args:
     creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
 
+- name: Download lvim installer
+  get_url: 
+    dest: /tmp/lvim-installer.sh
+    url: https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh
+    
+- name: Execute the lvim-installer.sh
+  script: 
+    cmd: /tmp/lvim-installer.sh -y
+
+- name: Remove the lvim-installer.sh
+  file: 
+    path: /tmp/lvim-installer.sh 
+    state: absent
+
+
 - name: Create nvim config directory
   file:
     path: "{{ ansible_env.HOME }}/.config/nvim"
     state: directory
 
-- name: Move coc init config to nvim folder
-  tags: ["vimrc"]
+- name: Move lvim config over
   copy:
-    src: coc-init.vim
-    dest: "{{ ansible_env.HOME }}/.config/nvim/coc-init.vim"
-    mode: 0640
+    src: lvim/
+    dest: "{{ ansible_env.HOME }}/.config/lvim/"
 
-- name: Move coc settings to nvim folder
-  tags: ["vimrc"]
-  copy:
-    src: coc-settings.json
-    dest: "{{ ansible_env.HOME }}/.config/nvim/coc-settings.json"
-    mode: 0640
+- name: Install my lvim config
+  file:
+    path: "{{ ansible_env.HOME }}/.config/nvim"
+    state: directory
 
-- name: Move nvim settings to nvim folder
+- name: Install my nvim config
   tags: ["vimrc"]
   copy:
-    src: init.vim
-    dest: "{{ ansible_env.HOME }}/.config/nvim/init.vim"
-    mode: 0640
+    src: nvim/
+    dest: "{{ ansible_env.HOME }}/.config/nvim/"
+
