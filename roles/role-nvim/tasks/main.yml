@@ -52,19 +52,19 @@
   args:
     creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
 
-- name: Download lvim installer
-  get_url:
-    dest: /tmp/lvim-installer.sh
-    url: https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh
+# - name: Download lvim installer
+#   get_url:
+#     dest: /tmp/lvim-installer.sh
+#     url: https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh
 
-- name: Execute the lvim-installer.sh
-  script:
-    cmd: /tmp/lvim-installer.sh -y
+# - name: Execute the lvim-installer.sh
+#   script:
+#     cmd: /tmp/lvim-installer.sh -y
 
-- name: Remove the lvim-installer.sh
-  file:
-    path: /tmp/lvim-installer.sh
-    state: absent
+# - name: Remove the lvim-installer.sh
+#   file:
+#     path: /tmp/lvim-installer.sh
+#     state: absent
 
 - name: Create nvim config directory
   file:
@@ -83,12 +83,12 @@
     src: nvim/
     dest: "{{ ansible_env.HOME }}/.config/nvim/"
 
-- name: nvim -> :PlugInstall
-  tags: ["vimrc"]
-  shell: nvim +PlugUpdate +qall --headless
-  changed_when: False
+# - name: nvim -> :PlugInstall
+#   tags: ["vimrc"]
+#   shell: nvim +PlugUpdate +qall --headless
+#   changed_when: False
 
-- name: Lvim -> :Packer*
-  tags: ["vimrc"]
-  shell: lvim +PackerInstall +PackerCompile +qall --headless
-  changed_when: False
+# - name: Lvim -> :Packer*
+#   tags: ["vimrc"]
+#   shell: lvim +PackerInstall +PackerCompile +qall --headless
+#   changed_when: False
