@@ -1,27 +1,53 @@
+
 call plug#begin('~/.nvim/plugged')
     " " editor enhancements
     Plug 'vim-airline/vim-airline'
-    " Plug 'airblade/vim-gitgutter' "see git changes in gutter...not very
-    " performant
     Plug 'tpope/vim-commentary' 
     Plug 'morhetz/gruvbox' " theme
-    Plug 'tpope/vim-vinegar'
     Plug 'sbdchd/neoformat'
 
-    Plug 'tpope/vim-fugitive' " git tool
+    " Files
+    Plug 'kyazdani42/nvim-web-devicons' " optional, for file icons
+    Plug 'kyazdani42/nvim-tree.lua'
+    " git 
+    Plug 'tpope/vim-fugitive' 
+
     " telescope
     Plug 'nvim-lua/popup.nvim'
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-telescope/telescope.nvim'
     Plug 'nvim-telescope/telescope-fzy-native.nvim'
 
-    " js/ts
-    Plug 'HerringtonDarkholme/yats.vim' " typescript syntax
 
-    Plug 'neoclide/coc.nvim', {'branch': 'release'} 
-    Plug 'neoclide/coc-tsserver', {'do': 'npm ci'}
+    " js/ts
+    " Plug 'HerringtonDarkholme/yats.vim' " typescript syntax
+
+    " Plug 'neoclide/coc.nvim', {'branch': 'release'} 
+    " Plug 'neoclide/coc-tsserver', {'do': 'npm ci'}
 call plug#end()
 
+" Nvim tree setup 
+lua <<EOF
+require("nvim-tree").setup({
+  sort_by = "case_sensitive",
+  view = {
+    adaptive_size = true,
+    mappings = {
+      list = {
+        { key = "u", action = "dir_up" },
+      },
+    },
+  },
+  renderer = {
+    group_empty = true,
+  },
+  filters = {
+    dotfiles = true,
+  },
+})
+EOF
+
+" Vim telescope setup
 lua <<EOF
 local actions = require('telescope.actions')
 require('telescope').setup {
@@ -63,7 +89,7 @@ end
 return M
 EOF
 
-let mapleader = ","
+let mapleader = " "
 
 set nocompatible
 set number                " Show numbers on the left
@@ -151,11 +177,10 @@ augroup END
 map <C-k><C-k> :e .<cr>
 
 
-" Ripgrep
-nnoremap <C-I> :Rg<cr>
+nnoremap <C-t> :NvimTreeToggle<cr>
 
 " Ctrl-e to show lint errors
-nnoremap <C-e> :CocList diagnostics<cr>
+" nnoremap <C-e> :CocList diagnostics<cr>
 
 vnoremap <leader>p "_dP
 nnoremap <leader>y "+y
@@ -170,19 +195,19 @@ autocmd FileType yaml,bash,sh setlocal shiftwidth=2 softtabstop=2
 autocmd FileType php setlocal commentstring=#\ %s
 
 " Telescope bindings
-nnoremap <C-p> :lua require('telescope.builtin').git_files()<CR>
-nnoremap <leader>ff <cmd>lua require('telescope.builtin').find_files()<cr>
-nnoremap <leader>fg <cmd>lua require('telescope.builtin').live_grep()<cr>
-nnoremap <leader>fb <cmd>lua require('telescope.builtin').buffers()<cr>
-nnoremap <leader>fB <cmd>lua require('telescope.builtin').git_branches()<cr>
-nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
+nnoremap <leader>F :lua require('telescope.builtin').find_files()<CR>
+nnoremap <leader>f <cmd>lua require('telescope.builtin').git_files()<cr>
+nnoremap <leader>s <cmd>lua require('telescope.builtin').live_grep()<cr>
+nnoremap <leader>b <cmd>lua require('telescope.builtin').buffers()<cr>
+nnoremap <leader>B <cmd>lua require('telescope.builtin').git_branches()<cr>
+nnoremap <leader>h <cmd>lua require('telescope.builtin').help_tags()<cr>
 
 nnoremap <Leader><CR> :so ~/.config/nvim/init.vim<CR>
 nnoremap <Leader>+ :vertical resize +5<CR>
 nnoremap <Leader>- :vertical resize -5<CR>
 
 " Code completion
-runtime coc.vim
+" runtime coc.vim
 
 " Turn persistent undo on 
 try
@@ -194,4 +219,4 @@ endtry
 " COC configuration
 " Run these commands:
 " CocInstall coc-phpls
-source $HOME/.config/nvim/coc-init.vim
+" source $HOME/.config/nvim/coc-init.vim
