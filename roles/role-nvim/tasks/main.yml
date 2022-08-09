@@ -38,7 +38,7 @@
   shell: >
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
-    creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+    creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
 
 - name: install nvim npm dependencies
   community.general.npm:
@@ -47,12 +47,11 @@
 
 - name: Create nvim config directory
   file:
-    path: "{{ ansible_env.HOME }}/.config/nvim"
+    path: '{{ ansible_env.HOME }}/.config/nvim'
     state: directory
 
 - name: Install my nvim config
-  tags: ["vimrc"]
+  tags: ['vimrc', 'dotfiles']
   copy:
     src: nvim/
-    dest: "{{ ansible_env.HOME }}/.config/nvim/"
-
+    dest: '{{ ansible_env.HOME }}/.config/nvim/'

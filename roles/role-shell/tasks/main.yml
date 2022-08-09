@@ -3,7 +3,7 @@
 - name: Install Alacritty arch
   become: yes
   when: ansible_facts['distribution'] == 'Archlinux'
-  tags: ["terminal"]
+  tags: ['terminal']
   community.general.pacman:
     name:
       - alacritty
@@ -18,17 +18,17 @@
 
 - name: Install Alacritty osx
   when: ansible_facts['distribution'] == 'MacOSX'
-  tags: ["terminal"]
+  tags: ['terminal']
   community.general.homebrew_cask:
     name:
       - alacritty
     state: present
 
 - name: Alacritty config
-  tags: ["terminal"]
+  tags: ['terminal', 'dotfiles']
   copy:
     src: alacritty.yml
-    dest: "{{ ansible_env.HOME }}/.alacritty.yml"
+    dest: '{{ ansible_env.HOME }}/.alacritty.yml'
 
 - name: Get the user shell
   ansible.builtin.debug:
@@ -36,27 +36,26 @@
 
 - name: ensure bash profile exists
   copy:
-    content: ""
-    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    content: ''
+    dest: '{{ ansible_env.HOME }}/.bash_profile'
     force: no
     mode: 0755
-    
 
 - name: Source shell functions file in bash_profile
   when: ansible_facts['user_shell'] == '/bin/bash'
   ansible.builtin.lineinfile:
-    dest: "{{ ansible_env.HOME }}/.bash_profile"
-    regexp: "source %HOME/.shell_functions"
-    line: "if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi"
+    dest: '{{ ansible_env.HOME }}/.bash_profile'
+    regexp: 'source %HOME/.shell_functions'
+    line: 'if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi'
 
 - name: Source shell functions file in zshrc
   when: ansible_facts['user_shell'] == '/bin/zsh'
   ansible.builtin.lineinfile:
-    dest: "{{ ansible_env.HOME }}/.zshrc"
-    regexp: "source %HOME/.shell_functions"
-    line: "if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi"
+    dest: '{{ ansible_env.HOME }}/.zshrc'
+    regexp: 'source %HOME/.shell_functions'
+    line: 'if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi'
 
 - name: Copy shell functions file to home directory
   copy:
     src: shell_functions
-    dest: "{{ ansible_env.HOME }}/.shell_functions"
+    dest: '{{ ansible_env.HOME }}/.shell_functions'
