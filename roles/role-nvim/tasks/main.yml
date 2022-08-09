@@ -45,37 +45,10 @@
     name: prettier
     global: yes
 
-- name: Install vimplug for nvim
-  shell: >
-    sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-  args:
-    creates: "{{ ansible_env.HOME }}/.local/share/nvim/site/autoload/plug.vim"
-
-# - name: Download lvim installer
-#   get_url:
-#     dest: /tmp/lvim-installer.sh
-#     url: https://raw.githubusercontent.com/lunarvim/lunarvim/master/utils/installer/install.sh
-
-# - name: Execute the lvim-installer.sh
-#   script:
-#     cmd: /tmp/lvim-installer.sh -y
-
-# - name: Remove the lvim-installer.sh
-#   file:
-#     path: /tmp/lvim-installer.sh
-#     state: absent
-
 - name: Create nvim config directory
   file:
     path: "{{ ansible_env.HOME }}/.config/nvim"
     state: directory
-
-- name: Move lvim config over
-  tags: ["vimrc"]
-  copy:
-    src: lvim/
-    dest: "{{ ansible_env.HOME }}/.config/lvim/"
 
 - name: Install my nvim config
   tags: ["vimrc"]
@@ -83,12 +56,3 @@
     src: nvim/
     dest: "{{ ansible_env.HOME }}/.config/nvim/"
 
-# - name: nvim -> :PlugInstall
-#   tags: ["vimrc"]
-#   shell: nvim +PlugUpdate +qall --headless
-#   changed_when: False
-
-# - name: Lvim -> :Packer*
-#   tags: ["vimrc"]
-#   shell: lvim +PackerInstall +PackerCompile +qall --headless
-#   changed_when: False
