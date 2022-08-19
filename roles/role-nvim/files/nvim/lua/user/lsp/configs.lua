@@ -5,7 +5,8 @@ end
 
 local lspconfig = require("lspconfig")
 
-local servers = { "jsonls", "sumneko_lua", "intelephense" }
+-- the servers that are installed and enabled by default
+local servers = { "jsonls", "sumneko_lua", "intelephense", "eslint", "angularls", "tsserver" }
 
 lsp_installer.setup({
 	ensure_installed = servers,
