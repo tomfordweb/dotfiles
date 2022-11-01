@@ -48,22 +48,22 @@ draw_bold_text_with_bright_colors: false
 font:
   # Normal (roman) font face
   normal:
-    family: FiraCode NF
+    family: {{ regular }}
     style: Regular
 
   # Bold font face
   bold:
-    family: Hack NF
+    family: {{ bold }}
     style: Bold
 
   # Italic font face
   italic:
-    family: FiraCode NF
+    family: {{ italic }}
     style: Italic
 
   # Bold italic font face
   bold_italic:
-    family: FiraCode NF
+    family: {{ bold_italic }}
     style: Bold Italic
 
   # Point size
