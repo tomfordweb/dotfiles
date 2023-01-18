@@ -43,6 +43,7 @@
       - ripgrep
       - stylua
       - fortune
+      - fd
     state: present
 
 - name: Install nvm for intellisense server
