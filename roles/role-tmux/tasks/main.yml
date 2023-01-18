@@ -36,8 +36,8 @@
 
 - name: Create an alias for tmuxinator
   ansible.builtin.lineinfile:
-    dest: '{{ ansible_env.HOME }}/.shell_functions'
-    regexp: '^alias t8r='
+    dest: "{{ ansible_env.HOME }}/.shell_functions"
+    regexp: "^alias t8r="
     line: "alias t8r='tmuxinator'"
 
 # NOTE: this works on arch, your experience may vary.
@@ -45,19 +45,19 @@
 - name: Ensure ruby is in the path
   when: ansible_facts['distribution'] == 'Archlinux'
   ansible.builtin.lineinfile:
-    dest: '{{ ansible_env.HOME }}/.shell_functions'
-    regexp: '^export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin'
-    line: 'export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin'
+    dest: "{{ ansible_env.HOME }}/.shell_functions"
+    regexp: "^export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin"
+    line: "export PATH=${PATH}:${HOME}/.local/share/gem/ruby/3.0.0/bin"
 
 # tasks file for role-tmux
 - name: Copy tmux config
-  tags: ['dotfiles']
+  tags: ["dotfiles"]
   copy:
     src: tmux.conf
-    dest: '{{ ansible_env.HOME }}/.tmux.conf'
+    dest: "{{ ansible_env.HOME }}/.tmux.conf"
     mode: 0640
 
 - name: Move tmuxinator configs
   copy:
     src: tmuxinator/
-    dest: '{{ ansible_env.HOME }}/.config/tmuxinator/'
+    dest: "{{ ansible_env.HOME }}/.config/tmuxinator/"
