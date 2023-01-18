@@ -2,9 +2,9 @@
 # TODO: replcae this logic with compile from source on the stable branch
 #
 # git clone git@github.com:neovim/neovim.git
-# git checkout stable 
+# git checkout stable
 # make CMAKE_BUILD_TYPE=RelWithDebInfo
-# sudo make installake 
+# sudo make installake
 #
 #  git checkout https://github.com/neovim/neovim
 #
@@ -41,13 +41,14 @@
     name:
       - tmux
       - ripgrep
+      - stylua
     state: present
 
 - name: Install nvm for intellisense server
   shell: >
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
-    creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
+    creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
 
 - name: install nvim npm dependencies
   community.general.npm:
@@ -56,18 +57,11 @@
 
 - name: Create nvim config directory
   file:
-    path: '{{ ansible_env.HOME }}/.config/nvim'
+    path: "{{ ansible_env.HOME }}/.config/nvim"
     state: directory
 
-- name: Install  deprecated vim files
-  when: ansible_distribution == 'MacOSX'
-  tags: ['vimrc', 'dotfiles']
-  copy:
-    src: nvim-0.8/
-    dest: '{{ ansible_env.HOME }}/.config/nvim/'
 - name: Install my new nvim config
-  when: ansible_distribution == 'Pop!_OS'
-  tags: ['vimrc', 'dotfiles']
+  tags: ["vimrc", "dotfiles"]
   copy:
     src: nvim-0.8/
-    dest: '{{ ansible_env.HOME }}/.config/nvim/'
+    dest: "{{ ansible_env.HOME }}/.config/nvim/"
