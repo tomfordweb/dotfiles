@@ -42,6 +42,7 @@
       - tmux
       - ripgrep
       - stylua
+      - fortune
     state: present
 
 - name: Install nvm for intellisense server
