@@ -8,7 +8,6 @@ require "user.telescope"
 require "user.treesitter"
 require "user.autopairs"
 require "user.comment"
-require "user.gitsigns"
 require "user.nvim-tree"
 require "user.bufferline"
 require "user.lualine"
@@ -20,5 +19,4 @@ require "user.alpha"
 require "user.whichkey"
 require "user.autocommands"
 
-vim.cmd [[autocmd BufWritePre * lua vim.lsp.buf.formatting_sync()]]
 
