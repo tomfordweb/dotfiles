@@ -1,22 +1,31 @@
 ---
-- name: add nvim nightly ppa (popos)
-  when: ansible_distribution == 'Pop!_OS'
-  become: True
-  ansible.builtin.apt_repository:
-    repo: ppa:neovim-ppa/unstable
-    state: present
-
-- name: install nvim nightly and *vim dependencies (popos)
-  when: ansible_distribution == 'Pop!_OS'
-  become: True
-  apt:
-    pkg:
-      - ripgrep
-      - packer
-      - neovim
-      - cargo
-      - pip
-    update_cache: True
+# TODO: replcae this logic with compile from source on the stable branch
+#
+# git clone git@github.com:neovim/neovim.git
+# git checkout stable 
+# make CMAKE_BUILD_TYPE=RelWithDebInfo
+# sudo make installake 
+#
+#  git checkout https://github.com/neovim/neovim
+#
+# - name: add nvim nightly ppa (popos)
+#   when: ansible_distribution == 'Pop!_OS'
+#   become: True
+#   ansible.builtin.apt_repository:
+#     repo: ppa:neovim-ppa/unstable
+#     state: present
+#
+# - name: install nvim nightly and *vim dependencies (popos)
+#   when: ansible_distribution == 'Pop!_OS'
+#   become: True
+#   apt:
+#     pkg:
+#       - ripgrep
+#       - packer
+#       - neovim
+#       - cargo
+#       - pip
+#     update_cache: True
 
 # tasks file for roles/role-nvim
 - name: install nvim nightly (mac)
@@ -50,8 +59,15 @@
     path: '{{ ansible_env.HOME }}/.config/nvim'
     state: directory
 
-- name: Install my nvim config
+- name: Install  deprecated vim files
+  when: ansible_distribution == 'MacOSX'
   tags: ['vimrc', 'dotfiles']
   copy:
-    src: nvim/
+    src: nvim-0.8/
+    dest: '{{ ansible_env.HOME }}/.config/nvim/'
+- name: Install my new nvim config
+  when: ansible_distribution == 'Pop!_OS'
+  tags: ['vimrc', 'dotfiles']
+  copy:
+    src: nvim-0.8/
     dest: '{{ ansible_env.HOME }}/.config/nvim/'
