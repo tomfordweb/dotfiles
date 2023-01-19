@@ -1,0 +1,1 @@
+qmk compile -kb crkbd -km tom-custom
