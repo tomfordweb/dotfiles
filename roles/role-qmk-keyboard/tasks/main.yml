@@ -1,0 +1,31 @@
+---
+# tasks file for roles/role-qmk-keyboard
+- name: "Checkout qmk firmware"
+  ansible.builtin.git:
+    repo: "https://github.com/qmk/qmk_firmware.git"
+    dest: "{{ ansible_env.HOME }}/code/qmk/qmk_firmware"
+    version: master
+
+- name: "Checkout qmk firmware (RGBKB fork)"
+  ansible.builtin.git:
+    repo: "https://github.com/RGBKB/qmk_firmware.git"
+    dest: "{{ ansible_env.HOME }}/code/rgbkb/qmk_firmware"
+    version: development
+
+- name: "Copy crkbd maps"
+  tags: ["maps"]
+  ansible.builtin.copy:
+    src: crkbd
+    dest: "{{ ansible_env.HOME }}/code/qmk/qmk_firmware/keyboards/crkbd"
+
+- name: "Copy helix maps"
+  tags: ["maps"]
+  ansible.builtin.copy:
+    src: helix/
+    dest: "{{ ansible_env.HOME }}/code/qmk/qmk_firmware/keyboards/helix/rev2/keymaps/tom-custom/"
+
+- name: "Copy rgbkb maps"
+  tags: ["maps"]
+  ansible.builtin.copy:
+    src: rgbkb/mun/
+    dest: "{{ ansible_env.HOME }}/code/rgbkb/qmk_firmware/keyboards/rgbkb/mun/"

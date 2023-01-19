@@ -1,4 +1,4 @@
-# 'nix Setup
+# Linux Setup
 
 - Install ansible locally
 - Add the following galaxy modules
@@ -7,12 +7,18 @@
 
 # Mac Setup
 
-Just use a venv. I have never been able to get ansible working well on a mac
+I like using ansible in a venv on Macs.
 
 ```
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ python -m pip install ansible
+```
+
+# Adding a new role
+
+```
+ansible-galaxy init roles/<your role name>
 ```
 
 # Playbooks
@@ -28,29 +34,23 @@ Cross platform text editor and terminal configuration.
 - gruvbox
 - alacritty
 - tmux
-- nvim
-- lunarvim
+- nvim & dependencies
 - docker
 - local build tools
 
 #### Tags:
 
 - `vimrc` - update vim configs
+- `dotfiles` - replace all dotfiles (tmux, alacritty, nvim)
 
 #### Post Run Steps:
 
 - Set a default node via nvm, I use LTS versions
 
-### `arch.yml`
-
-- i3-gaps config
-- conky
-- xorg modifications
-  - caps as ctrl
 
 # Keyboards: 
 
-This repository contains all of my keymaps for my QMK Keyboards.
+This playbook contains all of my keymaps and firmware for the open source QMK keyboards I use.
 
 ## Flashing Notes
 

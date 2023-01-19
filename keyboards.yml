@@ -1,0 +1,6 @@
+---
+  - name: "Copy QMK Keyboard maps"
+    hosts: localhost
+    connection: local 
+    roles:
+        - role-qmk-keyboard
