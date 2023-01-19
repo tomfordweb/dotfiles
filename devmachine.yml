@@ -2,6 +2,11 @@
   - name: "Development environment"
     hosts: localhost
     connection: local 
+    tasks:
+      - name: Create "~/code"
+        file:
+          path: "{{ ansible_env.HOME }}/code"
+          state: directory
     roles:
         - role-shell
         - role-nvim
