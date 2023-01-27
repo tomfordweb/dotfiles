@@ -35,7 +35,12 @@ vim.api.nvim_create_autocmd({ "TextYankPost" }, {
     vim.highlight.on_yank { higroup = "Visual", timeout = 200 }
   end,
 })
-
+vim.api.nvim_create_autocmd({ "BufWritePre" }, {
+  pattern = { "*.php", "*.class" },
+  callback = function()
+    vim.lsp.buf.format { async = true }
+  end,
+})
 vim.api.nvim_create_autocmd({ "BufWritePost" }, {
   pattern = { "*.java" },
   callback = function()
