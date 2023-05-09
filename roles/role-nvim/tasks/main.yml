@@ -65,5 +65,5 @@
 - name: Install my new nvim config
   tags: ["vimrc", "dotfiles"]
   copy:
-    src: nvim-0.8/
+    src: nvim-0.9/
     dest: "{{ ansible_env.HOME }}/.config/nvim/"

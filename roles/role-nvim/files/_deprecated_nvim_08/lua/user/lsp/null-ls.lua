@@ -12,7 +12,7 @@ local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 
 -- https://github.com/prettier-solidity/prettier-plugin-solidity
 null_ls.setup {
-  debug = false,
+  debug = true,
   on_attach = function(client, bufnr)
     if client.supports_method "textDocument/formatting" then
       vim.api.nvim_clear_autocmds { group = augroup, buffer = bufnr }
@@ -26,15 +26,14 @@ null_ls.setup {
     end
   end,
   sources = {
-    formatting.prettier.with {
-      extra_filetypes = { "toml" },
-      extra_args = { "--jsx-single-quote" },
-    },
+    -- formatting.prettier.with {
+    --   extra_filetypes = { "toml" },
+    --   extra_args = { "" },
+    -- },
     formatting.black.with { extra_args = { "--fast" } },
     formatting.stylua,
-    formatting.tidy,
-    diagnostics.eslint,
-    formatting.google_java_format,
+    -- formatting.tidy,
+    -- diagnostics.eslint,
     diagnostics.flake8,
     diagnostics.php,
   },
