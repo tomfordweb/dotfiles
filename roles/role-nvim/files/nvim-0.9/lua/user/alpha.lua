@@ -7,14 +7,30 @@ local M = {
 function M.config()
   local alpha = require "alpha"
   local dashboard = require "alpha.themes.dashboard"
-  dashboard.section.header.val = {
-    [[                               __                ]],
-    [[  ___     ___    ___   __  __ /\_\    ___ ___    ]],
-    [[ / _ `\  / __`\ / __`\/\ \/\ \\/\ \  / __` __`\  ]],
-    [[/\ \/\ \/\  __//\ \_\ \ \ \_/ |\ \ \/\ \/\ \/\ \ ]],
-    [[\ \_\ \_\ \____\ \____/\ \___/  \ \_\ \_\ \_\ \_\]],
-    [[ \/_/\/_/\/____/\/___/  \/__/    \/_/\/_/\/_/\/_/]],
-  }
+
+dashboard.section.header.val = {
+  [[                _,.-----.,_              ]],
+  [[             ,-~           ~-.           ]],
+  [[            ,^___           ___^.        ]],
+  [[          /~"   ~"   .   "~   "~\        ]],
+  [[         Y  ,--._    I    _.--.  Y       ]],
+  [[          | Y     ~-. | ,-~     Y |      ]],
+  [[          | |        }:{        | |      ]],
+  [[          j l       / | \       ! l      ]],
+  [[       .-~  (__,.--" .^. "--.,__)  ~-.   ]],
+  [[       (           / / | \ \           ) ]],
+  [[       \.____,   ~  \/"\/  ~   .____,/   ]],
+  [[        ^.____                 ____.^    ]],
+  [[           | |T ~\  !   !  /~ T| |       ]],
+  [[           | |l   _ _ _ _ _   !| |       ]],
+  [[           | l \/V V V V V V\/ j |       ]],
+  [[           l  \ \|_|_|_|_|_|/ /  !       ]],
+  [[            \  \[T T T T T TI/  /        ]],
+  [[             \  `^-^-^-^-^-^'  /         ]],
+  [[              \               /          ]],
+  [[               \.           ,/           ]],
+  [[                 "^-.___,-^"             ]],
+}
   dashboard.section.buttons.val = {
     dashboard.button("f", " " .. " Find file", ":Telescope find_files <CR>"),
     dashboard.button("e", " " .. " New file", ":ene <BAR> startinsert <CR>"),
@@ -25,7 +41,7 @@ function M.config()
     dashboard.button("q", " " .. " Quit", ":qa<CR>"),
   }
   local function footer()
-    return "chrisatmachine.com"
+    return ""
   end
 
   dashboard.section.footer.val = footer()
