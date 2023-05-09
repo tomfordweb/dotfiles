@@ -4,8 +4,5 @@ local M = {
   event = "VeryLazy",
 }
 
-function M.config()
-  require("vim-fugitive").setup {}
-end
 
 return M
