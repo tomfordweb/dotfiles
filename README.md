@@ -23,6 +23,14 @@ ansible-galaxy init roles/<your role name>
 
 # Playbooks
 
+### `install_nvim.yml`
+Removes and re-installs install_nvim
+
+```
+ansible-playbook install_nvim.yml --ask-become-pass
+
+```
+
 ### `devmachine.yml`
 
 ```
