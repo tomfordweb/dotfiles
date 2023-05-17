@@ -18,7 +18,9 @@
 
 - name: install nvim npm dependencies
   community.general.npm:
-    name: prettier
+    name: 
+      - prettier
+      - nginxbeautifier
     global: yes
 
 - name: Create nvim config directory

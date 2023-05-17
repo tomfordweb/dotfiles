@@ -28,6 +28,7 @@ function M.config()
       },
       formatting.black.with { extra_args = { "--fast" } },
       formatting.stylua,
+      formatting.nginx_beautifier,
       formatting.google_java_format,
       -- formatting.phpcsfixer,
       diagnostics.flake8,
