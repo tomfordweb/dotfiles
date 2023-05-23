@@ -10,17 +10,37 @@
       - fd
     state: present
 
+- name: install nvim deps (pop)
+  when: ansible_distribution == 'Pop!_OS'
+  become: yes
+  apt:
+    name:
+      - ripgrep
+      - fortune
+      - php-codesniffer
+    state: present
+
+- name: Download phpstan phar
+  when: ansible_distribution == 'Pop!_OS'
+  ansible.builtin.get_url:
+    url: https://github.com/phpstan/phpstan/raw/HEAD/phpstan.phar
+    dest: /usr/local/bin/phpstan
+    mode: 'a+x'
+
 - name: Install nvm for intellisense server
   shell: >
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
     creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
 
-- name: install nvim npm dependencies
+- name: install prettier for lsp
   community.general.npm:
-    name: 
-      - prettier
-      - nginxbeautifier
+    name: prettier
+    global: yes
+
+- name: install nginxbeautifier for lsp
+  community.general.npm:
+    name: nginxbeautifier
     global: yes
 
 - name: Create nvim config directory
