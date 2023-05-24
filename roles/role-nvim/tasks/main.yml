@@ -33,6 +33,12 @@
   args:
     creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
 
+- name: install shellcheck for lsp
+  community.general.npm:
+    # Note: could use latest but I am stuck on node 16 for work still.
+    name: shellcheck@1.1.0
+    global: yes
+
 - name: install prettier for lsp
   community.general.npm:
     name: prettier

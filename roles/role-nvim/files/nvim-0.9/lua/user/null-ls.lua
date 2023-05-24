@@ -29,10 +29,11 @@ function M.config()
       formatting.black.with { extra_args = { "--fast" } },
       formatting.stylua,
       formatting.nginx_beautifier,
-      formatting.google_java_format,
+      formatting.beautysh, -- shell formatting
       -- formatting.phpcsfixer,
       diagnostics.flake8,
       diagnostics.eslint,
+      diagnostics.shellcheck, -- shell script static analysis
       diagnostics.php,
       diagnostics.phpcs,
       diagnostics.phpstan
