@@ -27,20 +27,11 @@
     dest: /usr/local/bin/phpstan
     mode: 'a+x'
 
-- name: Install nvm
+- name: Install nvm for intellisense server
   shell: >
-    curl https://raw.githubusercontent.com/creationix/nvm/v0.7.0/install.sh | sh
-    creates=/home/{{ ansible_user_id }}/.nvm/nvm.sh
-- name: Install node and set version
-  shell: >
-    /bin/bash -c "source ~/.nvm/nvm.sh && nvm install 0.10 && nvm alias default 0.10"
-    creates=/home/{{ ansible_user_id }}/.nvm/alias
-
-# - name: Install nvm for intellisense server
-#   shell: >
-#     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-#   args:
-#     creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+  args:
+    creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
 
 - name: install shellcheck for lsp
   community.general.npm:
