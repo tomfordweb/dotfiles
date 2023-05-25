@@ -9,6 +9,7 @@
         private: false
     tasks:
       - name: install build dependencies
+        become: true
         apt:
           name:
             - make
