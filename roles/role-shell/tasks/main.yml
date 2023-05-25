@@ -2,7 +2,9 @@
 # tasks file for role-shell
 - name: Install Alacritty arch
   become: yes
-  when: ansible_facts['distribution'] == 'Archlinux'
+  when: 
+    - ansible_facts['distribution'] == 'Archlinux'
+    - ansible_distribution == 'Pop!_OS'
   tags: ["terminal"]
   community.general.pacman:
     name:
@@ -44,6 +46,9 @@
 
 - name: Alacritty config
   tags: ["terminal", "dotfiles"]
+  when: 
+    - ansible_facts['distribution'] == 'Archlinux'
+    - ansible_distribution == 'Pop!_OS'
   template:
     src: files/alacritty.yml
     dest: "{{ ansible_env.HOME }}/.alacritty.yml"
