@@ -31,13 +31,18 @@
   shell: >
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
   args:
-    creates: "{{ ansible_env.HOME }}/.nvm/nvm.sh"
+    creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
 
 - name: install shellcheck for lsp
   community.general.npm:
     # Note: could use latest but I am stuck on node 16 for work still.
     name: shellcheck@1.1.0
     global: yes
+
+- name: install pip beautysh
+  # sudo -H pip3 install beautysh
+  ansible.builtin.pip:
+    name: beautysh
 
 - name: install prettier for lsp
   community.general.npm:
@@ -51,11 +56,11 @@
 
 - name: Create nvim config directory
   file:
-    path: "{{ ansible_env.HOME }}/.config/nvim"
+    path: '{{ ansible_env.HOME }}/.config/nvim'
     state: directory
 
 - name: Install my new nvim config
-  tags: ["vimrc", "dotfiles"]
+  tags: ['vimrc', 'dotfiles']
   copy:
     src: nvim-0.9/
-    dest: "{{ ansible_env.HOME }}/.config/nvim/"
+    dest: '{{ ansible_env.HOME }}/.config/nvim/'
