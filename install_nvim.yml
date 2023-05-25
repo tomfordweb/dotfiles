@@ -2,11 +2,21 @@
   - name: "Reinstall & reset nvim"
     hosts: localhost
     connection: local 
+    user: tom
     vars_prompt:
       - name: nvimVersion
         prompt: "What version do you want to install? Ex: release-0.9"
         private: false
     tasks:
+      - name: install build dependencies
+        apt:
+          name:
+            - make
+            - cmake
+            - gettext
+            - unzip
+          state: present
+
       - name: "Remove existing nvim plugin installs"
         file:
           path: "{{ ansible_env.HOME }}/.local/share/nvim"
