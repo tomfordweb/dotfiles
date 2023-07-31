@@ -24,6 +24,13 @@
   community.general.homebrew:
     name:
       - lazygit
+    state: present
+
+- name: Install homebrew cask apps
+  when: ansible_facts['distribution'] == 'MacOSX'
+  tags: ['terminal']
+  community.general.homebrew_cask:
+    name:
       - alacritty
     state: present
 
@@ -98,3 +105,9 @@
   copy:
     src: shell_functions
     dest: '{{ ansible_env.HOME }}/.shell_functions'
+
+# TODO: install p10k
+- name: Copy p10k config
+  copy:
+    src: p10k.zsh
+    dest: '{{ ansible_env.HOME }}/.p10k.zsh'
