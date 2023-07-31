@@ -2,10 +2,10 @@
 # tasks file for role-shell
 - name: Install Alacritty arch
   become: yes
-  when: 
+  when:
     - ansible_facts['distribution'] == 'Archlinux'
     - ansible_distribution == 'Pop!_OS'
-  tags: ["terminal"]
+  tags: ['terminal']
   community.general.pacman:
     name:
       - alacritty
@@ -18,17 +18,36 @@
     update_homebrew: yes
     upgrade_all: yes
 
-- name: Install Alacritty osx
+- name: Install homebrew apps
   when: ansible_facts['distribution'] == 'MacOSX'
-  tags: ["terminal"]
+  tags: ['terminal']
+  community.general.homebrew:
+    name:
+      - lazygit
+      - alacritty
+    state: present
+
+- name: Install Fonts - step 1
+  when: ansible_facts['distribution'] == 'MacOSX'
+  tags: ['terminal']
+  community.general.homebrew_tap:
+    name:
+      - homebrew/cask-fonts
+    state: present
+
+- name: Install Fonts - step 2
+  when: ansible_facts['distribution'] == 'MacOSX'
+  tags: ['terminal']
   community.general.homebrew_cask:
     name:
-      - alacritty
+      - font-fira-mono-nerd-font
+      - font-fira-code-nerd-font
+      - font-hack-nerd-font
     state: present
 
 - name: Set Mac Alacritty font family values
   when: ansible_facts['distribution'] == 'MacOSX'
-  tags: ["terminal", "dotfiles"]
+  tags: ['terminal', 'dotfiles']
   set_fact:
     regular: FiraCode Nerd Font Mono
     bold: Hack Nerd Font Mono
@@ -37,7 +56,7 @@
 
 - name: Set linux Alacritty font family values
   when: ansible_facts['distribution'] != 'MacOSX'
-  tags: ["terminal", "dotfiles"]
+  tags: ['terminal', 'dotfiles']
   set_fact:
     regular: FiraCode NF
     bold: Hack NF
@@ -45,13 +64,10 @@
     bold_italic: FiraCode NF
 
 - name: Alacritty config
-  tags: ["terminal", "dotfiles"]
-  when: 
-    - ansible_facts['distribution'] == 'Archlinux'
-    - ansible_distribution == 'Pop!_OS'
+  tags: ['terminal', 'dotfiles']
   template:
     src: files/alacritty.yml
-    dest: "{{ ansible_env.HOME }}/.alacritty.yml"
+    dest: '{{ ansible_env.HOME }}/.alacritty.yml'
 
 - name: Get the user shell
   ansible.builtin.debug:
@@ -59,26 +75,26 @@
 
 - name: ensure bash profile exists
   copy:
-    content: ""
-    dest: "{{ ansible_env.HOME }}/.bash_profile"
+    content: ''
+    dest: '{{ ansible_env.HOME }}/.bash_profile'
     force: no
     mode: 0755
 
 - name: Source shell functions file in bash_profile
   when: ansible_facts['user_shell'] == '/bin/bash'
   ansible.builtin.lineinfile:
-    dest: "{{ ansible_env.HOME }}/.bash_profile"
-    regexp: "source %HOME/.shell_functions"
-    line: "if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi"
+    dest: '{{ ansible_env.HOME }}/.bash_profile'
+    regexp: 'source %HOME/.shell_functions'
+    line: 'if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi'
 
 - name: Source shell functions file in zshrc
   when: ansible_facts['user_shell'] == '/bin/zsh'
   ansible.builtin.lineinfile:
-    dest: "{{ ansible_env.HOME }}/.zshrc"
-    regexp: "source %HOME/.shell_functions"
-    line: "if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi"
+    dest: '{{ ansible_env.HOME }}/.zshrc'
+    regexp: 'source %HOME/.shell_functions'
+    line: 'if [ -f $HOME/.shell_functions ]; then . $HOME/.shell_functions; fi'
 
 - name: Copy shell functions file to home directory
   copy:
     src: shell_functions
-    dest: "{{ ansible_env.HOME }}/.shell_functions"
+    dest: '{{ ansible_env.HOME }}/.shell_functions'
