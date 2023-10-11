@@ -18,6 +18,7 @@ vim.api.nvim_create_autocmd({ "FileType" }, {
 -- Automatically close tab/vim when nvim-tree is the last window in the tab
 vim.cmd "autocmd BufEnter * ++nested if winnr('$') == 1 && bufname() == 'NvimTree_' . tabpagenr() | quit | endif"
 
+
 vim.api.nvim_create_autocmd({ "VimResized" }, {
   callback = function()
     vim.cmd "tabdo wincmd ="
@@ -51,3 +52,8 @@ vim.api.nvim_create_autocmd({ "BufWinEnter" }, {
     end
   end,
 })
+
+
+-- work things.
+-- php .class files
+vim.cmd "autocmd BufNewFile,BufRead *.class setfiletype php"
