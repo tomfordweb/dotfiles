@@ -21,3 +21,4 @@ dock-rm() { docker rm $(docker ps -a -q); }
 
 
 alias gitlg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+alias gitmmerged="git branch --merged | grep -v '\*\|master\|main\|develop' | xargs -n 1 git branch -d"
