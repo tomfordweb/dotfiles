@@ -1,6 +1,7 @@
 ---
 - name: install nvim deps (mac)
   when: ansible_distribution == 'MacOSX'
+  tags: 'vimrc'
   community.general.homebrew:
     name:
       - tmux
@@ -8,6 +9,7 @@
       - stylua
       - fortune
       - fd
+      - shellcheck
     state: present
 
 - name: install nvim deps (pop)

@@ -9,6 +9,7 @@
         private: false
     tasks:
       - name: install build dependencies
+        when: ansible_distribution == 'Pop!_OS'
         become: true
         apt:
           name:
@@ -17,10 +18,17 @@
             - gettext
             - unzip
           state: present
-
+      - name: "install build dependencies mac"
+        community.general.homebrew:
+          name: cmake,gettext
+          state: present
       - name: "Remove existing nvim plugin installs"
         file:
           path: "{{ ansible_env.HOME }}/.local/share/nvim"
+          state: absent
+      - name: "Remove existing install makefiles"
+        file:
+          path: "{{ ansible_env.HOME }}/code/neovim/neovim"
           state: absent
       - name: "Remove existing config"
         file:
