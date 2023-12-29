@@ -21,3 +21,5 @@ dock-rm() { docker rm $(docker ps -a -q); }
 
 
 alias gitlg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+# Show disk speed in/out
+alias diskio="dstat -d -D $(lsblk -d | awk '/ 8:/' | awk '{print $1}' |  paste -s -d, -)"
