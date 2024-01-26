@@ -36,7 +36,10 @@ function M.config()
       diagnostics.shellcheck, -- shell script static analysis
       diagnostics.php,
       diagnostics.phpcs,
-      diagnostics.phpstan
+      diagnostics.phpstan,
+      -- python
+      formatting.autopep8,
+      formatting.reorder_python_imports.lua
     },
   }
 end
