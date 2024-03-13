@@ -24,14 +24,14 @@ require("lazy").setup("user", {
   performance = {
     rtp = {
       disabled_plugins = {
-        -- "gzip", -- Plugin for editing compressed files.
+        "gzip", -- Plugin for editing compressed files.
         -- "matchit", -- What is it?
         --  "matchparen", -- Plugin for showing matching parens
         --  "netrwPlugin", -- Handles file transfers and remote directory listing across a network
-        --  "tarPlugin", -- Plugin for browsing tar files
+         "tarPlugin", -- Plugin for browsing tar files
         --  "tohtml", -- Converting a syntax highlighted file to HTML
-        --  "tutor", -- Teaching?
-        --  "zipPlugin", -- Handles browsing zipfiles
+         "tutor", -- Teaching?
+         "zipPlugin", -- Handles browsing zipfiles
       },
     },
   },

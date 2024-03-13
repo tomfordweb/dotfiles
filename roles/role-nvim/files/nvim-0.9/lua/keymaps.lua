@@ -22,6 +22,11 @@ keymap("n", "<C-j>", "<C-w>j", opts)
 keymap("n", "<C-k>", "<C-w>k", opts)
 keymap("n", "<C-l>", "<C-w>l", opts)
 
+
+-- when text is wrapped, move by terimnal rows, not lines...unless a count is provided
+keymap('n','k', "v:count == 0 ? 'gk' : 'k'", { expr = true })
+keymap('n','j', "v:count == 0 ? 'gj' : 'j'", { expr = true })
+
 -- Resize with arrows
 keymap("n", "<C-Up>", ":resize -2<CR>", opts)
 keymap("n", "<C-Down>", ":resize +2<CR>", opts)
@@ -45,10 +50,17 @@ keymap("v", "p", '"_dP', opts)
 -- Press jk fast to enter
 keymap("i", "jk", "<ESC>", opts)
 
+-- easily insert a trailing semicolon or , in insert mode by double tapping the symbol
+keymap("i", ";;", "<Esc>A;");
+keymap("i", ",,", "<Esc>A,");
+
 -- Visual --
 -- Stay in indent mode
 keymap("v", "<", "<gv", opts)
 keymap("v", ">", ">gv", opts)
+
+-- maintain cursor position when yanking selections
+keymap('v','y','myy`y')
 
 -- Plugins --
 
@@ -77,6 +89,8 @@ keymap("n", "<leader>dr", "<cmd>lua require'dap'.repl.toggle()<cr>", opts)
 keymap("n", "<leader>dl", "<cmd>lua require'dap'.run_last()<cr>", opts)
 keymap("n", "<leader>du", "<cmd>lua require'dapui'.toggle()<cr>", opts)
 keymap("n", "<leader>dt", "<cmd>lua require'dap'.terminate()<cr>", opts)
+-- quickly clear search highlighting
+keymap('n', "<leader>k", ":nohlsearch<CR>", opts);
 
 -- Lsp
 keymap("n", "<leader>lf", "<cmd>lua vim.lsp.buf.format{ async = true }<cr>", opts)

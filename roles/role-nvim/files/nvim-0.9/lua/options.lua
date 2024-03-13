@@ -20,6 +20,7 @@ vim.opt.timeout = true
 vim.opt.timeoutlen = 300                        -- time to wait for a mapped sequence to complete (in milliseconds)
 vim.opt.undofile = true                         -- enable persistent undo
 vim.opt.updatetime = 300                        -- faster completion (4000ms default)
+vim.opt.relativenumber = true                   -- relative number lines
 vim.opt.writebackup = false                     -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
 vim.opt.expandtab = true                        -- convert tabs to spaces
 vim.opt.shiftwidth = 2                          -- the number of spaces inserted for each indentation
@@ -41,3 +42,6 @@ vim.opt.whichwrap:append "<,>,[,],h,l"          -- keys allowed to move to the p
 vim.opt.iskeyword:append "-"                    -- treats words with `-` as single words
 vim.opt.formatoptions:remove { "c", "r", "o" }  -- This is a sequence of letters which describes how automatic formatting is to be done
 vim.opt.linebreak = true
+vim.opt.wildmode = 'longest:full,full'          -- complete longest common match, allow tabbing results to fully complete them.
+vim.opt.spell = true                            -- spellchecp
+vim.opt.confirm = true                          -- ask for confirmation instead of erroring.
