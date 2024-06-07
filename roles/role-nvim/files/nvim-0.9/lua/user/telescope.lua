@@ -19,6 +19,11 @@ M.opts = {
     selection_caret = " ",
     path_display = { "smart" },
     file_ignore_patterns = { ".git/", "node_modules" },
+    pickers = {
+      find_files = {
+        hidden = true
+      },
+    },
     mappings = {
       i = {
         ["<Down>"] = actions.move_selection_next,
