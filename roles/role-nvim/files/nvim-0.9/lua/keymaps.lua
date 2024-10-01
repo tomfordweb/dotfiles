@@ -50,10 +50,6 @@ keymap("v", "p", '"_dP', opts)
 -- Press jk fast to enter
 keymap("i", "jk", "<ESC>", opts)
 
--- easily insert a trailing semicolon or , in insert mode by double tapping the symbol
-keymap("i", ";;", "<Esc>A;");
-keymap("i", ",,", "<Esc>A,");
-
 -- Visual --
 -- Stay in indent mode
 keymap("v", "<", "<gv", opts)
