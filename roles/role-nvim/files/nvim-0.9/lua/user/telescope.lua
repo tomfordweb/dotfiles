@@ -30,6 +30,7 @@ M.opts = {
         ["<Up>"] = actions.move_selection_previous,
         ["<C-j>"] = actions.move_selection_next,
         ["<C-k>"] = actions.move_selection_previous,
+        ["<C-d>"] = actions.delete_buffer + actions.move_to_top
       },
     },
   },
