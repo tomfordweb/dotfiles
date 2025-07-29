@@ -59,6 +59,7 @@ keymap("v", ">", ">gv", opts)
 keymap('v','y','myy`y')
 
 -- Plugins --
+keymap("n", "<leader>a", ":NvimApmToggle<CR>", opts)
 
 -- NvimTree
 keymap("n", "<leader>e", ":NvimTreeToggle<CR>", opts)
