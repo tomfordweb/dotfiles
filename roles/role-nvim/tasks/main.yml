@@ -22,19 +22,6 @@
       - php-codesniffer
     state: present
 
-- name: Download phpstan phar
-  when: ansible_distribution == 'Pop!_OS'
-  ansible.builtin.get_url:
-    url: https://github.com/phpstan/phpstan/raw/HEAD/phpstan.phar
-    dest: /usr/local/bin/phpstan
-    mode: 'a+x'
-
-- name: Install nvm for intellisense server
-  tags: ['vim-deps']
-  shell: >
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-  args:
-    creates: '{{ ansible_env.HOME }}/.nvm/nvm.sh'
 
 - name: install shellcheck for lsp
   tags: ['vim-deps']
@@ -48,12 +35,6 @@
   # sudo -H pip3 install beautysh
   ansible.builtin.pip:
     name: beautysh
-
-- name: install prettier for lsp
-  tags: ['vim-deps']
-  community.general.npm:
-    name: prettier
-    global: yes
 
 - name: install nginxbeautifier for lsp
   tags: ['vim-deps']
@@ -69,5 +50,5 @@
 - name: Install my new nvim config
   tags: ['vimrc', 'dotfiles']
   copy:
-    src: nvim-0.9/
+    src: release-0.11/
     dest: '{{ ansible_env.HOME }}/.config/nvim/'
