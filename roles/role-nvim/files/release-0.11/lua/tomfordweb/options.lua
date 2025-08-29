@@ -44,6 +44,7 @@ opt.whichwrap:append "<,>,[,],h,l"          -- keys allowed to move to the previ
 opt.iskeyword:append "-"                    -- treats words with `-` as single words
 opt.formatoptions:remove { "c", "r", "o" }  -- This is a sequence of letters which describes how automatic formatting is to be done
 opt.linebreak = true
-opt.wildmode = 'longest:full,full'          -- complete longest common match, allow tabbing results to fully complete them.
+opt.wildmode =
+'longest:full,full'                         -- complete longest common match, allow tabbing results to fully complete them.
 opt.spell = true                            -- spellcheccck
 opt.confirm = true                          -- ask for confirmation instead of erroring.
