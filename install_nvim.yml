@@ -19,6 +19,7 @@
             - unzip
           state: present
       - name: "install build dependencies mac"
+        when: ansible_distribution == 'MacOSX'
         community.general.homebrew:
           name: cmake,gettext
           state: present
