@@ -35,16 +35,16 @@ opt.ruler = false                           -- hide the line and column number o
 opt.numberwidth = 4                         -- minimal number of columns to use for the line number {default 4}
 opt.signcolumn = "yes"                      -- always show the sign column, otherwise it would shift the text each time
 opt.wrap = false                            -- display lines as one long line
-opt.scrolloff = 8                           -- minimal number of screen lines to keep above and below the cursor
-opt.sidescrolloff = 8                       -- minimal number of screen columns to keep to the left and right of the cursor if wrap is `false`
-opt.guifont = "monospace:h17"               -- the font used in graphical neovim applications
-opt.fillchars.eob = " "                     -- show empty lines at the end of a buffer as ` ` {default `~`}
-opt.shortmess:append "c"                    -- hide all the completion messages, e.g. "-- XXX completion (YYY)", "match 1 of 2", "The only match", "Pattern not found"
-opt.whichwrap:append "<,>,[,],h,l"          -- keys allowed to move to the previous/next line when the beginning/end of line is reached
-opt.iskeyword:append "-"                    -- treats words with `-` as single words
-opt.formatoptions:remove { "c", "r", "o" }  -- This is a sequence of letters which describes how automatic formatting is to be done
+-- opt.scrolloff = 8                           -- minimal number of screen lines to keep above and below the cursor
+-- opt.sidescrolloff = 8                       -- minimal number of screen columns to keep to the left and right of the cursor if wrap is `false`
+opt.guifont = "monospace:h17"              -- the font used in graphical neovim applications
+opt.fillchars.eob = " "                    -- show empty lines at the end of a buffer as ` ` {default `~`}
+opt.shortmess:append "c"                   -- hide all the completion messages, e.g. "-- XXX completion (YYY)", "match 1 of 2", "The only match", "Pattern not found"
+opt.whichwrap:append "<,>,[,],h,l"         -- keys allowed to move to the previous/next line when the beginning/end of line is reached
+opt.iskeyword:append "-"                   -- treats words with `-` as single words
+opt.formatoptions:remove { "c", "r", "o" } -- This is a sequence of letters which describes how automatic formatting is to be done
 opt.linebreak = true
 opt.wildmode =
-'longest:full,full'                         -- complete longest common match, allow tabbing results to fully complete them.
-opt.spell = true                            -- spellcheccck
-opt.confirm = true                          -- ask for confirmation instead of erroring.
+'longest:full,full' -- complete longest common match, allow tabbing results to fully complete them.
+opt.spell = true    -- spellcheccck
+opt.confirm = true  -- ask for confirmation instead of erroring.
