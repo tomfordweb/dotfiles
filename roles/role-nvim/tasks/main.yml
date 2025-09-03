@@ -12,14 +12,14 @@
       - shellcheck
     state: present
 
-- name: install nvim deps (pop)
-  when: ansible_distribution == 'Pop!_OS'
+- name: install nvim deps (nix)
   become: yes
   apt:
     name:
       - ripgrep
       - fortune
       - php-codesniffer
+      - libssl-dev 
     state: present
 
 
