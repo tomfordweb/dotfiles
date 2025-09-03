@@ -22,7 +22,6 @@ require("tomfordweb.lazy");
 
 require("bufferline").setup {}
 
-
 autocmd('TextYankPost', {
   group = yank_group,
   pattern = '*',
@@ -34,6 +33,17 @@ autocmd('TextYankPost', {
   end,
 })
 
+
+-- ez close on specific buffers
+autocmd( "FileType", {
+  pattern = { "qf", "help", "man", "lspinfo", "spectre_panel" },
+  callback = function()
+    vim.cmd [[
+      nnoremap <silent> <buffer> q :close<CR> 
+      set nobuflisted 
+    ]]
+  end,
+})
 
 autocmd('LspAttach', {
   group = TomFordWebGroup,
@@ -48,8 +58,8 @@ autocmd('LspAttach', {
     vim.keymap.set("n", "gr", function() vim.lsp.buf.references() end, opts)
     vim.keymap.set("n", "grn", function() vim.lsp.buf.rename() end, opts)
     vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)
-    vim.keymap.set("n", "[d", function() vim.diagnostic.goto_next() end, opts)
-    vim.keymap.set("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
+    vim.keymap.set("n", "[j", function() vim.diagnostic.goto_next() end, opts)
+    vim.keymap.set("n", "]k", function() vim.diagnostic.goto_prev() end, opts)
     vim.keymap.set("n", "<leader>lf", function() vim.lsp.buf.format { async = true } end, opts)
   end
 })

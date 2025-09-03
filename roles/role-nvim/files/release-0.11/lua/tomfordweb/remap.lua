@@ -77,4 +77,3 @@ keymap("x", "<leader>/", "<esc><cmd>lua require('Comment.api').toggle.linewise(v
 -- quickly clear search highlighting
 keymap('n', "<leader>k", ":nohlsearch<CR>", opts);
 
--- Lsp

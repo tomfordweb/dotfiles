@@ -1,7 +1,20 @@
-I made this one myself, no templates this time.
+I made this one myself...mostly
+
+# Other dependencies
+
+Rust and Cargo must be installed and on path.
+
+# Icons
+
+Make sure your machine has a nerd font installed. See alacritty.yml
 
 
-Commands
+Icons can be searched here: copy the icon and paste it where the sign is needed in the config.
+https://www.nerdfonts.com/cheat-sheet
+
+
+
+# Commands
 
 1: `:Lazy` - Opens up lazy.nvim which is the package manager I like.
 1: `:Mason` - LSP installer.
