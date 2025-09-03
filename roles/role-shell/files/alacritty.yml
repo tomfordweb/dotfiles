@@ -69,4 +69,5 @@ font:
   # Point size
   size: 13.0
 
-window.opacity: 0.9
+window:
+  opacity: 0.95
