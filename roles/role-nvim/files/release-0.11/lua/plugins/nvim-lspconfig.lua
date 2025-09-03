@@ -12,10 +12,13 @@ local root_files = {
 return {
   "neovim/nvim-lspconfig",
   dependencies = {
+    -- conform
     "stevearc/conform.nvim",
+    -- management
     "williamboman/mason.nvim",
     "williamboman/mason-lspconfig.nvim",
     "mason-org/mason-lspconfig.nvim",
+    -- autocompleteion
     "hrsh7th/cmp-nvim-lsp",
     "hrsh7th/cmp-buffer",
     "hrsh7th/cmp-path",
@@ -24,6 +27,27 @@ return {
     "L3MON4D3/LuaSnip",
     "saadparwaiz1/cmp_luasnip",
     "j-hui/fidget.nvim",
+    {
+      "folke/lazydev.nvim",
+      ft = "lua", -- only load on lua files
+      opts = {
+        library = {
+          -- See the configuration section for more details
+          -- Load luvit types when the `vim.uv` word is found
+          { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+        },
+      },
+    },
+    { -- optional cmp completion source for require statements and module annotations
+      "hrsh7th/nvim-cmp",
+      opts = function(_, opts)
+        opts.sources = opts.sources or {}
+        table.insert(opts.sources, {
+          name = "lazydev",
+          group_index = 0, -- set group index to 0 to skip loading LuaLS completions
+        })
+      end,
+    },
   },
 
   config = function()
@@ -43,33 +67,29 @@ return {
     require("mason").setup()
     require("mason-lspconfig").setup({
       ensure_installed = {
-        "angularls",
-        "lua_ls",
-        -- prettier
-        "intelephense",
-        "ts_ls",
+        "angularls", -- ng
+        "lua_ls",    -- lua
+        -- "smarty_ls",
+        "tailwindcss",
+        "intelephense", -- php
+        "ansiblels",    --ansible
+        "bashls",       --shell
+        "marksman",     --markdown
+        "docker_compose_language_service",
+        "docker_language_server",
+        "emmet_ls",
+        "eslint",
+        "gitlab_ci_ls",
+        "graphql",
+        "jsonls",
+        "laravel_ls",
+        "ts_ls"
       },
       handlers = {
         function(server_name) -- default handler (optional)
           require("lspconfig")[server_name].setup {
             capabilities = capabilities
           }
-        end,
-
-        zls = function()
-          local lspconfig = require("lspconfig")
-          lspconfig.zls.setup({
-            root_dir = lspconfig.util.root_pattern(".git", "build.zig", "zls.json"),
-            settings = {
-              zls = {
-                enable_inlay_hints = true,
-                enable_snippets = true,
-                warn_style = true,
-              },
-            },
-          })
-          vim.g.zig_fmt_parse_errors = 0
-          vim.g.zig_fmt_autosave = 0
         end,
         ["lua_ls"] = function()
           local lspconfig = require("lspconfig")
@@ -90,26 +110,6 @@ return {
             }
           }
         end,
-        ["tailwindcss"] = function()
-          local lspconfig = require("lspconfig")
-          lspconfig.tailwindcss.setup({
-            capabilities = capabilities,
-            filetypes = { "html", "css", "scss", "javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte" },
-            settings = {
-              tailwindCSS = {
-                experimental = {
-                  classRegex = {
-                    "tw`([^`]*)",
-                    "tw=\"([^\"]*)",
-                    "tw={\"([^\"}]*)",
-                    "tw\\.\\w+`([^`]*)",
-                    "tw\\(.*?\\)`([^`]*)",
-                  },
-                },
-              },
-            },
-          })
-        end,
       }
     })
 
@@ -117,8 +117,6 @@ return {
 
     cmp.setup({
       mapping = cmp.mapping.preset.insert({
-        ['<C-k>'] = cmp.mapping.select_prev_item(cmp_select),
-        ['<C-j>'] = cmp.mapping.select_next_item(cmp_select),
         ["<C-b>"] = cmp.mapping(cmp.mapping.scroll_docs(-1), { "i", "c" }),
         ["<C-f>"] = cmp.mapping(cmp.mapping.scroll_docs(1), { "i", "c" }),
         ["<C-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
@@ -167,7 +165,20 @@ return {
     })
 
     vim.diagnostic.config({
-      -- update_in_insert = true,
+      signs = {
+        text = {
+          [vim.diagnostic.severity.ERROR] = '',
+          [vim.diagnostic.severity.WARN] = '󰶬',
+          [vim.diagnostic.severity.INFO] = '',
+          -- [vim.diagnostic.severity.HINT] = '󰌵',
+        },
+        linehl = {
+          [vim.diagnostic.severity.ERROR] = 'ErrorMsg',
+        },
+        numhl = {
+          [vim.diagnostic.severity.WARN] = 'WarningMsg',
+        },
+      },
       float = {
         focusable = false,
         style = "minimal",
