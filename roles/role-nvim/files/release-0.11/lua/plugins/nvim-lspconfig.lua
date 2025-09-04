@@ -24,8 +24,6 @@ return {
     "hrsh7th/cmp-path",
     "hrsh7th/cmp-cmdline",
     "hrsh7th/nvim-cmp",
-    "L3MON4D3/LuaSnip",
-    "saadparwaiz1/cmp_luasnip",
     "j-hui/fidget.nvim",
     {
       "folke/lazydev.nvim",
@@ -65,12 +63,13 @@ return {
 
     require("fidget").setup({})
     require("mason").setup()
+
     require("mason-lspconfig").setup({
       ensure_installed = {
         "angularls", -- ng
         "lua_ls",    -- lua
         -- "smarty_ls",
-        "tailwindcss",
+        -- "tailwindcss",
         "intelephense", -- php
         "ansiblels",    --ansible
         "bashls",       --shell
@@ -82,7 +81,7 @@ return {
         "gitlab_ci_ls",
         "graphql",
         "jsonls",
-        "laravel_ls",
+        -- "laravel_ls",
         "ts_ls"
       },
       handlers = {
@@ -170,7 +169,7 @@ return {
           [vim.diagnostic.severity.ERROR] = '',
           [vim.diagnostic.severity.WARN] = '󰶬',
           [vim.diagnostic.severity.INFO] = '',
-          -- [vim.diagnostic.severity.HINT] = '󰌵',
+          [vim.diagnostic.severity.HINT] = '󰌵',
         },
         linehl = {
           [vim.diagnostic.severity.ERROR] = 'ErrorMsg',
