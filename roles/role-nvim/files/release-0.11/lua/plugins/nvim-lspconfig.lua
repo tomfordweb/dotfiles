@@ -1,6 +1,6 @@
 local root_files = {
   '.luarc.json',
-  '.luarc.jsonc',
+    '.luarc.jsonc',
   '.luacheckrc',
   '.stylua.toml',
   'stylua.toml',
@@ -112,12 +112,10 @@ return {
       }
     })
 
-    local cmp_select = { behavior = cmp.SelectBehavior.Select }
-
     cmp.setup({
       mapping = cmp.mapping.preset.insert({
-        ["<C-b>"] = cmp.mapping(cmp.mapping.scroll_docs(-1), { "i", "c" }),
-        ["<C-f>"] = cmp.mapping(cmp.mapping.scroll_docs(1), { "i", "c" }),
+        ["<C-u>"] = cmp.mapping(cmp.mapping.scroll_docs(-1), { "i", "c" }),
+        ["<C-d>"] = cmp.mapping(cmp.mapping.scroll_docs(1), { "i", "c" }),
         ["<C-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
         ["<C-e>"] = cmp.mapping {
           i = cmp.mapping.abort(),
