@@ -1,14 +1,3 @@
-local root_files = {
-  '.luarc.json',
-    '.luarc.jsonc',
-  '.luacheckrc',
-  '.stylua.toml',
-  'stylua.toml',
-  'selene.toml',
-  'selene.yml',
-  '.git',
-}
-
 return {
   "neovim/nvim-lspconfig",
   dependencies = {
@@ -47,7 +36,6 @@ return {
       end,
     },
   },
-
   config = function()
     require("conform").setup({
       formatters_by_ft = {
@@ -112,20 +100,22 @@ return {
       }
     })
 
+
     cmp.setup({
       mapping = cmp.mapping.preset.insert({
         ["<C-u>"] = cmp.mapping(cmp.mapping.scroll_docs(-1), { "i", "c" }),
         ["<C-d>"] = cmp.mapping(cmp.mapping.scroll_docs(1), { "i", "c" }),
-        ["<C-Space>"] = cmp.mapping(cmp.mapping.complete(), { "i", "c" }),
         ["<C-e>"] = cmp.mapping {
           i = cmp.mapping.abort(),
           c = cmp.mapping.close(),
         },
         -- Accept currently selected item. If none selected, `select` first item.
         -- Set `select` to `false` to only confirm explicitly selected items.
-        ["<CR>"] = cmp.mapping.confirm { select = true },
-        ["<Tab>"] = cmp.mapping(function(fallback)
-          if cmp.visible() then
+        ["<CR>"] = cmp.mapping.confirm { select = false },
+        ["<C-j>"] = cmp.mapping(function(fallback)
+          if not cmp.visible() then
+            return
+          elseif cmp.visible() then
             cmp.select_next_item()
           elseif luasnip.expandable() then
             luasnip.expand()
@@ -140,8 +130,10 @@ return {
           "i",
           "s",
         }),
-        ["<S-Tab>"] = cmp.mapping(function(fallback)
-          if cmp.visible() then
+        ["<C-k>"] = cmp.mapping(function(fallback)
+          if not cmp.visible() then
+            return
+          elseif cmp.visible() then
             cmp.select_prev_item()
           elseif luasnip.jumpable(-1) then
             luasnip.jump(-1)
@@ -163,6 +155,11 @@ return {
 
     vim.diagnostic.config({
       signs = {
+        severity = {
+          min = vim.diagnostic.severity.INFO,
+          min = vim.diagnostic.severity.WARN,
+          max = vim.diagnostic.severity.ERROR,
+        },
         text = {
           [vim.diagnostic.severity.ERROR] = '',
           [vim.diagnostic.severity.WARN] = '󰶬',

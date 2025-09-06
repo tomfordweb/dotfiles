@@ -78,5 +78,3 @@ autocmd('LspAttach', {
     end
   end
 })
-
-

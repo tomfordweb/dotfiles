@@ -16,14 +16,6 @@ vim.g.maplocalleader = " "
 --   term_mode = "t",
 --   command_mode = "c",
 
--- Normal --
--- Better window navigation
-keymap("n", "<C-h>", "<C-w>h", opts)
-keymap("n", "<C-j>", "<C-w>j", opts)
-keymap("n", "<C-k>", "<C-w>k", opts)
-keymap("n", "<C-l>", "<C-w>l", opts)
-
-
 -- when text is wrapped, move by terimnal rows, not lines...unless a count is provided
 keymap('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true })
 keymap('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true })
@@ -63,18 +55,8 @@ keymap('v', 'y', 'myy`y')
 keymap("n", "<leader>e", "<CMD>Oil<CR>", { desc = "Open parent directory" })
 
 
--- Telescope
-keymap("n", "<leader>f", ":Telescope find_files<CR>", opts)
-keymap("n", "<leader>F", ":Telescope live_grep<CR>", opts)
-keymap("n", "<leader>b", ":Telescope buffers<CR>", opts)
-
--- Comment
-keymap("n", "<leader>/", "<cmd>lua require('Comment.api').toggle.linewise.current()<CR>", opts)
-keymap("x", "<leader>/", "<esc><cmd>lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", opts)
-
-
 function _G.set_terminal_keymaps()
-  local opts = {buffer = 0}
+  local opts = { buffer = 0 }
   vim.keymap.set('t', '<esc>', [[<C-\><C-n>]], opts)
   vim.keymap.set('t', 'jk', [[<C-\><C-n>]], opts)
   vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], opts)
