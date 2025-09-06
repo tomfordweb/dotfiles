@@ -51,8 +51,10 @@ keymap("v", ">", ">gv", opts)
 -- maintain cursor position when yanking selections
 keymap('v', 'y', 'myy`y')
 
--- NvimTree
 keymap("n", "<leader>e", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+--keymap("n", "<leader>E", require('oil').toggle_float() { desc = "Open parent directory" })
+
+keymap("n", "<Leader>rr", ":source $MYVIMRC<CR>", { desc = "Reload Neovim config" })
 
 
 function _G.set_terminal_keymaps()
@@ -68,3 +70,5 @@ end
 
 -- if you only want these mappings for toggle term use term://*toggleterm#* instead
 vim.cmd('autocmd! TermOpen term://* lua set_terminal_keymaps()')
+
+-- get the keymap to reload my nvim config
