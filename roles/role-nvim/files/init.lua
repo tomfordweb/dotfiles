@@ -1,2 +1,0 @@
-require('tomfordweb')
-require('mhvdc')
