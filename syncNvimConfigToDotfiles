@@ -1,0 +1,7 @@
+#!/bin/bash
+
+ROLE_CONFIG_LOCATION="$HOME/code/tomfordweb/dotfiles/roles/role-nvim/files/release1.11"
+
+rm -rf "${ROLE_CONFIG_LOCATION:?}/*"
+cp -R $HOME/.config/nvim/* "$ROLE_CONFIG_LOCATION"
+

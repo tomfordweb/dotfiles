@@ -22,3 +22,12 @@ https://www.nerdfonts.com/cheat-sheet
 * [Lazy](https://github.com/wbthomason/packer.nvim)
 * [Telescope](https://github.com/nvim-telescope/telescope.nvim)
 * [Treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
+
+
+# Credits
+
+Some of code taken from configs and lessons from:
+
+* [ThePrimeagen](https://www.youtube.com/@ThePrimeagen)
+* [TJ DeVries](https://www.youtube.com/@tjdevries)
+
