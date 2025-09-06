@@ -3,6 +3,7 @@ vim.opt.termguicolors = true
 
 local augroup = vim.api.nvim_create_augroup
 local TomFordWebGroup = augroup('TomFordWeb', {})
+local TomFordWebGroupLsp = augroup('TomFordWeblsp', {})
 
 local autocmd = vim.api.nvim_create_autocmd
 local yank_group = augroup('HighlightYank', {})
@@ -20,6 +21,12 @@ require("toggleterm").setup {}
 
 require("bufferline").setup {}
 
+require("oil").setup({
+  view_options = {
+    show_hidden = true,
+
+  }
+})
 
 autocmd('TextYankPost', {
   group = yank_group,
@@ -65,18 +72,21 @@ autocmd('LspAttach', {
 
     -- Format on save
     local client = assert(vim.lsp.get_client_by_id(e.data.client_id))
-    if not client then return end
-
-    if client:supports_method('textDocument/formatting') then
-      vim.api.nvim_create_autocmd('BufWritePre', {
-        group = TomFordWebGroup,
-        buffer = e.buf,
-        callback = function()
-          vim.lsp.buf.format({ bufnr = e.buf, id = client.id, timeout_ms = 1000 })
-        end,
-      })
+    if not client then
+      vim.notify('lsp client not supported for formatting')
+      return
     end
+
+    -- if client:supports_method('textDocument/formatting') then
+    vim.api.nvim_create_autocmd('BufWritePre', {
+      group = TomFordWebGroupLsp,
+      buffer = e.buf,
+      callback = function()
+        vim.lsp.buf.format({ bufnr = e.buf, id = client.id, timeout_ms = 1000 })
+      end,
+    })
+    -- else
+    --   vim.notify('lsp client not supported')
+    -- end
   end
 })
-
-

@@ -1,6 +1,6 @@
 local root_files = {
   '.luarc.json',
-    '.luarc.jsonc',
+  '.luarc.jsonc',
   '.luacheckrc',
   '.stylua.toml',
   'stylua.toml',
@@ -109,8 +109,61 @@ return {
             }
           }
         end,
+        -- ["intelephense"] = function()
+        --   local lspconfig = require("lspconfig")
+        --   lspconfig.intelephense.setup {
+        --     capabilities = capabilities,
+        --     settings = {
+        --       intelephense = {
+        --         settings = {
+        --           files = {
+        --             -- maxsize = 1000
+        --           },
+        --           -- environment = {
+        --           --   includePaths = {
+        --           --   }
+        --           -- }
+        --         }
+        --       }
+        --
+        --     }
+        --   }
+        -- end,
       }
     })
+    -- local lspconfig = require('lspconfig')
+    -- -- https://github.com/bmewburn/intelephense-docs/blob/master/installation.md#initialisation-options
+    --
+    -- lspconfig.intelephense.setup({
+    --   -- Optional: Function to run when the LSP client attaches to a buffer
+    --   on_attach = function(client, bufnr)
+    --     -- Add keybindings or other buffer-specific configurations here
+    --   end,
+    --   -- Optional: Capabilities for the LSP client
+    --   capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities()),
+    --   -- Intelephense-specific settings
+    --   settings = {
+    --     intelephense = {
+    --       -- Environment settings
+    --       environment = {
+    --         includePaths = {
+    --           -- "/home/tom/mhvillage-stack/mhvillage/libs/datacomp/foundation/src/SalesCenter.class",
+    --         },
+    --       },
+    --       -- File-related settings
+    --       files = {
+    --         maxSize = 5000000,                                                     -- Maximum file size to analyze in bytes
+    --         associations = { "*.php", "*.phtml", "*.module", "*.inc", "*.class" }, -- File extensions to associate
+    --       },
+    --       -- Stub files for built-in PHP functions and common frameworks
+    --       -- stubs = {
+    --       --   "Core", "bcmath", "curl", "wordpress", "woocommerce", -- Examples
+    --       -- },
+    --       -- License key (if using the premium version)
+    --       -- licenceKey = "YOUR_LICENSE_KEY_HERE",
+    --     },
+    --   },
+    -- })
 
     cmp.setup({
       mapping = cmp.mapping.preset.insert({
@@ -169,9 +222,9 @@ return {
           [vim.diagnostic.severity.INFO] = '',
           [vim.diagnostic.severity.HINT] = '󰌵',
         },
-        linehl = {
-          [vim.diagnostic.severity.ERROR] = 'ErrorMsg',
-        },
+        -- linehl = {
+        --   [vim.diagnostic.severity.ERROR] = 'ErrorMsg',
+        -- },
         numhl = {
           [vim.diagnostic.severity.WARN] = 'WarningMsg',
         },

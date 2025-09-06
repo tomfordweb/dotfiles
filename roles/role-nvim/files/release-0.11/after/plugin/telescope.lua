@@ -33,8 +33,9 @@ require('telescope').setup {
 require('telescope').load_extension('fzf');
 require("tomfordweb.telescope.multigrep").setup()
 
+
+vim.keymap.set('n', '<leader>F', builtin.find_files, { desc = ':Telescope find_files' })
 vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = ':Telescope find_files' })
-vim.keymap.set('n', '<leader>ft', builtin.live_grep, { desc = ':Telescope live_grep' })
 vim.keymap.set('n', '<leader>fn', function()
   builtin.find_files {
     cwd = vim.fn.stdpath('config')

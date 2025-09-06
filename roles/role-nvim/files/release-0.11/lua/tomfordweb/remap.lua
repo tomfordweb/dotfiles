@@ -59,22 +59,11 @@ keymap("v", ">", ">gv", opts)
 -- maintain cursor position when yanking selections
 keymap('v', 'y', 'myy`y')
 
--- NvimTree
 keymap("n", "<leader>e", "<CMD>Oil<CR>", { desc = "Open parent directory" })
 
 
--- Telescope
-keymap("n", "<leader>f", ":Telescope find_files<CR>", opts)
-keymap("n", "<leader>F", ":Telescope live_grep<CR>", opts)
-keymap("n", "<leader>b", ":Telescope buffers<CR>", opts)
-
--- Comment
-keymap("n", "<leader>/", "<cmd>lua require('Comment.api').toggle.linewise.current()<CR>", opts)
-keymap("x", "<leader>/", "<esc><cmd>lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>", opts)
-
-
 function _G.set_terminal_keymaps()
-  local opts = {buffer = 0}
+  local opts = { buffer = 0 }
   vim.keymap.set('t', '<esc>', [[<C-\><C-n>]], opts)
   vim.keymap.set('t', 'jk', [[<C-\><C-n>]], opts)
   vim.keymap.set('t', '<C-h>', [[<Cmd>wincmd h<CR>]], opts)
