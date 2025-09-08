@@ -42,13 +42,9 @@
     name: nginxbeautifier
     global: yes
 
-- name: Create nvim config directory
-  file:
-    path: '{{ ansible_env.HOME }}/.config/nvim'
-    state: directory
+- name: Install neotom config
+  ansible.builtin.git:
+    repo: 'https://github.com/tomfordweb/neotom'
+    dest: '{{ ansible_env.HOME }}/.config/nvim'
+    update: yes
 
-- name: Install my new nvim config
-  tags: ['vimrc', 'dotfiles']
-  copy:
-    src: release-0.11/
-    dest: '{{ ansible_env.HOME }}/.config/nvim/'
