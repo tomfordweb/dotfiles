@@ -43,6 +43,7 @@
     global: yes
 
 - name: Install neotom config
+  tags: ['vimrc']
   ansible.builtin.git:
     repo: 'https://github.com/tomfordweb/neotom'
     dest: '{{ ansible_env.HOME }}/.config/nvim'
