@@ -1,7 +1,7 @@
 ---
 - name: install nvim deps (mac)
   when: ansible_distribution == 'MacOSX'
-  tags: 'vimrc'
+  tags: "vimrc"
   community.general.homebrew:
     name:
       - tmux
@@ -19,33 +19,33 @@
       - ripgrep
       - fortune
       - php-codesniffer
-      - libssl-dev 
+      - libssl-dev
     state: present
 
-
 - name: install shellcheck for lsp
-  tags: ['vim-deps']
+  tags: ["vim-deps"]
   community.general.npm:
     # Note: could use latest but I am stuck on node 16 for work still.
     name: shellcheck@1.1.0
     global: yes
 
 - name: install pip beautysh
-  tags: ['vim-deps']
+  tags: ["vim-deps"]
   # sudo -H pip3 install beautysh
   ansible.builtin.pip:
     name: beautysh
 
 - name: install nginxbeautifier for lsp
-  tags: ['vim-deps']
+  tags: ["vim-deps"]
   community.general.npm:
     name: nginxbeautifier
     global: yes
 
 - name: Install neotom config
-  tags: ['vimrc']
+  tags: ["vimrc"]
   ansible.builtin.git:
-    repo: 'https://github.com/tomfordweb/neotom'
-    dest: '{{ ansible_env.HOME }}/.config/nvim'
+    repo: "git@github.com/tomfordweb/neotom.git"
+    dest: "{{ ansible_env.HOME }}/.config/nvim"
+    single_branch: yes
+    version: main
     update: yes
-
