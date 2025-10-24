@@ -1,1 +1,5 @@
 tmux/plugins
+ibus/*
+dbus/*
+evolution/sources/*
+pulse/cookie
