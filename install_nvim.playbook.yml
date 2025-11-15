@@ -1,0 +1,53 @@
+---
+  - name: "Reinstall & reset nvim"
+    hosts: localhost
+    connection: local 
+    user: tom
+    vars_prompt:
+      - name: nvimVersion
+        prompt: "What version do you want to install? Ex: release-0.9"
+        private: false
+    tasks:
+      - name: install build dependencies
+        when: ansible_distribution == 'Pop!_OS'
+        become: true
+        apt:
+          name:
+            - make
+            - cmake
+            - gettext
+            - unzip
+          state: present
+      - name: "install build dependencies mac"
+        when: ansible_distribution == 'MacOSX'
+        community.general.homebrew:
+          name: cmake,gettext
+          state: present
+      - name: "Remove existing nvim plugin installs"
+        file:
+          path: "{{ ansible_env.HOME }}/.local/share/nvim"
+          state: absent
+      - name: "Remove existing install makefiles"
+        file:
+          path: "{{ ansible_env.HOME }}/code/neovim/neovim"
+          state: absent
+      - name: "Remove existing config"
+        file:
+          path: "{{ ansible_env.HOME }}/.config/nvim"
+          state: absent
+      - name: "Pull nvim source"
+        ansible.builtin.git:
+          repo: "https://github.com/neovim/neovim.git"
+          dest: "{{ ansible_env.HOME }}/code/neovim/neovim"
+          version: "{{ nvimVersion }}"
+      - name: "Compile nvim using make"
+        community.general.make:
+          chdir: "{{ ansible_env.HOME }}/code/neovim/neovim"
+          params:
+            CMAKE_BUILD_TYPE: "Release"
+
+      - name: "Install compiled nvim"
+        become: true
+        community.general.make:
+          chdir: "{{ ansible_env.HOME }}/code/neovim/neovim"
+          target: install
