@@ -1,13 +1,44 @@
 #!/bin/bash
 
+# Prerequisites and things that are important enough to be on the first line..
 sudo pacman --needed -Sy \
 git \
 lazygit \
 firefox \
 ghostty \
 ansible \
-make cmake
+make cmake \
+otf-font-awesome \
+tmux \
+entr
 
+# Waybar & deps
+pacman --needed -Sy \
+  waybar \
+  gtkmm3 \
+  jsoncpp \
+  libsigc++ \
+  fmt \
+  wayland \
+  chrono-date \
+  spdlog \
+  gtk3 \
+  gobject-introspection \
+  libgirepository \
+  libpulse \
+  libnl \
+  libappindicator-gtk3 \
+  libdbusmenu-gtk3 \
+  libmpdclient \
+  sndio \
+  libevdev \
+  libxkbcommon \
+  upower \
+  meson \
+  cmake \
+  scdoc \
+  wayland-protocols \
+  glib2-devel
 
 echo "Running nvim playbook"
 if ! command -v "nvim" &> /dev/null; then
@@ -17,4 +48,8 @@ else
 fi
 
 
+# Tmux plugin manager
 
+if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
+  git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+fi
