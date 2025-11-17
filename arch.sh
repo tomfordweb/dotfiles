@@ -10,10 +10,19 @@ ansible \
 make cmake \
 otf-font-awesome \
 tmux \
-entr
+entr \
+docker docker-compose
+
+# Add yourself to docker group
+sudo usermod -aG docker $USER
+
+
+# neovim arch shit
+sudo pacman --needed -Sy \
+  jp2a
 
 # Waybar & deps
-pacman --needed -Sy \
+sudo pacman --needed -Sy \
   waybar \
   gtkmm3 \
   jsoncpp \
