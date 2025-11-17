@@ -1,20 +1,18 @@
-# Installation
-
-Clone the repo somewhere in your home directory. It does not have to be the `~/.config` directory. For example. I keep mind in `~/xdg-base`.
 
 ```
-git clone git@github.com:tomfordweb/xdg-base.git ~/.config
+git clone git@github.com:tomfordweb/xdg-base.git
+cd xdg-base && git submodule update --init
 ```
 
-Initialize submodules
+Add the following your your `~/.bashrc` or whatever.
 
 ```
-git submodule update --init
+export XDG_CONFIG_HOME="$HOME/xdg-base/config"
 ```
-
-Add the following your your profile.
+Source it.
 
 ```
-export XDG_CONFIG_HOME="$HOME/.config"
 source ~/.bashrc
 ```
+
+
