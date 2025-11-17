@@ -3,3 +3,5 @@ ibus/*
 dbus/*
 evolution/sources/*
 pulse/cookie
+dconf/*
+nvm/*
