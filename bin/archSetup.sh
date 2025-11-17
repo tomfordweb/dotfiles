@@ -7,6 +7,7 @@ ghostty \
 otf-font-awesome \
 tmux \
 entr \
+pciutils \
 docker docker-compose
 
 ./bin/setupDocker.sh
