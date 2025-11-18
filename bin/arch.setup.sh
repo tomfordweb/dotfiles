@@ -12,9 +12,6 @@ docker docker-compose
 
 ./bin/setupDocker.sh
 
-# neovim arch shit
-sudo pacman --needed -Sy \
-  jp2a
 
 # Waybar & deps
 sudo pacman --needed -Sy \
@@ -47,13 +44,13 @@ sudo pacman --needed -Sy \
 # Install neovim.
 echo "Running nvim playbook"
 if ! command -v "nvim" &> /dev/null; then
-  sudo pacman --needed -Sy ansible make cmake
+  sudo pacman --needed -Sy ansible make cmake jp2a
   ansible-playbook install_nvim.playbook.yml --ask-become-pass
 else
   echo "neovim is already installed!"
 fi
 
-# Install any neovim dependencies
+# Install any things i think nvim needs
 ./config/nvim/installDependencies.sh
 
 # Tmux plugin manager
@@ -62,4 +59,4 @@ if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
   git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
 fi
 
-./bin/arch.ai.sh
+./bin/ai/arch.setup.sh
