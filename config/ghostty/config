@@ -51,10 +51,11 @@
 background-blur = true
 mouse-hide-while-typing = true
 link-previews = true
-cursor-color = #BADA56
+cursor-color = #BADA55
 title = "tom@dev"
 window-subtitle = working-directory
 # window-theme = ghostty
+app-notifications = no-clipboard-copy
 clipboard-read = allow
 clipboard-write = allow
 bell-features = title,border

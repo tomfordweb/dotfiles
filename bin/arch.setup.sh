@@ -8,6 +8,7 @@ otf-font-awesome \
 tmux \
 entr \
 pciutils \
+fastfetch \
 docker docker-compose
 
 ./bin/setupDocker.sh
