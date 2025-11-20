@@ -1,5 +1,8 @@
 tmux/plugins
 ibus/*
+session/*
+dolphinrc
+trashrc
 dbus/*
 evolution/sources/*
 pulse/cookie
