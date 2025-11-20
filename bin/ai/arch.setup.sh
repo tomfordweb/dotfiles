@@ -24,5 +24,5 @@ docker run --gpus all nvidia/cuda:13.0.2-base-ubi9 nvidia-smi
 # Systemd unit
 sudo systemctl enable ollama.service
 
-
-
+sudo ufw allow 8080/tcp
+sudo ufw allow 8888/tcp
