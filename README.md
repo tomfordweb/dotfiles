@@ -9,6 +9,15 @@ Add the following your your `~/.bashrc` or whatever.
 export XDG_CONFIG_HOME="$HOME/xdg-base/config"
 ```
 
+On Arch - [You also have to add the env var to pam.](https://wiki.archlinux.org/title/Environment_variables#Using_pam_env)
+
+```
+sudo vim /etc/security/pam_env.conf
+```
+```
+XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base-config
+```
+
 Source it.
 
 ```
