@@ -52,6 +52,8 @@ sudo pacman --needed -Sy \
   wayland-protocols \
   glib2-devel
 
+systemctl --user enable --now waybar.service
+
 # Install neovim.
 echo "Running nvim playbook"
 if ! command -v "nvim" &> /dev/null; then
