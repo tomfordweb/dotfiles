@@ -1,26 +1,28 @@
 #!/bin/bash
 
+
 sudo pacman --needed -Sy \
 git lazygit \
+alsa-utils \
 firefox \
+rust \
 ghostty \
 otf-font-awesome \
 tmux \
 entr \
+nvm \
 pciutils \
+lsof \
 fastfetch \
 docker docker-compose
 
+# Setup nvm
+source /usr/share/nvim/init-nvm.sh
+nvm install --lts
+
 ./bin/setupDocker.sh
 
-# Mom - we already have a server at home
-# the server at home...
-sudo pacman --needed -Sy openssh ufw
-sudo systemctl start sshd
-sudo systemctl enable sshd
-sudo ufw allow 22/tcp
-sudo ufw enable
-
+amixer sset Master unmute
 
 # Waybar & deps
 sudo pacman --needed -Sy \
@@ -60,7 +62,7 @@ else
 fi
 
 # Install any things i think nvim needs
-./config/nvim/installDependencies.sh
+# ./config/nvim/installDependencies.sh
 
 # Tmux plugin manager
 # After install you need to hit <C-a I> and wait a few seconds..
@@ -68,4 +70,4 @@ if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
   git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
 fi
 
-./bin/ai/arch.setup.sh
+# ./bin/ai/arch.setup.sh
