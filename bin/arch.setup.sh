@@ -3,6 +3,7 @@
 
 sudo pacman --needed -Sy \
 git lazygit \
+spotify-launcher \
 alsa-utils \
 firefox \
 rust \
