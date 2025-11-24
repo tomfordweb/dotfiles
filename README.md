@@ -20,3 +20,8 @@ source ~/.bashrc
 ## `./bin/ai/arch.setup.sh`
 
 Sets up ollama in docker on arch linux for my specific use case, there are some notes that maybe some will find useful.
+
+# Arch
+
+- [yay](https://github.com/Jguer/yay)
+- [t480 arch](https://wiki.archlinux.org/title/Lenovo_ThinkPad_T48)
