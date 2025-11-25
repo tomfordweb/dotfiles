@@ -51,6 +51,7 @@
 background-blur = true
 mouse-hide-while-typing = true
 link-previews = true
+font-size = 10
 cursor-color = #BADA55
 title = "tom@dev"
 window-subtitle = working-directory
