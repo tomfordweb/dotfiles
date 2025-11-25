@@ -10,6 +10,8 @@ rust \
 ghostty \
 otf-font-awesome \
 tmux \
+lsof \
+sqlitebrowser mysql-workbench \
 entr \
 nvm \
 pciutils \
@@ -63,9 +65,6 @@ if ! command -v "nvim" &> /dev/null; then
 else
   echo "neovim is already installed!"
 fi
-
-# Install any things i think nvim needs
-# ./config/nvim/installDependencies.sh
 
 # Tmux plugin manager
 # After install you need to hit <C-a I> and wait a few seconds..
