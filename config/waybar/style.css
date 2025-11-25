@@ -1,56 +1,87 @@
+@keyframes rainbow-bg {
+  0% {
+    background-color: rgb(255, 0, 0);
+  }
+  8% {
+    background-color: rgb(255, 127, 0);
+  }
+  16% {
+    background-color: rgb(255, 255, 0);
+  }
+  25% {
+    background-color: rgb(127, 255, 0);
+  }
+  33% {
+    background-color: rgb(0, 255, 0);
+  }
+  41% {
+    background-color: rgb(0, 255, 127);
+  }
+  50% {
+    background-color: rgb(0, 255, 255);
+  }
+  58% {
+    background-color: rgb(0, 127, 255);
+  }
+  66% {
+    background-color: rgb(0, 0, 255);
+  }
+  75% {
+    background-color: rgb(127, 0, 255);
+  }
+  83% {
+    background-color: rgb(255, 0, 255);
+  }
+  91% {
+    background-color: rgb(255, 0, 127);
+  }
+}
+@keyframes rainbow {
+  0% {
+    color: rgb(255, 0, 0);
+  }
+  8% {
+    color: rgb(255, 127, 0);
+  }
+  16% {
+    color: rgb(255, 255, 0);
+  }
+  25% {
+    color: rgb(127, 255, 0);
+  }
+  33% {
+    color: rgb(0, 255, 0);
+  }
+  41% {
+    color: rgb(0, 255, 127);
+  }
+  50% {
+    color: rgb(0, 255, 255);
+  }
+  58% {
+    color: rgb(0, 127, 255);
+  }
+  66% {
+    color: rgb(0, 0, 255);
+  }
+  75% {
+    color: rgb(127, 0, 255);
+  }
+  83% {
+    color: rgb(255, 0, 255);
+  }
+  91% {
+    color: rgb(255, 0, 127);
+  }
+}
 * {
   /* `otf-font-awesome` is required to be installed for icons */
-  font-family: FontAwesome, Roboto, Helvetica, Arial, sans-serif;
-  font-size: 10px;
+  font-family: "BigBlueTermPlus Nerd Font", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
   color: #cdd6f4;
 }
 
-window#waybar {
-  background-color: transparent;
-  border-bottom: 3px solid rgba(100, 114, 125, 0.5);
-  color: #cdd6f4;
-  transition-property: background-color;
-  transition-duration: 0.5s;
-}
-window#waybar.hidden {
-  opacity: 0.2;
-}
-
-button {
-  /* Use box-shadow instead of border so the text isn't offset */
-  box-shadow: inset 0 -3px transparent;
-  /* Avoid rounded borders under each button name */
-  border: none;
-  border-radius: 0;
-}
-button:hover {
-  /* https://github.com/Alexays/Waybar/wiki/FAQ#the-workspace-buttons-have-a-strange-hover-effect */
-  background: inherit;
-  box-shadow: inset 0 -1px #74c7ec;
-}
-
-#workspaces button {
-  padding: 0 10px;
-  background-color: transparent;
-  color: #89b4fa;
-}
-#workspaces button:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-#workspaces button.active {
-  color: #a6e3a1;
-  box-shadow: inset 0 -1px #a6e3a1;
-}
-#workspaces button.urgent {
-  background-color: #f38ba8;
-}
-
-#mode {
-  background-color: #64727d;
-  box-shadow: inset 0 -3px #ffffff;
-}
-
-#clock,
+.base-waybar-button, #clock,
 #battery,
 #cpu,
 #memory,
@@ -66,14 +97,55 @@ button:hover {
 #idle_inhibitor,
 #scratchpad,
 #power-profiles-daemon,
-#mpd {
-  padding: 5px 10px;
+#mpd, #workspaces button {
+  padding: 0 10px;
   color: #cdd6f4;
   border-radius: 10px;
-  margin: 10px 5px;
   margin-right: 0;
   background-color: #313244;
   border: 1px solid #181825;
+}
+
+window#waybar {
+  background-color: transparent;
+  margin: 2px;
+  /* border-bottom: 3px solid rgba(100, 114, 125, 0.5); */
+  color: #cdd6f4;
+  transition-property: background-color;
+  transition-duration: 0.5s;
+}
+window#waybar.hidden {
+  opacity: 0.2;
+}
+
+#workspaces button {
+  background-color: #45475a;
+  margin-right: 5px;
+}
+#workspaces button:last-child {
+  margin-right: 0;
+}
+#workspaces button:hover {
+  background: #45475a;
+}
+#workspaces button.active {
+  background: #11111b;
+  border: 1px solid #45475a;
+  animation-name: rainbow-bg;
+  animation-duration: 0.2s;
+  animation-iteration-count: 1;
+}
+#workspaces button.active label {
+  background: transparent;
+  color: #cdd6f4;
+}
+#workspaces button.urgent {
+  background-color: #f38ba8;
+}
+
+#mode {
+  background-color: #64727d;
+  box-shadow: inset 0 -3px #ffffff;
 }
 
 #window,

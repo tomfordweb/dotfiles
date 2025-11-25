@@ -25,16 +25,106 @@ $base: #1e1e2e;
 $mantle: #181825;
 $crust: #11111b;
 
+@keyframes rainbow-bg {
+  0% {
+    background-color: rgb(255, 0, 0);
+  }
+  8% {
+    background-color: rgb(255, 127, 0);
+  }
+  16% {
+    background-color: rgb(255, 255, 0);
+  }
+  25% {
+    background-color: rgb(127, 255, 0);
+  }
+  33% {
+    background-color: rgb(0, 255, 0);
+  }
+  41% {
+    background-color: rgb(0, 255, 127);
+  }
+  50% {
+    background-color: rgb(0, 255, 255);
+  }
+  58% {
+    background-color: rgb(0, 127, 255);
+  }
+  66% {
+    background-color: rgb(0, 0, 255);
+  }
+  75% {
+    background-color: rgb(127, 0, 255);
+  }
+  83% {
+    background-color: rgb(255, 0, 255);
+  }
+  91% {
+    background-color: rgb(255, 0, 127);
+  }
+}
+
+@keyframes rainbow {
+  0% {
+    color: rgb(255, 0, 0);
+  }
+  8% {
+    color: rgb(255, 127, 0);
+  }
+  16% {
+    color: rgb(255, 255, 0);
+  }
+  25% {
+    color: rgb(127, 255, 0);
+  }
+  33% {
+    color: rgb(0, 255, 0);
+  }
+  41% {
+    color: rgb(0, 255, 127);
+  }
+  50% {
+    color: rgb(0, 255, 255);
+  }
+  58% {
+    color: rgb(0, 127, 255);
+  }
+  66% {
+    color: rgb(0, 0, 255);
+  }
+  75% {
+    color: rgb(127, 0, 255);
+  }
+  83% {
+    color: rgb(255, 0, 255);
+  }
+  91% {
+    color: rgb(255, 0, 127);
+  }
+}
+
 * {
   /* `otf-font-awesome` is required to be installed for icons */
-  font-family: FontAwesome, Roboto, Helvetica, Arial, sans-serif;
-  font-size: 10px;
+  font-family:
+    "BigBlueTermPlus Nerd Font", FontAwesome, Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 14px;
   color: $text;
+}
+
+.base-waybar-button {
+  padding: 0 10px;
+  color: $text;
+  border-radius: 10px;
+  margin-right: 0;
+  background-color: $surface0;
+  border: 1px solid $mantle;
 }
 
 window#waybar {
   background-color: transparent;
-  border-bottom: 3px solid rgba(100, 114, 125, 0.5);
+  margin: 2px;
+  /* border-bottom: 3px solid rgba(100, 114, 125, 0.5); */
   color: $text;
   transition-property: background-color;
   transition-duration: 0.5s;
@@ -43,32 +133,29 @@ window#waybar {
   }
 }
 
-button {
-  /* Use box-shadow instead of border so the text isn't offset */
-  box-shadow: inset 0 -3px transparent;
-  /* Avoid rounded borders under each button name */
-  border: none;
-  border-radius: 0;
-
-  &:hover {
-    /* https://github.com/Alexays/Waybar/wiki/FAQ#the-workspace-buttons-have-a-strange-hover-effect */
-    background: inherit;
-    box-shadow: inset 0 -1px $sapphire;
-  }
-}
-
 #workspaces button {
-  padding: 0 10px;
-  background-color: transparent;
-  color: $blue;
+  @extend .base-waybar-button;
+  background-color: $surface1;
+  margin-right: 5px;
+
+  &:last-child {
+    margin-right: 0;
+  }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.2);
+    background: $surface1;
   }
 
   &.active {
-    color: $green;
-    box-shadow: inset 0 -1px $green;
+    background: $crust;
+    border: 1px solid $surface1;
+    animation-name: rainbow-bg;
+    animation-duration: 0.2s;
+    animation-iteration-count: 1;
+    label {
+      background: transparent;
+      color: $text;
+    }
   }
 
   &.urgent {
@@ -98,13 +185,7 @@ button {
 #scratchpad,
 #power-profiles-daemon,
 #mpd {
-  padding: 5px 10px;
-  color: $text;
-  border-radius: 10px;
-  margin: 10px 5px;
-  margin-right: 0;
-  background-color: $surface0;
-  border: 1px solid $mantle;
+  @extend .base-waybar-button;
 }
 
 #window,
