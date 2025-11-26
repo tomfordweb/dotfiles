@@ -22,6 +22,7 @@
     "memory",
     "temperature",
     "battery",
+    "custom/docker-status",
     "custom/pacman-status",
     "clock",
     "tray",
@@ -32,6 +33,13 @@
     "exec": "$XDG_CONFIG_HOME/waybar/custom/pacman-status",
     "return-type": "json",
     "interval": 3600,
+    "tooltip": true
+  },
+  "custom/docker-status": {
+    "format": "{text}",
+    "exec": "$XDG_CONFIG_HOME/waybar/custom/docker-status",
+    "return-type": "json",
+    "interval": 60,
     "tooltip": true
   },
   // Modules configuration
@@ -166,9 +174,9 @@
   },
   "network": {
     // "interface": "wlp2*", // (Optional) To force the use of this interface
-    "format-wifi": "{essid} ({signalStrength}%) ",
+    "format-wifi": "({signalStrength}%) ",
     "format-ethernet": "{ipaddr}/{cidr} ",
-    "tooltip-format": "{ifname} via {gwaddr} ",
+    "tooltip-format": "{essid}{ifname} via {gwaddr} ",
     "format-linked": "{ifname} (No IP) ",
     "format-disconnected": "Disconnected ⚠",
     "format-alt": "{ifname}: {ipaddr}/{cidr}"

@@ -96,6 +96,8 @@
 #mode,
 #idle_inhibitor,
 #scratchpad,
+#custom-pacman-status,
+#custom-docker-status,
 #power-profiles-daemon,
 #mpd, #workspaces button {
   padding: 0 10px;
@@ -178,6 +180,13 @@ window#waybar.hidden {
     color: #000000;
   }
 }
+#custom-pacman-status.no-updates {
+  color: #f9e2af;
+}
+#custom-pacman-status.updates-available {
+  color: #f38ba8;
+}
+
 /* Using steps() instead of linear as a timing function to limit cpu usage */
 #battery.critical:not(.charging) {
   background-color: #f53c3c;
