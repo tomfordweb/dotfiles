@@ -15,7 +15,7 @@ On Arch - [You also have to add the env var to pam.](https://wiki.archlinux.org/
 sudo vim /etc/security/pam_env.conf
 ```
 ```
-XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base-config
+XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base/config
 ```
 
 Source it.
