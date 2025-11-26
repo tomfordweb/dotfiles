@@ -25,6 +25,20 @@ $base: #1e1e2e;
 $mantle: #181825;
 $crust: #11111b;
 
+@keyframes danger {
+  to {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}
+
+@keyframes charge {
+  to {
+    background-color: $green;
+    color: $surface0;
+  }
+}
+
 @keyframes rainbow-bg {
   0% {
     background-color: rgb(255, 0, 0);
@@ -206,18 +220,28 @@ window#waybar {
 
 #battery {
   color: $teal;
-}
 
-#battery.charging,
-#battery.plugged {
-  color: $green;
-  background-color: $crust;
-}
+  #battery.charging,
+  #battery.plugged {
+    color: $green;
+    background-color: $crust;
+  }
+  &.charging {
+    animation-name: charge;
+    animation-duration: 2s;
+    animation-timing-function: steps(12);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
 
-@keyframes blink {
-  to {
-    background-color: #ffffff;
-    color: #000000;
+  &.critical:not(.charging) {
+    background-color: $red;
+    color: #ffffff;
+    animation-name: danger;
+    animation-duration: 0.5s;
+    animation-timing-function: steps(12);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
   }
 }
 
@@ -229,17 +253,6 @@ window#waybar {
     color: $red;
   }
 }
-/* Using steps() instead of linear as a timing function to limit cpu usage */
-#battery.critical:not(.charging) {
-  background-color: #f53c3c;
-  color: #ffffff;
-  animation-name: blink;
-  animation-duration: 0.5s;
-  animation-timing-function: steps(12);
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
-
 #power-profiles-daemon {
   padding-right: 15px;
 
