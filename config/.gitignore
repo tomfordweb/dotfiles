@@ -1,4 +1,7 @@
 tmux/plugins
+go/telemetry/*
+sqlitebrowser/sqlitebrowser.conf
+QtProject.conf
 spotify
 ibus/*
 session/*
