@@ -183,6 +183,8 @@ window#waybar {
 #mode,
 #idle_inhibitor,
 #scratchpad,
+#custom-pacman-status,
+#custom-docker-status,
 #power-profiles-daemon,
 #mpd {
   @extend .base-waybar-button;
@@ -219,6 +221,14 @@ window#waybar {
   }
 }
 
+#custom-pacman-status {
+  &.no-updates {
+    color: $yellow;
+  }
+  &.updates-available {
+    color: $red;
+  }
+}
 /* Using steps() instead of linear as a timing function to limit cpu usage */
 #battery.critical:not(.charging) {
   background-color: #f53c3c;
