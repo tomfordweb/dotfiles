@@ -22,10 +22,18 @@
     "memory",
     "temperature",
     "battery",
+    "custom/pacman-status",
     "clock",
     "tray",
     "custom/power"
   ],
+  "custom/pacman-status": {
+    "format": "{text}",
+    "exec": "$XDG_CONFIG_HOME/waybar/custom/pacman-status",
+    "return-type": "json",
+    "interval": 3600,
+    "tooltip": true
+  },
   // Modules configuration
   "hyprland/workspaces": {
     "disable-scroll": true,

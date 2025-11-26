@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Function to get number of available package updates
+get_updates() {
+    # Get package updates to upgrade
+    update_list=$(LANG=C pacman -Qu 2>&1 | grep -v 'total' | grep -v 'downloading')
+
+    # Check if there are no updates
+    if [ -z "$update_list" ]; then
+        echo "{\"text\": \"󰮯 0\", \"class\": \"no-updates\", \"tooltip\": \"All packages are up to date!\"}"
+        exit 0
+    fi
+
+    # Count updates
+    updates=$(echo "$update_list" | wc -l)
+
+    # Create tooltip with package details
+    tooltip=$(echo "$update_list" | sed 's/"/\\"/g' | awk '{print $1 " -> " $2}' | sed ':a;N;$!ba;s/\n/\\n/g')
+
+    # Output JSON for Waybar
+    echo "{\"text\": \"󰮯 $updates\", \"class\": \"updates-available\", \"tooltip\": \"Packages to update:\\n$tooltip\"}"
+}
+
+# Call the function to output JSON for Waybar
+get_updates
