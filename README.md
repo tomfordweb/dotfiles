@@ -36,6 +36,16 @@ EDITOR=nvim
 
 ```
 
+# Development
+
+## Ricing
+
+Most of my CSS is written with sass. You can run the script to watch supported files and write to their respective .css files with
+
+```
+./bin/rice.sh
+```
+
 # Scripts
 
 ## `./bin/ai/arch.setup.sh`
