@@ -109,6 +109,7 @@
 #idle_inhibitor,
 #scratchpad,
 #custom-pacman-status,
+#custom-gpu-status,
 #custom-docker-status,
 #power-profiles-daemon,
 #mpd, #workspaces button {
@@ -206,6 +207,10 @@ window#waybar.hidden {
 }
 #custom-pacman-status.updates-available {
   color: #f38ba8;
+}
+
+#custom-gpu-status {
+  color: #fab387;
 }
 
 #power-profiles-daemon {

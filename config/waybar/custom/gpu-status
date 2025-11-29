@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Function to get number of available package updates
+get_gpu_status() {
+
+    gpuUsage=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits)
+    # Output JSON for Waybar
+    echo "{\"text\": \"󰧑 $gpuUsage\", \"class\": \"gpu-usage\"}"
+}
+
+# Call the function to output JSON for Waybar
+get_gpu_status

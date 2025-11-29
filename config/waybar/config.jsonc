@@ -7,7 +7,6 @@
     "hyprland/workspaces",
     "hyprland/submap",
     "hyprland/scratchpad",
-    "custom/media"
   ],
   "modules-center": [
     "hyprland/window"
@@ -20,6 +19,7 @@
     "power-profiles-daemon",
     "cpu",
     "memory",
+    "custom/gpu-status",
     "temperature",
     "battery",
     "custom/docker-status",
@@ -41,6 +41,13 @@
     "return-type": "json",
     "interval": 60,
     "tooltip": true
+  },
+  "custom/gpu-status": {
+    "format": "{text}",
+    "exec": "$XDG_CONFIG_HOME/waybar/custom/gpu-status",
+    "return-type": "json",
+    "interval": 10,
+    "tooltip": false
   },
   // Modules configuration
   "hyprland/workspaces": {
