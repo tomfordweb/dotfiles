@@ -1,0 +1,37 @@
+@use "rice" as theme;
+
+window {
+  margin: 5px;
+  border: 2px solid theme.$green;
+  background-color: theme.$mantle;
+
+  height: 100%;
+  margin-right: 20px;
+  font-family: theme.$font;
+}
+
+#input {
+  margin: 5px;
+  border: 2px solid theme.$mauve;
+  background-color: theme.$base;
+}
+
+#inner-box {
+  margin: 5px;
+  background-color: theme.$base;
+}
+
+#outer-box {
+  margin: 5px;
+  border: 2px solid theme.$crust;
+  background-color: theme.$base;
+}
+
+#scroll {
+  margin: 5px;
+  border: 2px solid theme.$red;
+}
+
+#text {
+  margin: 5px;
+}

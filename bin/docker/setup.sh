@@ -8,9 +8,9 @@ fi
 
 sudo usermod -aG docker $USER
 
-sudo systemctl enable docker.service
-sudo systemctl start docker.service
-sudo systemctl enable containerd.service
-sudo systemctl start containerd.service
+# Use docker.socket to boot docker on first container start
+# which should decrease boot times.
+sudo systemctl enable docker.socket
+sudo systemctl start docker.socket
 
 docker run hello-world

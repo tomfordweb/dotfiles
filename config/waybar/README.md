@@ -1,15 +1,21 @@
 # Requirements
 
 - "Big Blue nerd plus" Nerd font.
+- `gpsd`
 
-The style.css file is supposed to be built by dart-sass.
+# Custom plugins
 
-```
-sass --watch theme.scss style.css
-```
+### `custom/docker-status`
 
-# Run gtk devtools 
+Shows the status of the docker daemon. You can hover it to show which containers are running.
+
+### `custom/pacman-status`
+
+Shows the status of pacman registry.
+
+# Development
+
 ```
 GTK_DEBUG=interactive waybar
-
+sass --watch theme.scss style.css
 ```

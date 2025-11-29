@@ -1,0 +1,11 @@
+show=drun
+width=800
+allow_images=true
+cache_file=/dev/null
+hide_scroll=true
+insensitive=true
+no_actions=true
+gtk_dark=true
+hide_search=false
+term=ghostty
+dynamic_lines=false

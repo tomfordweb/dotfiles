@@ -1,29 +1,18 @@
-$rosewater: #f5e0dc;
-$flamingo: #f2cdcd;
-$pink: #f5c2e7;
-$mauve: #cba6f7;
-$red: #f38ba8;
-$maroon: #eba0ac;
-$peach: #fab387;
-$yellow: #f9e2af;
-$green: #a6e3a1;
-$teal: #94e2d5;
-$sky: #89dceb;
-$sapphire: #74c7ec;
-$blue: #89b4fa;
-$lavender: #b4befe;
-$text: #cdd6f4;
-$subtext1: #bac2de;
-$subtext0: #a6adc8;
-$overlay2: #9399b2;
-$overlay1: #7f849c;
-$overlay0: #6c7086;
-$surface2: #585b70;
-$surface1: #45475a;
-$surface0: #313244;
-$base: #1e1e2e;
-$mantle: #181825;
-$crust: #11111b;
+@use "rice" as theme;
+
+@keyframes danger {
+  to {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}
+
+@keyframes charge {
+  to {
+    background-color: theme.$green;
+    color: theme.$surface0;
+  }
+}
 
 @keyframes rainbow-bg {
   0% {
@@ -105,27 +94,25 @@ $crust: #11111b;
 
 * {
   /* `otf-font-awesome` is required to be installed for icons */
-  font-family:
-    "BigBlueTermPlus Nerd Font", FontAwesome, Roboto, Helvetica, Arial,
-    sans-serif;
+  font-family: theme.$font;
   font-size: 14px;
-  color: $text;
+  color: theme.$text;
 }
 
 .base-waybar-button {
   padding: 0 10px;
-  color: $text;
+  color: theme.$text;
   border-radius: 10px;
   margin-right: 0;
-  background-color: $surface0;
-  border: 1px solid $mantle;
+  background-color: theme.$surface0;
+  border: 1px solid theme.$mantle;
 }
 
 window#waybar {
   background-color: transparent;
   margin: 2px;
   /* border-bottom: 3px solid rgba(100, 114, 125, 0.5); */
-  color: $text;
+  color: theme.$text;
   transition-property: background-color;
   transition-duration: 0.5s;
   &.hidden {
@@ -135,7 +122,7 @@ window#waybar {
 
 #workspaces button {
   @extend .base-waybar-button;
-  background-color: $surface1;
+  background-color: theme.$surface1;
   margin-right: 5px;
 
   &:last-child {
@@ -143,23 +130,23 @@ window#waybar {
   }
 
   &:hover {
-    background: $surface1;
+    background: theme.$surface1;
   }
 
   &.active {
-    background: $crust;
-    border: 1px solid $surface1;
+    background: theme.$crust;
+    border: 1px solid theme.$surface1;
     animation-name: rainbow-bg;
     animation-duration: 0.2s;
     animation-iteration-count: 1;
     label {
       background: transparent;
-      color: $text;
+      color: theme.$text;
     }
   }
 
   &.urgent {
-    background-color: $red;
+    background-color: theme.$red;
   }
 }
 
@@ -201,58 +188,57 @@ window#waybar {
 }
 
 #clock {
-  color: $maroon;
+  color: theme.$maroon;
 }
 
 #battery {
-  color: $teal;
-}
+  color: theme.$teal;
 
-#battery.charging,
-#battery.plugged {
-  color: $green;
-  background-color: $crust;
-}
+  #battery.charging,
+  #battery.plugged {
+    color: theme.$green;
+    background-color: theme.$crust;
+  }
+  &.charging {
+    animation-name: charge;
+    animation-duration: 2s;
+    animation-timing-function: steps(12);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+  }
 
-@keyframes blink {
-  to {
-    background-color: #ffffff;
-    color: #000000;
+  &.critical:not(.charging) {
+    background-color: theme.$red;
+    color: #ffffff;
+    animation-name: danger;
+    animation-duration: 0.5s;
+    animation-timing-function: steps(12);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
   }
 }
 
 #custom-pacman-status {
   &.no-updates {
-    color: $yellow;
+    color: theme.$yellow;
   }
   &.updates-available {
-    color: $red;
+    color: theme.$red;
   }
 }
-/* Using steps() instead of linear as a timing function to limit cpu usage */
-#battery.critical:not(.charging) {
-  background-color: #f53c3c;
-  color: #ffffff;
-  animation-name: blink;
-  animation-duration: 0.5s;
-  animation-timing-function: steps(12);
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-}
-
 #power-profiles-daemon {
   padding-right: 15px;
 
   &.performance {
-    color: $red;
+    color: theme.$red;
   }
 
   &.balanced {
-    color: $yellow;
+    color: theme.$yellow;
   }
 
   &.power-saver {
-    color: $green;
+    color: theme.$green;
   }
 }
 
@@ -261,25 +247,25 @@ label:focus {
 }
 
 #cpu {
-  color: $sky;
+  color: theme.$sky;
 }
 
 #memory {
-  color: $maroon;
+  color: theme.$maroon;
 }
 
 #network {
-  color: $mauve;
+  color: theme.$mauve;
   &.disconnected {
-    background-color: $red;
-    color: $surface0;
+    background-color: theme.$red;
+    color: theme.$surface0;
   }
 }
 
 #pulseaudio {
-  color: $flamingo;
+  color: theme.$flamingo;
   &.muted {
-    color: $subtext0;
+    color: theme.$subtext0;
   }
 }
 
@@ -298,11 +284,11 @@ label:focus {
 }
 
 #temperature {
-  color: $yellow;
+  color: theme.$yellow;
 
   &.critical {
-    background-color: $red;
-    color: $surface0;
+    background-color: theme.$red;
+    color: theme.$surface0;
   }
 }
 
@@ -329,7 +315,7 @@ label:focus {
 }
 
 #mpd {
-  color: $lavender;
+  color: theme.$lavender;
 
   &.disconnected {
     background-color: #f53c3c;

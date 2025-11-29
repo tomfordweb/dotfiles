@@ -1,3 +1,15 @@
+@keyframes danger {
+  to {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}
+@keyframes charge {
+  to {
+    background-color: #a6e3a1;
+    color: #313244;
+  }
+}
 @keyframes rainbow-bg {
   0% {
     background-color: rgb(255, 0, 0);
@@ -167,35 +179,33 @@ window#waybar.hidden {
 #battery {
   color: #94e2d5;
 }
-
-#battery.charging,
-#battery.plugged {
+#battery #battery.charging,
+#battery #battery.plugged {
   color: #a6e3a1;
   background-color: #11111b;
 }
-
-@keyframes blink {
-  to {
-    background-color: #ffffff;
-    color: #000000;
-  }
+#battery.charging {
+  animation-name: charge;
+  animation-duration: 2s;
+  animation-timing-function: steps(12);
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
 }
+#battery.critical:not(.charging) {
+  background-color: #f38ba8;
+  color: #ffffff;
+  animation-name: danger;
+  animation-duration: 0.5s;
+  animation-timing-function: steps(12);
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
 #custom-pacman-status.no-updates {
   color: #f9e2af;
 }
 #custom-pacman-status.updates-available {
   color: #f38ba8;
-}
-
-/* Using steps() instead of linear as a timing function to limit cpu usage */
-#battery.critical:not(.charging) {
-  background-color: #f53c3c;
-  color: #ffffff;
-  animation-name: blink;
-  animation-duration: 0.5s;
-  animation-timing-function: steps(12);
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
 }
 
 #power-profiles-daemon {
