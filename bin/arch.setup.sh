@@ -17,6 +17,7 @@ nvm \
 pciutils \
 lsof \
 fastfetch \
+libnewt \
 docker docker-compose
 
 # Setup nvm
