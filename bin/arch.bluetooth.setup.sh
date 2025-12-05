@@ -5,8 +5,13 @@ if !lsmod | grep btusb; then
   exit 1; 
 fi
 
-sudo pacman -Syu bluez bluez-utils
+sudo pacman -Syu blueman pulseaudio-bluetooth
 
 sudo systemctl enable bluetooth.service
 sudo systemctl start bluetooth.service
 
+
+killall pulseaudio
+pulseaudio --start
+
+sudo systemctl restart bluetooth.service
