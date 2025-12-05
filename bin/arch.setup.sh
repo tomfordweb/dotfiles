@@ -4,6 +4,8 @@
 sudo pacman --needed -Sy \
 git lazygit \
 spotify-launcher \
+libnotify dunst \
+hyprpolkitagent \
 alsa-utils \
 firefox \
 rust \
