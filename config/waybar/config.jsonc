@@ -15,6 +15,7 @@
     "mpd",
     "idle_inhibitor",
     "pulseaudio",
+    "bluetooth",
     "network",
     "power-profiles-daemon",
     "cpu",
