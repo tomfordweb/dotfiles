@@ -50,17 +50,20 @@
     "interval": 10,
     "tooltip": false
   },
-  // Modules configuration
   "hyprland/workspaces": {
-    "disable-scroll": true,
-    "all-outputs": false,
-    "warp-on-scroll": false,
-    "show-special": true,
-    "format": "{name}",
-    "format-icons": {
-      "urgent": "",
-      "focused": "",
-      "default": ""
+    "format": "{icon} {windows}",
+    "on-scroll-up": "hyprctl dispatch workspace e+1",
+    "on-scroll-down": "hyprctl dispatch workspace e-1",
+    "on-click": "activate",
+    "icon-size": 45,
+    "window-rewrite-default": "", // Default icon for windows not matched by rewrite rules
+    "window-rewrite": {
+      "title<.*youtube.*>": "", // Windows whose titles contain "youtube"
+      "class<chromium>": "", // Windows whose classes are "firefox"
+      "class<com.mitchellh.ghostty>": "",
+      "class<spotify>": "",
+      "class<Steam>": "",
+      "class<LM Studio>": "󰧑",
     }
   },
   "hyprland/submap": {
