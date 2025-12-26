@@ -6,13 +6,20 @@ services:
     pull_policy: always
     tty: true
     image: docker.io/ollama/ollama:latest
-    ports:
-      - 7869:11434
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ollama.rule=Host(`${OLLAMA_WEB_URL}`)"
+      - "traefik.http.routers.ollama.entrypoints=websecure"
+      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
+      - "traefik.http.routers.ollama.tls=true"
+    expose:
+      - 11434
     environment:
       - OLLAMA_KEEP_ALIVE=24h
       - OLLAMA_HOST=0.0.0.0
     networks:
       - ollama-docker
+      - traefik
 
   # This takes a minute or two to be ready the first time you start it
   open-webui:
@@ -24,7 +31,7 @@ services:
       - ollama
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.open-webui.rule=Host(`ollama.docker.localhost`)"
+      - "traefik.http.routers.open-webui.rule=Host(`${WEBUI_URL}`)"
       - "traefik.http.routers.open-webui.entrypoints=websecure"
       - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
       - "traefik.http.routers.open-webui.tls=true"
