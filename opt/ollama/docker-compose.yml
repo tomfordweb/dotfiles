@@ -20,6 +20,13 @@ services:
     networks:
       - ollama-docker
       - traefik
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   # This takes a minute or two to be ready the first time you start it
   open-webui:
