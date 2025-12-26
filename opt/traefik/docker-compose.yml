@@ -4,7 +4,6 @@ services:
     container_name: traefik
     security_opt:
       - no-new-privileges:true
-
     restart: always
     ports:
       - "80:80"
@@ -28,7 +27,7 @@ services:
       - "--entryPoints.websecure.http.tls=true"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`dashboard.docker.localhost`)"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.docker.localhost`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.service=api@internal"
       # Add the following label

@@ -1,0 +1,46 @@
+services:
+  ollama:
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    image: docker.io/ollama/ollama:latest
+    ports:
+      - 7869:11434
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ollama-docker
+
+  # This takes a minute or two to be ready the first time you start it
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ollama-webui
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    depends_on:
+      - ollama
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.open-webui.rule=Host(`ollama.docker.localhost`)"
+      - "traefik.http.routers.open-webui.entrypoints=websecure"
+      - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
+      - "traefik.http.routers.open-webui.tls=true"
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_URL?OLLAMA_URL}
+      - ENV=dev
+      - WEBUI_AUTH=False
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY?WEBUI_SECRET_KEY}
+    expose:
+      - 8080
+    networks:
+      - ollama-docker
+      - traefik
+
+networks:
+  traefik:
+    external: true
+  ollama-docker:
+    external: false
