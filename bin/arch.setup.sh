@@ -4,6 +4,7 @@
 sudo pacman --needed -Sy \
 git lazygit \
 spotify-launcher \
+networkmanager \
 libnotify dunst \
 hyprpolkitagent \
 alsa-utils \
