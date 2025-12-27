@@ -1,3 +1,23 @@
+# Setup
+
+```bash
+touch .env
+echo SEARXNG_SECRET="$(openssl rand -hex 32)" > .env
+echo SEARXNG_HOST="searx.docker.localhost" >> .env
+```
+
+# JSON APIs and integration with code.
+
+In order to use this with code. It is important to enable json format.
+
+```
+search:
+    ...
+    formats:
+        ...
+        - json
+```
+
 # Default browser search chromium
 
 1. Settings -> Search Engine -> Manage search engines and site search

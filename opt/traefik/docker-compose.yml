@@ -16,6 +16,7 @@ services:
     networks:
       - traefik
     command:
+      - "--accesslog=true"
       - "--log.level=INFO"
       - "--api.insecure=false"
       - "--api.dashboard=true"

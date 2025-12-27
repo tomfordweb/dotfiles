@@ -4,15 +4,15 @@ services:
     container_name: searxng
     restart: always
     volumes:
-      - ./searxng-data:/etc/searxng:rw
+      - ./searxng-data:/etc/searxng:ro
     environment:
-      - BASE_URL=https://searx.docker.localhost
+      - BASE_URL=https://${SEARXNG_HOST?SEARXNG_HOST}
       - BIND_ADDRESS=0.0.0.0:8080
     networks:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.searxng.rule=Host(`searx.docker.localhost`)"
+      - "traefik.http.routers.searxng.rule=Host(`${SEARXNG_HOST}`)"
       - "traefik.http.routers.searxng.entrypoints=websecure"
       - "traefik.http.routers.searxng.tls=true"
 
