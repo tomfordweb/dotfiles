@@ -2,7 +2,7 @@
 
 One important thing to note is that `json` format must be enabled.
 
-To get the "engine" name, go to [searxng settings](https://searx.docker.localhost/preferences)
+To get the "engine" name, go to [searxng settings](https://searx.docker.lan/preferences)
 
 ```typescript
 #!/usr/bin/env tsx
@@ -15,7 +15,7 @@ const model = ollamaModelFactory("qwen3:14b");
 
 const tools = [
   new SearxngSearch({
-    apiBase: "https://searx.docker.localhost",
+    apiBase: "https://searx.docker.lan",
     params: {
       format: "json", // Do not change this, format other than "json" is will throw error
       engines: "wp", // wikipedia

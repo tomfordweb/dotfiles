@@ -3,6 +3,7 @@ services:
     volumes:
       - ./ollama/ollama:/root/.ollama
     container_name: ollama
+    restart: unless-stopped
     pull_policy: always
     tty: true
     image: docker.io/ollama/ollama:latest
@@ -32,6 +33,7 @@ services:
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: ollama-webui
+    restart: unless-stopped
     volumes:
       - ./ollama/ollama-webui:/app/backend/data
     depends_on:
@@ -43,9 +45,9 @@ services:
       - "traefik.http.services.open-webui.loadbalancer.server.port=8080"
       - "traefik.http.routers.open-webui.tls=true"
     environment:
-      - OLLAMA_BASE_URL=${OLLAMA_URL?OLLAMA_URL}
+      - OLLAMA_BASE_URL=${OLLAMA_URL:-http://ollama:11434}
       - ENV=dev
-      - WEBUI_AUTH=False
+      - WEBUI_AUTH=True
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY?WEBUI_SECRET_KEY}
     expose:
       - 8080

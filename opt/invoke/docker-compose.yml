@@ -12,15 +12,13 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.invokeai-cuda.rule=Host(`invoke.docker.localhost`)"
+      - "traefik.http.routers.invokeai-cuda.rule=Host(`${INVOKE_DOMAIN}`)"
       - "traefik.http.routers.invokeai-cuda.entrypoints=websecure"
       - "traefik.http.services.invokeai-cuda.loadbalancer.server.port=9090"
       - "traefik.http.routers.invokeai-cuda.tls=true"
-    # variables without a default will automatically inherit from the host environment
     ports:
       - 9090:9090
     environment:
-      # if set, CONTAINER_INVOKEAI_ROOT will override the Invoke runtime directory location *inside* the container
       - INVOKEAI_ROOT=${CONTAINER_INVOKEAI_ROOT:-/invokeai}
       - HF_HOME
     volumes:
