@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# install xml2json here: https://github.com/Cheedoong/xml2json
+
+nvidia_smi_status() {
+    if ! command -v jq &> /dev/null; then
+      echo '{"text": "jq is not installed!"}';
+      exit;
+    fi;
+
+    if ! command -v xml2json &> /dev/null; then
+      echo '{"text": "xml2json is not installed!"}';
+      exit;
+    fi;
+
+    jqPattern="{
+      power: .nvidia_smi_log.gpu.gpu_power_readings,
+      memory: .nvidia_smi_log.gpu.fb_memory_usage,
+      utilization: .nvidia_smi_log.gpu.utilization,
+      temperature: .nvidia_smi_log.gpu.temperature,
+      processes: .nvidia_smi_log.gpu.processes,
+    }"
+
+    data=$(nvidia-smi -x -q | xml2json | jq "$jqPattern")
+
+    text=$(echo $data | jq -r '"󱐋 \(.power.average_power_draw | match("\\d+") | .string)W  \(.utilization.memory_util | match("\\d+") | .string)% 󰧑 \(.utilization.gpu_util | match("\\d+") | .string)%"')
+    tooltip=$(echo $data | jq -r '"󱐋 \(.power.average_power_draw | match("\\d+") | .string)W Average Power Draw \r  \(.utilization.memory_util | match("\\d+") | .string)% Memory Utilization \r 󰧑 \(.utilization.gpu_util | match("\\d+") | .string)% GPU Utilization\rActive Processes:\r[PID] - [NAME] - [USED]\r\r"')
+    tooltip+=$(echo $data | jq -r .processes.process_info | jq  -r 'map("  \(.pid) - \(.process_name) - \(.used_memory)") | join("\r")')
+    percentage=$(echo $data | jq -r '.utilization.memory_util | match("\\d+") | .string')
+
+
+    echo "{ \"text\": \"$text\", \"tooltip\": \"$tooltip\", \"class\": \"$class\", \"percentage\": $percentage, \"foo\": \"bar\" }"
+}
+
+
+nvidia_smi_status

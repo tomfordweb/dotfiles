@@ -20,7 +20,7 @@
     "power-profiles-daemon",
     "cpu",
     "memory",
-    "custom/gpu-status",
+    "custom/nvidia-smi",
     "temperature",
     "battery",
     "custom/docker-status",
@@ -43,12 +43,12 @@
     "interval": 60,
     "tooltip": true
   },
-  "custom/gpu-status": {
+  "custom/nvidia-smi": {
     "format": "{text}",
-    "exec": "$XDG_CONFIG_HOME/waybar/custom/gpu-status",
+    "exec": "$XDG_CONFIG_HOME/waybar/custom/nvidia-smi",
     "return-type": "json",
-    "interval": 10,
-    "tooltip": false
+    "interval": 5,
+    "tooltip": true
   },
   "hyprland/workspaces": {
     "format": "{icon} {windows}",
