@@ -45,7 +45,7 @@
   },
   "custom/nvidia-smi": {
     "format": "{text}",
-    "exec": "$XDG_CONFIG_HOME/waybar/custom/nvidia-smi",
+    "exec": "$XDG_CONFIG_HOME/waybar/custom/nvidia-smi/nvidia-smi",
     "return-type": "json",
     "interval": 5,
     "tooltip": true
