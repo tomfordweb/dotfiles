@@ -5,9 +5,13 @@ sudo pacman --needed -Sy \
 git lazygit \
 spotify-launcher \
 networkmanager \
+pacman-contrib \
 libnotify dunst \
+snapper pacsnap \
+paccache \
 hyprpolkitagent \
 alsa-utils \
+rsync \
 firefox \
 rust \
 ghostty \
@@ -76,4 +80,6 @@ if [ ! -d "$HOME/.tmux/plugins/tpm" ]; then
   git clone https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
 fi
 
+sudo systemctl enable paccache.timer
+sudo systemctl start paccache.timer
 # ./bin/ai/arch.setup.sh

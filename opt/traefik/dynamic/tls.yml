@@ -1,4 +1,4 @@
 tls:
   certificates:
-    - certFile: /certs/_wildcard.docker.lan.pem
-      keyFile: /certs/_wildcard.docker.lan-key.pem
+    - certFile: /certs/_wildcard.docker.romi.pem
+      keyFile: /certs/_wildcard.docker.romi-key.pem
