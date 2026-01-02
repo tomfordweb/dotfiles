@@ -1,4 +1,7 @@
 tmux/plugins
+GIMP
+pudb
+nwg-look
 LM\ Studio
 Postman
 gtk-3.0
@@ -23,3 +26,6 @@ chromium
 **/*/style.css.map
 user-dirs.dirs
 htop/htoprc
+
+# Hollow Knight: Silksong
+unity3d
