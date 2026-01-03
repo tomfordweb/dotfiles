@@ -9,15 +9,14 @@ Add the following your your `~/.bashrc` or whatever.
 
 ```bash
 export XDG_CONFIG_HOME="$HOME/xdg-base/config"
+export PATH=/home/tom/xdg-base/bin:$PATH
 ```
 
 On Arch - [You also have to add the env var to pam.](https://wiki.archlinux.org/title/Environment_variables#Using_pam_env)
 
 ```bash
 sudo vim /etc/security/pam_env.conf
-```
-
-```bash
+...
 XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base/config
 ```
 
@@ -46,7 +45,7 @@ Most of my CSS is written with sass. You can run the script to watch supported f
 ./bin/rice.sh
 ```
 
-# Scripts
+# Install Scripts
 
 ## `./bin/ai/arch.setup.sh`
 

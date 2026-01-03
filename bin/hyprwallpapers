@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Given a directory of jpg or png images...Updates all 
+# monitors with a random image from the dir
+
+WALLPAPER_DIR=/home/tom/Documents/Wallpaper-Bank
+while IFS= read -r monitor; do
+  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" \) | shuf -n 1)
+  hyprctl hyprpaper wallpaper "$monitor, $WALLPAPER, cover"
+
+done < <(hyprctl monitors -j | jq -r '.[] | .name');
+
+

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+while true; do
+  hyprwallpapers
+  sleep "$1"
+done
