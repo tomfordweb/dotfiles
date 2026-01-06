@@ -4,3 +4,6 @@
 [submodule "config/waybar/custom/nvidia-smi"]
 	path = config/waybar/custom/nvidia-smi
 	url = git@github.com:tomfordweb/waybar-module-nvidia-smi.git
+[submodule "docs"]
+	path = docs
+	url = git@github.com:tomfordweb/wiki.git
