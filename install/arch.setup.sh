@@ -83,3 +83,5 @@ fi
 sudo systemctl enable paccache.timer
 sudo systemctl start paccache.timer
 # ./bin/ai/arch.setup.sh
+#
+yay -Syu opentabletdriver
