@@ -330,7 +330,7 @@ globalkeys = gears.table.join(
   -- Standard program
   awful.key({ modkey, }, "q", function() awful.spawn(terminal) end,
     { description = "open a terminal", group = "launcher" }),
-  awful.key({ modkey, "Control" }, "r", awesome.restart,
+  awful.key({ modkey, "Control" }, "o", awesome.restart,
     { description = "reload awesome", group = "awesome" }),
   awful.key({ modkey, "Shift" }, "l", awesome.quit,
     { description = "quit awesome", group = "awesome" }),
@@ -360,6 +360,8 @@ globalkeys = gears.table.join(
     { description = "restore minimized", group = "client" }),
 
   -- Prompt
+
+
   awful.key({ modkey, "Shift" }, "r", function() awful.screen.focused().mypromptbox:run() end,
     { description = "run prompt", group = "launcher" }),
 
@@ -373,8 +375,11 @@ globalkeys = gears.table.join(
       }
     end,
     { description = "lua execute prompt", group = "awesome" }),
+  awful.key({ modkey, }, "r",
+    function() awful.spawn("rofi -drun-match-fields name -show drun") end,
+    { description = "open rofi menu", group = "launcher" }),
   -- Menubar
-  awful.key({ modkey }, "r", function() menubar.show() end,
+  awful.key({ modkey, "Control" }, "r", function() menubar.show() end,
     { description = "show the menubar", group = "launcher" })
 )
 
