@@ -22,9 +22,20 @@ XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base/config
 
 Source it.
 
+
 ```bash
 source ~/.bashrc
 ```
+
+## Mac
+I have had a hard time getting ghostty to read my config file after having a nonstandard XDG_CONFIG_HOME on a mac.
+
+This however can be amended by symlinking the config to one of the other places that ghostty looks.
+
+```
+ln -s $XDG_CONFIG_HOME/ghostty/config $HOME/.config/ghostty/config
+```
+
 
 # System setup tips
 
