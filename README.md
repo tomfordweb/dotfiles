@@ -47,6 +47,13 @@ EDITOR=nvim
 
 ```
 
+# Claude
+Preferred settings are symlinked.
+
+```
+ln -s ~/code/tomfordweb/dotfiles/claude/settings.json ~/.claude/settings.json
+ln -s ~/code/tomfordweb/dotfiles/claude/skills ~/.claude/skills
+```
 
 # Ricing & Development
 
