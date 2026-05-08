@@ -11,6 +11,7 @@
       }
     }
   },
+  "teammateMode": "tmux",
   "theme": "dark",
   "hooks": {
     "SessionStart": [
