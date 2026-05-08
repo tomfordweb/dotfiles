@@ -1,6 +1,6 @@
 ---
 name: e2e
-description: Write or review Playwright e2e tests for the tats.to Analog project, enforcing all project rules — 5s timeout cap, testId directive, storageState auth, POM pattern, getByTestId selectors. USE WHEN user types /e2e, says "write a playwright test", "add e2e coverage", or "write an e2e spec".
+description: Write or review Playwright e2e tests for the  project, enforcing all project rules — 5s timeout cap, testId directive, storageState auth, POM pattern, getByTestId selectors. USE WHEN user types /e2e, says "write a playwright test", "add e2e coverage", or "write an e2e spec".
 user-invocable: true
 allowed-tools:
   - Bash
@@ -13,7 +13,7 @@ allowed-tools:
 
 # /e2e
 
-You are writing or reviewing Playwright e2e tests for the tats.to Analog project. Follow all rules below without exception. These are not preferences — they are hard project constraints.
+You are writing or reviewing Playwright e2e tests for the project. Follow all rules below without exception. These are not preferences — they are hard project constraints.
 
 ## Project e2e structure
 
