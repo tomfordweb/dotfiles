@@ -1,6 +1,6 @@
 ---
 name: gitlab
-description: Interact with any GitLab repository following Tom's established workflow — creating issues, updating checklists during implementation, opening MRs with Closes #id, linking milestones, and closing issues. USE WHEN user types /gitlab, says "create a GitLab issue", "open an MR", "update the issue checklist", "link milestone", "list issues", or starts feature work in a GitLab repo.
+description: Interact with any GitLab repository following Tom's established workflow — creating issues, updating checklists during implementation, opening MRs with Closes #id, linking milestones, and closing issues. USE WHEN user types /gitlab, says "create a GitLab issue", "open an MR", "update the issue checklist", "link milestone", "list issues", starts feature work in a GitLab repo, or asks to audit/fix open MRs.
 user-invocable: true
 allowed-tools:
   - Bash
@@ -195,6 +195,45 @@ glab api projects/<encoded-path>/merge_requests/<mr_iid> \
 
 ---
 
+### Audit open MRs — run automatically after any MR operation
+
+**Trigger:** run this audit automatically at the end of every invocation that creates, lists, or otherwise touches MRs. Also run when the user says "audit MRs", "link milestones", "go through open PRs/MRs", or similar.
+
+```bash
+# 1. Fetch milestones so we can map names → IDs
+glab api projects/<encoded-path>/milestones | jq '.[] | {id, iid, title}'
+
+# 2. Fetch all open MRs
+glab api "projects/<encoded-path>/merge_requests?state=opened" \
+  | jq '.[] | {iid, title, source_branch, milestone: (.milestone.title // null), description}'
+```
+
+For each MR, check two things:
+
+**A. Milestone missing?**
+- Look for a `Closes #N` reference in the MR description.
+- If found, fetch that issue: `glab api projects/<encoded-path>/issues/<N> | jq '{milestone, labels}'`
+- Use the issue's milestone if set; otherwise infer from labels (`now`/`stage-*` → Phase 1, `medium-term` → Phase 2, `deferred` → Backlog).
+- If no issue reference exists, default to the Phase 1 milestone unless the work is clearly longer-term.
+- Set via `glab api projects/<encoded-path>/merge_requests/<iid> --method PUT -f milestone_id=<id>`
+
+**B. Issue link missing (no `Closes #N` in description)?**
+- Scan title and branch name for `#N` patterns.
+- If an issue is identifiable but not in the description, update the MR description to append `\n\nCloses #N`:
+  ```bash
+  CURRENT=$(glab api projects/<encoded-path>/merge_requests/<iid> | jq -r '.description')
+  glab api projects/<encoded-path>/merge_requests/<iid> \
+    --method PUT \
+    --field "description=${CURRENT}
+
+Closes #<N>"
+  ```
+- If no issue can be determined (pure maintenance/chore), skip — do not fabricate an issue link.
+
+Print a summary table of what was fixed vs what was already correct.
+
+---
+
 ## Feature work workflow
 
 When the user is **starting** a feature task, follow this sequence automatically:
@@ -229,7 +268,9 @@ When the user is **starting** a feature task, follow this sequence automatically
 ## Hard rules
 
 - **Never push directly to `main`.** Always open an MR.
-- Every MR description **must** contain `Closes #<id>` so GitLab auto-closes the issue on merge.
+- Every MR description **must** contain `Closes #<id>` so GitLab auto-closes the issue on merge (skip only for pure maintenance with no linked issue).
+- **Every MR must have a milestone set.** Linking a milestone is not optional — do it immediately after `glab mr create` using `glab api ... --method PUT -f milestone_id=<id>`.
+- **Run the MR audit automatically** after any invocation that creates or lists MRs. Never leave the session without verifying all open MRs have milestones and issue links.
 - Do NOT override `XDG_CONFIG_HOME` when calling `glab`.
 - Milestone linking must use `glab api` (the `glab mr create` command does not expose `--milestone-id`).
 - On any `glab` error, surface it verbatim. Do not silently retry.
