@@ -67,7 +67,22 @@ If nothing to commit, skip this step.
 
 ---
 
-### 4. Push
+### 4. Sync main
+
+Fetch and merge the latest `main` into the current branch before pushing, so the MR has no divergence:
+
+```bash
+git fetch origin main
+git merge origin/main
+```
+
+If `git merge` exits non-zero (conflicts), **stop immediately**. Report the conflicting files verbatim and ask the user to resolve them. Do not push until the merge is clean and committed.
+
+If the merge is clean (fast-forward or auto-resolved), commit the merge result if git didn't already (i.e. `git status` shows unmerged paths — stage and commit). Then proceed.
+
+---
+
+### 5. Push
 
 ```bash
 git push -u origin "$(git branch --show-current)"
@@ -75,7 +90,7 @@ git push -u origin "$(git branch --show-current)"
 
 ---
 
-### 5. Open MR
+### 6. Open MR
 
 Get URL-encoded project path:
 
@@ -105,7 +120,7 @@ Print the MR URL.
 
 ---
 
-### 6. Link milestone
+### 7. Link milestone
 
 Get the MR iid:
 
@@ -126,7 +141,7 @@ Skip if no milestone applies.
 
 ---
 
-### 7. Tick remaining checklist items
+### 8. Tick remaining checklist items
 
 Get the current issue description:
 
@@ -145,7 +160,7 @@ EOF
 
 ---
 
-### 8. Recap
+### 9. Recap
 
 Print:
 - Commit SHA
