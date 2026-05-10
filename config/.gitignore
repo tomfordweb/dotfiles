@@ -1,6 +1,8 @@
 tmux/plugins
 GIMP
 glab-cli/recover
+
+# Contains auth tokens
 glab-cli/config.yml
 google-chrome-for-testing
 pudb
