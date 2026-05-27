@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+exec docker run --rm \
+  -v "$(pwd):$(pwd)" \
+  -w "$(pwd)" \
+  ghcr.io/php-cs-fixer/php-cs-fixer:3 \
+  "$@"
