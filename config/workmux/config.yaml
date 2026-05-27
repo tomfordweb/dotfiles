@@ -1,1 +1,15 @@
 nerdfont: true
+mode: window
+merge_strategy: rebase
+
+# Default worktree layout: agent pane on top, small shell split below.
+panes:
+  - command: <agent>
+    focus: true
+  - split: horizontal
+    size: 20
+
+# Shared into every worktree. Projects opt in with "<global>" in their symlink list.
+files:
+  symlink:
+    - .claude/settings.local.json
