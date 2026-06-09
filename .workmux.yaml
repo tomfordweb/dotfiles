@@ -44,7 +44,7 @@
 # and `{project}` for the main worktree's directory name, so a global config
 # can namespace each repo, e.g. `~/.workmux/{project}`.
 # Default: Sibling directory '<project>__worktrees'.
-# worktree_dir: .worktrees
+worktree_dir: .worktrees
 
 # Strategy for deriving names from branch names.
 # Options: full (default), basename (part after last '/').

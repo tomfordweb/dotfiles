@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Deterministic dev-server port for the current directory.
+# Same path -> same port, always. Different worktree path -> different port.
+# Override with $PORT. Range 3100-3999 (900 ports).
+set -euo pipefail
+if [ -n "${PORT:-}" ]; then printf '%s\n' "$PORT"; exit 0; fi
+base=3100; range=900
+h=$(printf '%s' "$PWD" | sha1sum | cut -c1-8)   # 32-bit hex slice
+printf '%s\n' "$(( base + 16#$h % range ))"

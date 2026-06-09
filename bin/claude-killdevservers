@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Claude Code Stop-hook target. Kills only the dev servers this session
+# launched via `devserver`, scoped to the session's cwd so parallel worktrees
+# don't kill each other. Reads hook JSON ({"cwd": "..."}) from stdin.
+set -euo pipefail
+
+input="$(cat || true)"
+cwd="$(printf '%s' "$input" | python3 -c "import sys,json;print(json.load(sys.stdin).get('cwd',''))" 2>/dev/null || true)"
+[ -z "$cwd" ] && cwd="$PWD"
+
+dir="${XDG_RUNTIME_DIR:-/tmp}/claude-devservers"
+pidfile="$dir/$(printf '%s' "$cwd" | sha1sum | cut -c1-16).pids"
+[ -f "$pidfile" ] || exit 0
+
+mapfile -t pids < "$pidfile"
+
+for pid in "${pids[@]}"; do
+  [ -z "$pid" ] && continue
+  kill -TERM "-$pid" 2>/dev/null || true
+done
+
+sleep 1
+
+for pid in "${pids[@]}"; do
+  [ -z "$pid" ] && continue
+  kill -KILL "-$pid" 2>/dev/null || true
+done
+
+rm -f "$pidfile"
