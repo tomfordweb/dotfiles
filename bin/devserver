@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Run a dev server so Claude can tear it down on session end.
+# Starts the command in its own process group and records the group-leader
+# PID to a cwd-scoped pidfile that the Stop hook (claude-killdevservers) reads.
+#
+# Usage: devserver <command> [args...]
+#   e.g. devserver pnpm dev
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: devserver <command> [args...]" >&2
+  exit 2
+fi
+
+dir="${XDG_RUNTIME_DIR:-/tmp}/claude-devservers"
+mkdir -p "$dir"
+pidfile="$dir/$(printf '%s' "$PWD" | sha1sum | cut -c1-16).pids"
+
+# JS dev servers: give each worktree a stable, unique port unless one was set.
+if [ -z "${PORT:-}" ] && [ -f package.json ]; then
+  export PORT="$(wtport)"
+fi
+
+# setsid puts the command in a new session + process group; its PID is the
+# process-group leader, so killing -PID later reaps the server and its children.
+setsid "$@" &
+pid=$!
+echo "$pid" >> "$pidfile"
+
+# Drop our pid from the file if the server exits on its own.
+cleanup() { sed -i "/^${pid}\$/d" "$pidfile" 2>/dev/null || true; }
+trap cleanup EXIT
+
+wait "$pid"
