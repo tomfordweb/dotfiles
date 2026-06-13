@@ -1,3 +1,25 @@
 .claude
 /claude/settings.json
 /config/enchant
+/config/1Password
+/config/BambuStudio/plugins
+/config/BambuStudio/printers
+/config/BambuStudio/system
+/config/BambuStudio/track
+/config/BambuStudio/user/3063289193/filament
+/config/BraveSoftware/Brave-Browser/CertificateRevocation/10572
+/config/BraveSoftware/Brave-Browser/Crash Reports
+/config/BraveSoftware/Brave-Browser/Crowd Deny/2026.6.4.61
+/config/BraveSoftware/Brave-Browser/Default
+/config/BraveSoftware/Brave-Browser
+/config/FreeCAD
+/config/astro
+/config/background
+/config/cosmic/com.system76.CosmicPortal/v1
+/config/git/ignore
+/config/mozilla/firefox
+/config/op
+/config/thefuck/__pycache__
+/config/pnpm
+/config/asciinema/install-id
+/config/BambuStudio
