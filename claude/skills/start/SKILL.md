@@ -71,6 +71,7 @@ Tell the user:
 - Worktree branch name
 - The acceptance criteria / sub-tasks from the issue description (formatted as a checklist)
 - The milestone (if any)
+- The worktree's dev URL — run `wtport` in the new worktree and report `http://localhost:<port>`. Dev servers launch via `/dev` (per-worktree deterministic port; never the shared default).
 
 Then stop — the user takes it from here. Do not begin implementation.
 

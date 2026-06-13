@@ -1,0 +1,46 @@
+#!/bin/sh
+# Respawn the workmux sidebar when a window has lost its sidebar pane.
+# The sidebar daemon does not recover a pane that was killed (C-a x, window
+# rearranging, etc.) — this reconciles desired state (sidebar enabled) with
+# reality by bouncing the sidebar off/on, which re-adds it to every window.
+# Wired to tmux pane-exited/after-kill-pane hooks in tmux.conf.
+
+# Intentional toggle in progress (C-a g touches this) — stand down so the
+# user's toggle-off isn't fought back on mid-teardown.
+pause=/tmp/wm-sidebar-keeper.pause
+if [ -e "$pause" ] && [ "$(( $(date +%s) - $(stat -c %Y "$pause") ))" -lt 5 ]; then
+    exit 0
+fi
+
+# Debounce: pane teardown fires multiple hook events in quick succession.
+lock=/tmp/wm-sidebar-keeper.lock
+if [ -e "$lock" ] && [ "$(( $(date +%s) - $(stat -c %Y "$lock") ))" -lt 3 ]; then
+    exit 0
+fi
+touch "$lock"
+
+# Let any in-flight teardown settle, THEN read state — checking immediately
+# races the toggle (enabled flag / daemon pid lag the pane kills).
+sleep 1
+
+enabled=$(tmux show-options -gqv @workmux_sidebar_enabled)
+pid=$(tmux show-options -gqv @workmux_sidebar_daemon_pid)
+
+# Only act when the sidebar is meant to be on and the daemon is alive.
+[ "$enabled" = "1" ] || exit 0
+[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || exit 0
+
+missing=0
+for w in $(tmux list-windows -a -F '#{session_name}:#{window_index}'); do
+    if ! tmux list-panes -t "$w" -F '#{pane_start_command}' 2>/dev/null \
+            | grep -qF _sidebar-run; then
+        missing=1
+        break
+    fi
+done
+
+if [ "$missing" = 1 ]; then
+    workmux sidebar   # off
+    sleep 0.5
+    workmux sidebar   # on — re-attaches to all windows
+fi
