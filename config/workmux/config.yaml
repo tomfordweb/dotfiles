@@ -2,6 +2,11 @@ nerdfont: true
 mode: window
 merge_strategy: rebase
 
+# Sidebar: percentages are clamped to a 25-col floor, so an absolute width is
+# the only way under 25. Fixed 20 cols on every display, portrait included.
+sidebar:
+  width: 20
+
 # Default worktree layout: agent pane on top, small shell split below.
 panes:
   - command: <agent>
