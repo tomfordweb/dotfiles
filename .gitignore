@@ -23,3 +23,11 @@
 /config/pnpm
 /config/asciinema/install-id
 /config/BambuStudio
+/config/BraveSoftware
+/config/autostart/1password.desktop
+/config/google-chrome-beta/NativeMessagingHosts/com.1password.1password.json
+/config/google-chrome-unstable/NativeMessagingHosts/com.1password.1password.json
+/config/microsoft-edge-dev/NativeMessagingHosts/com.1password.1password.json
+/config/opencode
+/config/vivaldi/NativeMessagingHosts
+/config/vivaldi-snapshot/NativeMessagingHosts
