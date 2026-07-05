@@ -19,6 +19,22 @@ export XDG_CONFIG_HOME="$HOME/code/tomfordweb/dotfiles/config"
 export PATH="$HOME/code/tomfordweb/dotfiles/bin:$PATH"
 ```
 
+## macOS
+
+These dotfiles are Arch-first but the tmux/nvim config is also used on macOS. macOS
+ships an ancient ncurses (5.7) whose `tmux-256color` terminfo entry is broken, so
+inside tmux nvim misreads key/bracketed-paste capabilities — pasting injects stray
+control chars and registers stop working. Run once per Mac:
+
+```bash
+sh install/macos-terminfo.sh   # compiles a modern terminfo into ~/.terminfo
+tmux kill-server               # restart so nvim picks up the new entry
+```
+
+This keeps `default-terminal "tmux-256color"` (set in `config/tmux/tmux.conf`)
+working instead of downgrading to `screen-256color`. Linux is unaffected — its
+ncurses already ships a correct entry.
+
 ## Submodules
 
 - `config/nvim` → [`tomfordweb/neotom`](https://github.com/tomfordweb/neotom) — Neovim config (has its own CLAUDE.md)
