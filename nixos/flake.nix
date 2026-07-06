@@ -19,7 +19,14 @@
 
     # Hyprland's own flake provides a newer compositor than nixpkgs sometimes
     # ships. The programs.hyprland module handles most of the wiring.
-    hyprland.url = "github:hyprwm/Hyprland";
+    # follows=nixpkgs keeps ONE nixpkgs evaluation (smaller closure, no ABI
+    # split between compositor and system) at the cost of possible cachix
+    # misses / local Hyprland builds. If that hurts, drop this input and use
+    # nixpkgs' pkgs.hyprland instead.
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, hyprland, ... }@inputs:
@@ -27,15 +34,16 @@
       system = "x86_64-linux";
 
       # A helper that builds a nixosSystem. Anything you'd want to vary
-      # per host (hostName, extra modules) goes into `extraModules` /
-      # `hostName` args.
-      mkHost = { hostName, extraModules ? [] }:
+      # per host goes into `extraModules` (system-level) /
+      # `homeModules` (home-manager, appended to the shared dev core).
+      mkHost = { hostName, extraModules ? [], homeModules ? [] }:
         nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { inherit inputs hostName; };
           modules = [
-            ./configuration.nix
-            ./hyprland.nix
+            ./modules/core.nix
+            ./modules/hyprland.nix
+            ./modules/tor.nix
 
             # Home Manager as a NixOS module so `nixos-rebuild switch`
             # also rebuilds user env in one shot.
@@ -44,7 +52,7 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.extraSpecialArgs = { inherit inputs; };
-              home-manager.users.tom = import ./home.nix;
+              home-manager.users.tom.imports = [ ./home ] ++ homeModules;
             }
 
             # Per-host hostname
@@ -58,34 +66,34 @@
         # `nixos-rebuild build-vm --flake .#vm` builds.
         vm = mkHost {
           hostName = "nixos-vm";
-          extraModules = [ ./hardware-vm.nix ];
+          extraModules = [ ./hosts/vm ];
+          homeModules = [ ./home/gui-apps.nix ];
         };
 
-        # The laptop output: real hardware config + LUKS.
-        # Not usable until hardware-laptop.nix is replaced by the
-        # nixos-generate-config output during real install.
+        # The laptop output: real hardware config (nixos-generate-config
+        # output from the T480 install) + LUKS + laptop extras.
         laptop = mkHost {
           hostName = "nixos-laptop";
-          extraModules = [
-            ./hardware-t480.nix
-            ./luks.nix
-            ./code-drive.nix
-          ];
+          extraModules = [ ./hosts/t480 ];
+          homeModules = [ ./home/gui-apps.nix ];
         };
 
         # The desktop output: Intel Arrow Lake (Core Ultra 7 265K) +
-        # a Blackwell NVIDIA dGPU. nvidia.nix carries the mandatory
-        # open-module + recent-kernel bits. Shares the "code" btrfs
-        # drive with the ansible-managed setup. No LUKS (minerva runs
-        # unencrypted today). hardware-minerva.nix is a placeholder until
-        # nixos-generate-config runs at real install.
+        # a Blackwell NVIDIA dGPU. modules/nvidia.nix carries the
+        # mandatory open-module + recent-kernel bits; modules/ai.nix
+        # the GPU AI stack. LUKS at install — hosts/minerva/hardware.nix
+        # is a placeholder until nixos-generate-config runs then.
         minerva = mkHost {
           hostName = "minerva";
-          extraModules = [
-            ./hardware-minerva.nix
-            ./nvidia.nix
-            ./code-drive.nix
-          ];
+          extraModules = [ ./hosts/minerva ];
+          homeModules = [ ./home/gui-apps.nix ];
+        };
+
+        # Live-USB test image of the minerva system (details in
+        # hosts/minerva-live/default.nix).
+        minerva-live = mkHost {
+          hostName = "minerva-live";
+          extraModules = [ ./hosts/minerva-live ];
         };
       };
     };

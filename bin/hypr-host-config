@@ -1,0 +1,50 @@
+#!/bin/sh
+# Wire up machine-local Hyprland config so `source` lines in
+# hyprland.conf always resolve:
+#
+#   1. custom-by-hostname.conf -> configs/<hostname>.conf (symlink),
+#      or an empty placeholder when this host has no per-host config.
+#   2. ~/.config/hypr-local/ with a placeholder .conf (machine-local
+#      overrides outside the repo AND outside ~/.config/hypr, which is a
+#      symlink into the repo on home-manager hosts; NixOS VMs drop
+#      qemu-mainmod.conf here).
+#
+# Run from exec-once. Hyprland parses `source` BEFORE exec-once fires,
+# so the very first launch on a brand-new machine logs a one-time
+# "source= globbing found no match" — this script then fixes the files
+# and reloads, and every later launch is clean.
+
+set -u
+
+hypr_dir="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+host="$(cat /proc/sys/kernel/hostname)"
+target="$hypr_dir/configs/$host.conf"
+link="$hypr_dir/custom-by-hostname.conf"
+changed=0
+
+# Relative link: the repo is 9p-shared into VMs at a different $HOME,
+# so an absolute target would dangle there.
+rel_target="configs/$host.conf"
+if [ -f "$target" ]; then
+  if [ "$(readlink "$link" 2>/dev/null)" != "$rel_target" ]; then
+    ln -sf "$rel_target" "$link"
+    changed=1
+  fi
+elif [ ! -f "$link" ] || [ -L "$link" ]; then
+  # No per-host config: replace a missing/dangling link with an empty
+  # file so `source` has something to match.
+  rm -f "$link"
+  : > "$link"
+  changed=1
+fi
+
+local_dir="$HOME/.config/hypr-local"
+if [ ! -e "$local_dir/00-placeholder.conf" ]; then
+  mkdir -p "$local_dir"
+  : > "$local_dir/00-placeholder.conf"
+  changed=1
+fi
+
+if [ "$changed" -eq 1 ] && command -v hyprctl >/dev/null 2>&1; then
+  hyprctl reload >/dev/null 2>&1 || true
+fi

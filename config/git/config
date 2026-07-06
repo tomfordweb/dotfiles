@@ -1,0 +1,10 @@
+# XDG_CONFIG_HOME points at this repo, so git reads this file instead of
+# ~/.config/git/config. Identity is the same everywhere, so it lives here.
+# Also pull in the machine-managed config (home-manager on NixOS writes
+# there too). Git silently skips missing includes; machine config wins on
+# conflicts since the include comes last.
+[user]
+	name = Tom Ford
+	email = tomfordweb@gmail.com
+[include]
+	path = ~/.config/git/config
