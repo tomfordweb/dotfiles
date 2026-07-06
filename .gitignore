@@ -31,3 +31,9 @@
 /config/opencode
 /config/vivaldi/NativeMessagingHosts
 /config/vivaldi-snapshot/NativeMessagingHosts
+/nixos/result
+/nixos/result-*
+/nixos/*.qcow2
+/config/1Password
+/config/BraveSoftware
+/config/autostart/1password.desktop
