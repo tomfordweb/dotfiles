@@ -39,7 +39,7 @@
     isNormalUser = true;
     description = "tom";
     extraGroups = [ "wheel" "networkmanager" "video" "audio" "docker" ];
-    shell = pkgs.bash;
+    shell = pkgs.zsh;
     # INSECURE — only for VM testing convenience. First real login on the
     # laptop, log in via TTY and run `passwd` to set a real password,
     # then remove this line and rebuild.
@@ -87,6 +87,14 @@
 
   # Allow unfree packages (Spotify, etc. — you'll want it).
   nixpkgs.config.allowUnfree = true;
+
+  # ------------------------------------------------------------------
+  # Shell — zsh system-wide (replaces bash/oh-my-bash).
+  # ------------------------------------------------------------------
+  # Enabling here registers zsh in /etc/shells and sets up completion,
+  # which is required before it can be a user's login shell. Per-user
+  # zsh config (oh-my-zsh, starship) lives in home.nix.
+  programs.zsh.enable = true;
 
   # ------------------------------------------------------------------
   # Docker
