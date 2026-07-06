@@ -2,7 +2,7 @@
   # A flake is the modern entry point for a Nix project. Inputs are external
   # dependencies pinned in flake.lock; outputs are what this flake produces
   # (NixOS system configurations, packages, dev shells, etc.).
-  description = "tom's NixOS config — VM for iteration, laptop for real install";
+  description = "tom's NixOS config — minerva desktop, t480 laptop, iteration VM";
 
   inputs = {
     # nixos-unstable tracks the rolling release. Hyprland moves fast and
@@ -70,9 +70,9 @@
           homeModules = [ ./home/gui-apps.nix ];
         };
 
-        # The laptop output: real hardware config (nixos-generate-config
-        # output from the T480 install) + LUKS + laptop extras.
-        laptop = mkHost {
+        # The T480 laptop: real hardware config (nixos-generate-config
+        # output from the install) + LUKS + laptop extras.
+        t480 = mkHost {
           hostName = "nixos-laptop";
           extraModules = [ ./hosts/t480 ];
           homeModules = [ ./home/gui-apps.nix ];

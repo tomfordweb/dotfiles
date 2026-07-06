@@ -267,7 +267,7 @@ git add nixos/
 **Install:**
 
 ```bash
-nixos-install --flake /mnt/home/tom/code/tomfordweb/dotfiles/nixos#laptop   # or #minerva
+nixos-install --flake /mnt/home/tom/code/tomfordweb/dotfiles/nixos#t480   # or #minerva
 ```
 
 Sets a root password near the end. Then fix ownership of the root-made
@@ -316,7 +316,7 @@ Hyprland with the home-manager env wrapper. Then:
 ```bash
 cd ~/code/tomfordweb/dotfiles
 git submodule update --init                      # neovim, waybar nvidia, wiki
-sudo nixos-rebuild switch --flake ./nixos#laptop # or #minerva
+sudo nixos-rebuild switch --flake ./nixos#t480 # or #minerva
 ```
 
 Post-install one-timers:
@@ -384,7 +384,7 @@ All commands run from a checkout of this repo.
 ### Applying config changes
 
 ```bash
-sudo nixos-rebuild switch --flake ~/code/tomfordweb/dotfiles/nixos#minerva   # or #laptop
+sudo nixos-rebuild switch --flake ~/code/tomfordweb/dotfiles/nixos#minerva   # or #t480
 ```
 
 Atomic: builds the new closure, activates, adds a bootloader entry. On
