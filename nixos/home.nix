@@ -54,6 +54,7 @@
     bat
     fzf
     lazygit
+    starship
 
     # Media / apps
     firefox
@@ -82,6 +83,24 @@
     settings.user.email = "tomfordweb@gmail.com";
   };
 
-  # Let Home Manager manage its own tiny bash init.
-  programs.bash.enable = true;
+  # ------------------------------------------------------------------
+  # Shell — zsh + oh-my-zsh (replaces bash/oh-my-bash).
+  # ------------------------------------------------------------------
+  # oh-my-zsh handles plugins; the theme is left blank so starship
+  # drives the prompt instead. starship reads its config from
+  # $XDG_CONFIG_HOME/starship.toml — which is your repo's
+  # config/starship.toml, since XDG_CONFIG_HOME points there (above).
+  programs.zsh = {
+    enable = true;
+    oh-my-zsh = {
+      enable = true;
+      plugins = [ "git" "docker" "fzf" ];
+      theme = "";        # blank → starship provides the prompt
+    };
+    shellAliases = { };  # add as you go
+    # initContent is the current option (replaced initExtra on unstable).
+    initContent = ''
+      eval "$(starship init zsh)"
+    '';
+  };
 }

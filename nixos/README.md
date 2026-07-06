@@ -1,9 +1,10 @@
 # NixOS config
 
-A flake with two outputs:
+A flake with three outputs:
 
 - `vm` — QEMU VM for iterating on the config from Arch (or anywhere with Nix + flakes).
-- `laptop` — real install target. `hardware-laptop.nix` is a placeholder until first install.
+- `laptop` — T480 real install target (Intel-only). `hardware-t480.nix` is a placeholder until first install.
+- `minerva` — desktop real install target: Intel Arrow Lake (Core Ultra 7 265K) + a **Blackwell NVIDIA dGPU**. `hardware-minerva.nix` is a placeholder until first install; NVIDIA specifics live in `nvidia.nix`.
 
 The user's dotfiles at `~/code/tomfordweb/dotfiles` are used as `$XDG_CONFIG_HOME` (via `home.nix`), so Hyprland/Waybar/Wofi read the same configs on NixOS as on Arch.
 
@@ -113,9 +114,28 @@ Or the web: <https://search.nixos.org/packages> and <https://search.nixos.org/op
 
 `virtualisation.docker.enable = true` and `tom` is in the `docker` group. First login after enabling: log out and back in to pick up the new group.
 
+### minerva (desktop) — NVIDIA Blackwell notes
+
+`nvidia.nix` (imported only by the `minerva` output) carries the GPU stack. Two things are
+non-obvious and important:
+
+- **`hardware.nvidia.open = true` is MANDATORY.** Blackwell (RTX 50-series, `10de:2c05`) has no
+  closed-source kernel module. Setting it `false` = black screen. This is the opposite of old cards.
+- **Driver must be ≥ 570.** `nvidia.nix` uses `nvidiaPackages.beta`; verify it builds, then pin the
+  exact version. `nvidia.nix` also pins `linuxPackages_latest` because Arrow Lake is new silicon.
+
+Wayland/NVIDIA env vars (`GBM_BACKEND`, `LIBVA_DRIVER_NAME`, …) are left commented in `nvidia.nix`
+until Phase 2 (Hyprland), so first boot to a TTY/GNOME isn't complicated by iGPU/dGPU routing.
+
+Install is the same flow as the laptop, minus LUKS (minerva runs unencrypted today):
+`nixos-generate-config` → overwrite `hardware-minerva.nix` → `nixos-install --flake .../nixos#minerva`.
+
 ### `~/code` btrfs drive + hourly btrbk snapshots
 
-Declared in `code-drive.nix`, imported only into the `laptop` output (the VM has no code drive). Mirrors the ansible setup on minerva (`ops/local.code-drive.yml`).
+Declared in `code-drive.nix`, imported into the `laptop` **and `minerva`** outputs (the VM has no
+code drive). Mirrors the ansible setup on minerva (`ops/local.code-drive.yml`) — on minerva the
+`code` btrfs drive already exists (label `code`, `nvme1n1p1`), so no `mkfs` step, just the mount +
+subvol bootstrap.
 
 **One-time bootstrap on a new laptop:**
 
@@ -154,14 +174,16 @@ Desktop app + CLI both enabled. Polkit integration is granted to user `tom` for 
 
 ```
 nixos/
-├── flake.nix              # inputs + `vm` and `laptop` outputs
+├── flake.nix              # inputs + `vm`, `laptop`, `minerva` outputs
 ├── flake.lock             # pinned input revs
-├── configuration.nix      # base system: users, network, audio, ssh, docker, 1password
-├── home.nix               # Home Manager: user packages, XDG_CONFIG_HOME → dotfiles
+├── configuration.nix      # base system: users, network, audio, ssh, docker, 1password, zsh
+├── home.nix               # Home Manager: user packages, zsh+oh-my-zsh, XDG_CONFIG_HOME → dotfiles
 ├── hyprland.nix           # Hyprland, greetd/tuigreet, portals, fonts
+├── nvidia.nix             # minerva only — Blackwell open module, driver ≥570, latest kernel
 ├── luks.nix               # LUKS device declaration (laptop only, placeholder UUID)
 ├── hardware-vm.nix        # qemu-guest profile + shared dotfiles dir
-├── hardware-laptop.nix    # placeholder — replaced by nixos-generate-config at install
+├── hardware-t480.nix      # T480 placeholder — replaced by nixos-generate-config at install
+├── hardware-minerva.nix   # minerva placeholder — replaced by nixos-generate-config at install
 └── README.md              # this file
 ```
 

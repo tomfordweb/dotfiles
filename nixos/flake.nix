@@ -72,6 +72,21 @@
             ./code-drive.nix
           ];
         };
+
+        # The desktop output: Intel Arrow Lake (Core Ultra 7 265K) +
+        # a Blackwell NVIDIA dGPU. nvidia.nix carries the mandatory
+        # open-module + recent-kernel bits. Shares the "code" btrfs
+        # drive with the ansible-managed setup. No LUKS (minerva runs
+        # unencrypted today). hardware-minerva.nix is a placeholder until
+        # nixos-generate-config runs at real install.
+        minerva = mkHost {
+          hostName = "minerva";
+          extraModules = [
+            ./hardware-minerva.nix
+            ./nvidia.nix
+            ./code-drive.nix
+          ];
+        };
       };
     };
 }
