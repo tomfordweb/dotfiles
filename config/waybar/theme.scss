@@ -170,8 +170,6 @@ window#waybar {
 #mode,
 #idle_inhibitor,
 #scratchpad,
-#custom-pacman-status,
-#custom-gpu-status,
 #custom-docker-status,
 #power-profiles-daemon,
 #mpd {
@@ -219,17 +217,6 @@ window#waybar {
   }
 }
 
-#custom-pacman-status {
-  &.no-updates {
-    color: theme.$yellow;
-  }
-  &.updates-available {
-    color: theme.$red;
-  }
-}
-#custom-gpu-status {
-  color: theme.$peach;
-}
 #power-profiles-daemon {
   padding-right: 15px;
 

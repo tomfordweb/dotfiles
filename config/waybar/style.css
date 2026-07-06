@@ -108,8 +108,6 @@
 #mode,
 #idle_inhibitor,
 #scratchpad,
-#custom-pacman-status,
-#custom-gpu-status,
 #custom-docker-status,
 #power-profiles-daemon,
 #mpd, #workspaces button {
@@ -200,17 +198,6 @@ window#waybar.hidden {
   animation-timing-function: steps(12);
   animation-iteration-count: infinite;
   animation-direction: alternate;
-}
-
-#custom-pacman-status.no-updates {
-  color: #f9e2af;
-}
-#custom-pacman-status.updates-available {
-  color: #f38ba8;
-}
-
-#custom-gpu-status {
-  color: #fab387;
 }
 
 #power-profiles-daemon {
@@ -337,5 +324,3 @@ label:focus {
 #privacy-item.audio-out {
   background-color: #0069d4;
 }
-
-/*# sourceMappingURL=style.css.map */

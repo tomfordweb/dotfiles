@@ -4,24 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Personal dotfiles for an Arch Linux / Hyprland desktop environment. The repo is structured so that `$XDG_CONFIG_HOME` points directly at `config/`, making all subdirectories there live config locations. `bin/` is added to `$PATH`.
+Personal dotfiles + NixOS flake for a Hyprland desktop environment.
+`config/` is the source of truth for hand-managed app configs; `bin/` goes
+on `$PATH`. Two apply mechanisms create the same `~/.config/<app>` symlinks
+into the repo:
+
+- **NixOS hosts** (minerva desktop, t480 laptop): home-manager
+  (`nixos/home/dotfiles.nix`, `mkOutOfStoreSymlink`). Packages, shell, and
+  nvim runtime deps are all declared under `nixos/` — see `nixos/README.md`
+  for the module map and install/rebuild docs.
+- **Non-nix hosts** (work Ubuntu/Pop, mac): `install/bootstrap.sh`
+  (`--minimal` for the dev core only). Keep its app list in sync with
+  `dotfiles.nix`.
+
+Because both are symlinks into the repo, config edits are live — no rebuild.
+Rebuilds (`sudo nixos-rebuild switch --flake ./nixos#<host>`) are only
+needed for changes under `nixos/`.
 
 ## Setup
 
 ```bash
 git clone git@github.com:tomfordweb/dotfiles.git ~/code/tomfordweb/dotfiles
 cd dotfiles && git submodule update --init
+sh install/bootstrap.sh   # non-nix hosts only; NixOS hosts use the flake
 ```
 
-Add to `~/.bashrc`:
-```bash
-export XDG_CONFIG_HOME="$HOME/code/tomfordweb/dotfiles/config"
-export PATH="$HOME/code/tomfordweb/dotfiles/bin:$PATH"
-```
+The repo must live at `~/code/tomfordweb/dotfiles` — the home-manager
+symlinks bake in that absolute path.
 
 ## macOS
 
-These dotfiles are Arch-first but the tmux/nvim config is also used on macOS. macOS
+The tmux/nvim config is also used on macOS (via `bootstrap.sh --minimal`). macOS
 ships an ancient ncurses (5.7) whose `tmux-256color` terminfo entry is broken, so
 inside tmux nvim misreads key/bracketed-paste capabilities — pasting injects stray
 control chars and registers stop working. Run once per Mac:
@@ -65,7 +78,9 @@ Shared variables live in `rice/rice.scss` (imported with `-I ./rice`). Never edi
 config/hypr/configs/<hostname>.conf
 ```
 
-The symlink `config/hypr/custom-by-hostname.conf` is created at login and is gitignored. Per-machine configs (e.g. `charlie.conf`, `romi.conf`) live in `config/hypr/configs/`. `env.conf` is also gitignored (holds machine-local env vars).
+The gitignored symlink `config/hypr/custom-by-hostname.conf` is maintained by `bin/hypr-host-config` (run from `exec-once`): relative symlink to `configs/<hostname>.conf`, or an empty placeholder on hosts without one; it reloads Hyprland once when the file changed (first launch on a new machine logs a one-time "globbing found no match" before the script self-heals). Per-machine configs (currently just `minerva.conf` — the desktop's monitor layout) live in `config/hypr/configs/`. `env.conf` is also gitignored (holds machine-local env vars).
+
+Additionally, `hyprland.conf` sources `~/.config/hypr-local/*.conf` for machine-local overrides — deliberately OUTSIDE `~/.config/hypr`, which is a symlink into the repo on home-manager hosts. NixOS VMs drop a `$mainMod = ALT` override there; a missing dir is silently skipped.
 
 ## Waybar Development
 
@@ -74,11 +89,64 @@ GTK_DEBUG=interactive waybar   # interactive GTK inspector
 sass --watch config/waybar/theme.scss config/waybar/style.css
 ```
 
-Custom modules are in `config/waybar/custom/`: `docker-status`, `gpu-status`, `pacman-status`, and the `nvidia-smi` submodule. Requires "Big Blue nerd plus" Nerd Font and `gpsd`.
+Custom modules are in `config/waybar/custom/`: `docker-status` and the `nvidia-smi` submodule (plain `nvidia-smi` CSV queries + `jq` — no xml2json). Requires "Big Blue nerd plus" Nerd Font.
 
-## Arch Installation
+## NixOS
 
-`install/arch.setup.sh` — full desktop package install (waybar, docker, ghostty, tmux, nvim via Ansible, etc.)
-`install_nvim.playbook.yml` — Ansible playbook to build/install Neovim from source.
+All provisioning lives in `nixos/` (flake: `vm`, `laptop`, `minerva`,
+`minerva-live` outputs). `nixos/README.md` is the operating manual: install
+walkthroughs (LUKS on both real hosts), rebuild cheatsheet, module map,
+troubleshooting. Nvim's LSPs/formatters/tree-sitter come from
+`nixos/home/neovim.nix` (wrapped nvim), NOT Mason. Host segmentation:
+`modules/ai.nix` (ollama-cuda, beads) is minerva-only; `modules/laptop.nix`
+(brightnessctl, power daemons) is t480-only. tmux plugins init with
+`<C-a I>` inside tmux (tpm is cloned by home-manager activation).
 
-After running the setup script, initialize tmux plugins with `<C-a I>` inside a tmux session.
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:7510c1e2 -->
+## Beads Issue Tracker
+
+This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
+```
+
+### Rules
+
+- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
+- Run `bd prime` for detailed command reference and session close protocol
+- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+
+## Session Completion
+
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+**MANDATORY WORKFLOW:**
+
+1. **File issues for remaining work** - Create issues for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   git push
+   git status  # MUST show "up to date with origin"
+   ```
+5. **Clean up** - Clear stashes, prune remote branches
+6. **Verify** - All changes committed AND pushed
+7. **Hand off** - Provide context for next session
+
+**CRITICAL RULES:**
+- Work is NOT complete until `git push` succeeds
+- NEVER stop before pushing - that leaves work stranded locally
+- NEVER say "ready to push when you are" - YOU must push
+- If push fails, resolve and retry until it succeeds
+<!-- END BEADS INTEGRATION -->
