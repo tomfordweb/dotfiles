@@ -1,74 +1,79 @@
-# Environment and .config directory setup
+# dotfiles
+
+Personal dotfiles and NixOS configuration.
+
+`config/` is the source of truth for app configs. `~/.config/<app>` is
+symlinked into it, so edits apply immediately on every machine. `bin/`
+goes on `$PATH`. How the symlinks get created depends on the machine:
+
+- **NixOS hosts** (minerva, t480): home-manager — see [`nixos/README.md`](nixos/README.md)
+- **Non-nix Linux** (work): `install/bootstrap.sh`
+- **mac**: `install/bootstrap.sh --minimal` plus the terminfo fix below
+
+## Repo map
+
+```
+bin/          portable scripts (hypr-host-config, devserver, wtport, ...)
+config/       app configs — hypr, waybar, wofi, tmux, ghostty, nvim*, git, ...
+docs/         personal wiki (submodule)
+install/      bootstrap.sh (non-nix), macos-terminfo.sh, rice.sh, docker/
+nixos/        flake: NixOS hosts + home-manager (see nixos/README.md)
+rice/         shared SCSS palette for waybar/wofi themes
+```
+
+`*` submodules: `config/nvim` → [neotom](https://github.com/tomfordweb/neotom),
+`config/waybar/custom/nvidia-smi`, `docs` → wiki. Changes to those are
+committed in their own repos.
+
+## Setup — NixOS hosts
+
+See [`nixos/README.md`](nixos/README.md). Everything (packages, symlinks,
+PATH, shell) comes from `nixos-rebuild switch`.
+
+## Setup — non-nix hosts (work, mac)
 
 ```bash
 git clone git@github.com:tomfordweb/dotfiles.git ~/code/tomfordweb/dotfiles
-cd dotfiles && git submodule update --init
+cd ~/code/tomfordweb/dotfiles && git submodule update --init
+
+sh install/bootstrap.sh            # Linux desktop (incl. hypr/waybar/wofi)
+sh install/bootstrap.sh --minimal  # work box / mac: dev core only
+
+# then add to your shell rc:
+export PATH="$HOME/code/tomfordweb/dotfiles/bin:$PATH"
 ```
-Add the following your your `~/.bashrc` or whatever.
+
+The script refuses to clobber real files — if it prints `SKIP`, move the
+existing `~/.config/<app>` aside and re-run. It is idempotent.
+
+Tools the configs expect (install via apt/brew): git, tmux, neovim,
+ghostty, lazygit, ripgrep, fd, fzf, jq, starship. On NixOS these are
+declared in `nixos/home/`.
+
+### mac extras
+
+macOS ships an ancient ncurses whose `tmux-256color` terminfo is broken
+(paste garbage, dead registers in nvim inside tmux). Once per mac:
 
 ```bash
-export XDG_CONFIG_HOME="$HOME/code/tomfordweb/dotfiles/config"
-export PATH=/$HOME/code/tomfordweb/dotfiles/bin:$PATH
+sh install/macos-terminfo.sh
+tmux kill-server
 ```
 
-Source it.
+## Claude
 
 ```bash
-source ~/.bashrc
-```
-
-### Arch linux
-
-On Arch - [You also have to add the env var to pam.](https://wiki.archlinux.org/title/Environment_variables#Using_pam_env)
-
-```bash
-sudo vim /etc/security/pam_env.conf
-...
-XDG_CONFIG_HOME DEFAULT=@{HOME}/xdg-base/config
-```
-
-### Mac
-
-I have had a hard time getting ghostty to read my config file after having a nonstandard XDG_CONFIG_HOME on a mac.
-
-This however can be amended by symlinking the config to one of the other places that ghostty looks.
-
-```
-ln -s $XDG_CONFIG_HOME/ghostty/config $HOME/.config/ghostty/config
-```
-
-
-# /etc/environment
-
-Add system wide environment variables to `/etc/environment`.
-
-```bash
-EDITOR=nvim
-
-```
-
-# Claude
-Preferred settings are symlinked.
-
-```
 ln -s ~/code/tomfordweb/dotfiles/claude/settings.json ~/.claude/settings.json
 ln -s ~/code/tomfordweb/dotfiles/claude/skills ~/.claude/skills
 ```
 
-# Ricing & Development
+## Ricing
 
-Most of my CSS is written with sass. You can run the script to watch supported files and write to their respective .css files with
+Waybar/wofi styles are SCSS, compiled to CSS (never edit the `.css`
+directly):
 
+```bash
+./install/rice.sh    # sass --watch for waybar + wofi themes
 ```
-./bin/rice.sh
-```
-# Programs
 
-* [oh my bash](https://github.com/ohmybash/oh-my-bash)
-* [yay](https://github.com/Jguer/yay)
-* [pnpm](https://pnpm.io/installation)
-
-
-# Arch Wiki
-
-* [t480 arch](https://wiki.archlinux.org/title/Lenovo_ThinkPad_T48)
+Shared palette lives in `rice/rice.scss`.
