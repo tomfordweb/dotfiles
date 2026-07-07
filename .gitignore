@@ -37,3 +37,13 @@
 /config/1Password
 /config/BraveSoftware
 /config/autostart/1password.desktop
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+
+# Pop/GNOME machine state — was tracked historically, now machine-local
+/config/monitors.xml
+/config/tiling-assistant/
+/config/cosmic/
