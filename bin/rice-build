@@ -1,0 +1,44 @@
+#!/bin/bash
+# Render every per-app color config from rice/palette.json (the single
+# source of truth). Templates live in rice/templates/*.tmpl and use
+# {{name}} placeholders — raw color names, role names (accent-primary…),
+# and {{font}}. Generated outputs are committed; never hand-edit them.
+#
+# Usage: bin/rice-build   (from anywhere; resolves the repo from itself)
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+PALETTE="$REPO/rice/palette.json"
+TEMPLATES="$REPO/rice/templates"
+
+# template -> output (relative to repo root)
+declare -A OUTPUTS=(
+  [palette.scss.tmpl]="rice/_palette.scss"
+  [hypr-colors.tmpl]="config/hypr/colors.conf"
+  [tmux-theme.tmpl]="config/tmux/theme.conf"
+  [ghostty-colors.tmpl]="config/ghostty/themes/cyberdream"
+  [mako.tmpl]="config/mako/config"
+  [cava.tmpl]="config/cava/config"
+)
+
+# Build one sed script: colors first, then roles resolved to their hex.
+SED_SCRIPT="$(jq -r '
+  (.colors | to_entries[] | "s/{{\(.key)}}/\(.value)/g"),
+  (.roles as $r | .colors as $c | $r | to_entries[] | "s/{{\(.key)}}/\($c[.value])/g"),
+  "s/{{font}}/\(.font)/g"
+' "$PALETTE")"
+
+for tmpl in "${!OUTPUTS[@]}"; do
+  src="$TEMPLATES/$tmpl"
+  out="$REPO/${OUTPUTS[$tmpl]}"
+  [ -f "$src" ] || { echo "SKIP  $tmpl (template missing)"; continue; }
+  mkdir -p "$(dirname "$out")"
+  sed "$SED_SCRIPT" "$src" > "$out"
+  if grep -qE '\{\{[a-z0-9-]+\}\}' "$out"; then
+    echo "ERROR unresolved placeholder in $out:" >&2
+    grep -nE '\{\{[a-z0-9-]+\}\}' "$out" >&2
+    exit 1
+  fi
+  echo "BUILD ${OUTPUTS[$tmpl]}"
+done
