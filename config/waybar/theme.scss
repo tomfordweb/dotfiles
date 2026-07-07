@@ -34,8 +34,7 @@ window#waybar {
   }
 }
 
-// the three floating pills
-.modules-left,
+// floating glass pills (left cluster is bare — workspace chips float free)
 .modules-center,
 .modules-right {
   background: theme.$glass-bg;
@@ -43,6 +42,10 @@ window#waybar {
   border-radius: 21px;
   padding: 0 6px;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.modules-left {
+  background: transparent;
 }
 
 // glass module chip (shared)
@@ -72,18 +75,9 @@ window#waybar {
 #custom-docker-status,
 #custom-nvidia-smi,
 #custom-control-center,
-#custom-power,
 #power-profiles-daemon,
 #mpd {
   @extend .chip;
-}
-
-#custom-logo {
-  @include theme.neon-gradient;
-  padding: 0 11px;
-  margin: 4px 2px 4px 4px;
-  border-radius: 16px;
-  font-size: 15px;
 }
 
 #clock {
@@ -97,35 +91,66 @@ window#waybar {
   margin: 0 10px;
 }
 
+// two-tone chips like the tmux status line: full-height darker number cap
+// painted by a hard-stop gradient on the button itself (the Pango span in
+// the generated format only colors the number text) + surface body;
+// current = solid mauve body, no mauve→cyan gradient
+$ws-cap: 26px; // width of the dark number segment; must clear " N " in 13pt BigBlueTermPlus
+
+@mixin ws-chip($body) {
+  background: linear-gradient(
+    to right,
+    theme.$mantle2 0,
+    theme.$mantle2 $ws-cap,
+    $body $ws-cap
+  );
+}
+
 #workspaces {
-  padding: 0 2px;
+  // extra right padding so the cluster breathes past the last chip
+  padding: 0 10px 0 2px;
 
   button {
-    color: theme.$overlay0;
-    padding: 0 8px;
-    margin: 4px 1px;
-    border-radius: 11px;
-    background: theme.$glass-chip;
+    // equal padding all round
+    padding: 6px;
+    // gap between adjacent workspace chips
+    margin: 1px 5px;
+    border-radius: 10px;
+    // solid opaque body — no translucency for the bar-blur to frost
+    @include ws-chip(theme.$surface0);
+
+    // the global `*` rule colors the label node directly, which beats
+    // anything inherited from the button — so state colors go on `label`.
+    // The number keeps its own pango fgcolor regardless.
+    label {
+      color: theme.$subtext0;
+    }
 
     &:hover {
-      color: theme.$text;
-      background: rgba(theme.$mauve, 0.2);
-      box-shadow: 0 0 12px rgba(theme.$mauve, 0.4);
+      // opaque lift (one surface step up) + mauve glow, no glass
+      @include ws-chip(theme.$surface1);
+      box-shadow: 0 0 10px rgba(theme.$mauve, 0.35);
+
+      label {
+        color: theme.$text;
+      }
     }
 
     &.active {
-      @include theme.neon-gradient;
-      box-shadow: 0 0 12px theme.$glow-mauve;
+      @include ws-chip(theme.$mauve);
+      box-shadow: 0 0 10px theme.$glow-mauve;
 
       label {
-        background: transparent;
         color: theme.$base;
       }
     }
 
     &.urgent {
-      background-color: theme.$danger;
-      color: theme.$base;
+      @include ws-chip(theme.$danger);
+
+      label {
+        color: theme.$base;
+      }
     }
   }
 }
@@ -234,10 +259,6 @@ window#waybar {
 
 #custom-control-center {
   color: theme.$accent-secondary;
-}
-
-#custom-power {
-  color: theme.$danger;
 }
 
 #idle_inhibitor {

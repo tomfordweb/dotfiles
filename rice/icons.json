@@ -1,0 +1,119 @@
+{
+  "_comment": "App → nerd-font icon map — icon source of truth next to palette.json. class/title (regex) feed waybar's hyprland/workspaces window-rewrite (generated: config/waybar/workspaces.jsonc); proc (string or array) feeds tmux window chips (generated: config/tmux/app-icons.tsv, read by bin/tmux-window-label). Run bin/rice-build after editing.",
+  "default": "󰣆",
+  "icons": [
+    {
+      "icon": "󰗃",
+      "title": ".*youtube.*"
+    },
+    {
+      "icon": "󰖟",
+      "class": "chromium.*"
+    },
+    {
+      "icon": "󰆍",
+      "class": "com.mitchellh.ghostty"
+    },
+    {
+      "icon": "󰓇",
+      "class": "spotify"
+    },
+    {
+      "icon": "󰓓",
+      "class": "[Ss]team"
+    },
+    {
+      "icon": "󰧑",
+      "class": "LM Studio"
+    },
+    {
+      "icon": "󰈹",
+      "class": "firefox"
+    },
+    {
+      "icon": "󰙯",
+      "class": "discord"
+    },
+    {
+      "icon": "󰒱",
+      "class": "[Ss]lack"
+    },
+    {
+      "icon": "󰆼",
+      "class": "DBeaver"
+    },
+    {
+      "icon": "󰗹",
+      "class": "[Tt]or.?[Bb]rowser"
+    },
+    {
+      "icon": "󰕾",
+      "class": "(org\\.pulseaudio\\.)?pavucontrol"
+    },
+    {
+      "icon": "󰖩",
+      "class": "nm-connection-editor"
+    },
+    {
+      "icon": "󰣀",
+      "proc": "ssh"
+    },
+    {
+      "icon": "",
+      "proc": [
+        "nvim",
+        "vim"
+      ]
+    },
+    {
+      "icon": "",
+      "proc": [
+        "zsh",
+        "bash",
+        "fish"
+      ]
+    },
+    {
+      "icon": "󰊢",
+      "proc": [
+        "git",
+        "lazygit",
+        "tig"
+      ]
+    },
+    {
+      "icon": "󰡨",
+      "proc": [
+        "docker",
+        "lazydocker"
+      ]
+    },
+    {
+      "icon": "",
+      "proc": [
+        "node",
+        "npm",
+        "pnpm"
+      ]
+    },
+    {
+      "icon": "",
+      "proc": [
+        "python",
+        "python3"
+      ]
+    },
+    {
+      "icon": "",
+      "proc": [
+        "htop",
+        "btop",
+        "top"
+      ]
+    },
+    {
+      "icon": "✳",
+      "proc": "claude"
+    }
+  ]
+}

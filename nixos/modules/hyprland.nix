@@ -12,7 +12,9 @@ let
     if [ -f "$hm_vars" ]; then
       . "$hm_vars"
     fi
-    exec Hyprland
+    # start-hyprland is Hyprland 0.55's watchdog launcher. Launching the
+    # bare `Hyprland` binary makes it warn "started without start-hyprland".
+    exec start-hyprland
   '';
 
   # Wayland session entry exposing the wrapper to SDDM's session picker.
@@ -28,6 +30,17 @@ let
       Type=Application
     '';
     derivationArgs.passthru.providedSessions = [ "hyprland-hm" ];
+  };
+
+  # SDDM theme matching hyprlock (see sddm-theme/cyberdream/Main.qml).
+  # Preview in-session: sddm-greeter-qt6 --test-mode --theme <that dir>.
+  sddm-cyberdream = pkgs.stdenvNoCC.mkDerivation {
+    name = "sddm-cyberdream-theme";
+    src = ./sddm-theme/cyberdream;
+    installPhase = ''
+      mkdir -p $out/share/sddm/themes/cyberdream
+      cp -r . $out/share/sddm/themes/cyberdream/
+    '';
   };
 in
 {
@@ -70,6 +83,9 @@ in
     sddm = {
       enable = true;
       wayland.enable = true;
+      # Absolute store path (module example style) — no need to also put
+      # the theme package in environment.systemPackages for ThemeDir lookup.
+      theme = "${sddm-cyberdream}/share/sddm/themes/cyberdream";
     };
     sessionPackages = [ hyprland-hm-session ];
     defaultSession = "hyprland-hm";

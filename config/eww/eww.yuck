@@ -26,10 +26,13 @@
     (calendar :class "cal")))
 
 ;; ── control center (toggled from the waybar chip) ────────────────────
+;; Open via `eww open-many --toggle cc-closer control-center` so the
+;; click-catcher below comes along. :focusable must stay false — an
+;; exclusive keyboard grab from an overlay layer can wedge the session.
 (defwindow control-center
   :monitor 0
   :stacking "overlay"
-  :focusable true
+  :focusable false
   :geometry (geometry :anchor "top right" :x "16px" :y "58px" :width "360px")
   (box :class "cc" :orientation "v" :spacing 12
     (label :class "cc-title" :halign "start" :text "control center")
@@ -47,10 +50,22 @@
       (button :class "cc-toggle ${bt-on == 'true' ? 'on' : ''}"
               :onclick "bluetoothctl power ${bt-on == 'true' ? 'off' : 'on'}" "󰂯")
       (button :class "cc-toggle"
-              :onclick "eww close control-center && hyprlock &" "󰌾"))
+              :onclick "eww close control-center cc-closer && hyprlock &" "󰌾"))
     (label :class "cc-media" :halign "start" :truncate true
            :visible {now-playing != ""} :text now-playing)
     (box :class "cc-power" :spacing 8 :homogeneous true
       (button :class "cc-danger" :onclick "systemctl suspend" "󰤄")
       (button :class "cc-danger" :onclick "systemctl reboot" "󰜉")
       (button :class "cc-danger" :onclick "systemctl poweroff" "󰐥"))))
+
+;; ── click-away catcher for the control center ────────────────────────
+;; eww has no native close-on-outside-click; this invisible full-screen
+;; window sits under the control center (top layer vs overlay) and closes
+;; both on any stray click.
+(defwindow cc-closer
+  :monitor 0
+  :stacking "fg"
+  :focusable false
+  :exclusive false
+  :geometry (geometry :anchor "top left" :width "100%" :height "100%")
+  (eventbox :onclick "eww close control-center cc-closer" (box)))

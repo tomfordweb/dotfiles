@@ -28,7 +28,6 @@ window#waybar.hidden {
   opacity: 0.2;
 }
 
-.modules-left,
 .modules-center,
 .modules-right {
   background: rgba(20, 20, 32, 0.72);
@@ -36,6 +35,10 @@ window#waybar.hidden {
   border-radius: 21px;
   padding: 0 6px;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.modules-left {
+  background: transparent;
 }
 
 .chip, #clock,
@@ -57,22 +60,12 @@ window#waybar.hidden {
 #custom-docker-status,
 #custom-nvidia-smi,
 #custom-control-center,
-#custom-power,
 #power-profiles-daemon,
 #mpd {
   padding: 0 10px;
   margin: 4px 2px;
   border-radius: 13px;
   background: rgba(49, 50, 68, 0.5);
-}
-
-#custom-logo {
-  background-image: linear-gradient(135deg, #cba6f7, #22d3ee);
-  color: #11111b;
-  padding: 0 11px;
-  margin: 4px 2px 4px 4px;
-  border-radius: 16px;
-  font-size: 15px;
 }
 
 #clock {
@@ -88,31 +81,35 @@ window#waybar.hidden {
 }
 
 #workspaces {
-  padding: 0 2px;
+  padding: 0 10px 0 2px;
 }
 #workspaces button {
-  color: #6c7086;
-  padding: 0 8px;
-  margin: 4px 1px;
-  border-radius: 11px;
-  background: rgba(49, 50, 68, 0.5);
+  padding: 6px;
+  margin: 1px 5px;
+  border-radius: 10px;
+  background: linear-gradient(to right, #29293a 0, #29293a 26px, #313244 26px);
+}
+#workspaces button label {
+  color: #a6adc8;
 }
 #workspaces button:hover {
+  background: linear-gradient(to right, #29293a 0, #29293a 26px, #45475a 26px);
+  box-shadow: 0 0 10px rgba(203, 166, 247, 0.35);
+}
+#workspaces button:hover label {
   color: #cdd6f4;
-  background: rgba(203, 166, 247, 0.2);
-  box-shadow: 0 0 12px rgba(203, 166, 247, 0.4);
 }
 #workspaces button.active {
-  background-image: linear-gradient(135deg, #cba6f7, #22d3ee);
-  color: #11111b;
-  box-shadow: 0 0 12px rgba(203, 166, 247, 0.5);
+  background: linear-gradient(to right, #29293a 0, #29293a 26px, #cba6f7 26px);
+  box-shadow: 0 0 10px rgba(203, 166, 247, 0.5);
 }
 #workspaces button.active label {
-  background: transparent;
   color: #11111b;
 }
 #workspaces button.urgent {
-  background-color: #f38ba8;
+  background: linear-gradient(to right, #29293a 0, #29293a 26px, #f38ba8 26px);
+}
+#workspaces button.urgent label {
   color: #11111b;
 }
 
@@ -207,10 +204,6 @@ window#waybar.hidden {
   color: #22d3ee;
 }
 
-#custom-power {
-  color: #f38ba8;
-}
-
 #idle_inhibitor {
   color: #6c7086;
 }
@@ -246,3 +239,5 @@ window#waybar.hidden {
 #privacy-item.audio-out {
   color: #89b4fa;
 }
+
+/*# sourceMappingURL=style.css.map */

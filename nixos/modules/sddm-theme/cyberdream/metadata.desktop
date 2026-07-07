@@ -1,0 +1,9 @@
+[SddmGreeterTheme]
+Name=cyberdream
+Description=cyberdream login, matches hyprlock
+Type=sddm-theme
+Version=1.0
+MainScript=Main.qml
+Theme-Id=cyberdream
+Theme-API=2.0
+QtVersion=6
