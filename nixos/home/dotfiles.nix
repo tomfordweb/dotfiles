@@ -24,6 +24,9 @@ in
     "hypr".source          = link "config/hypr";
     "waybar".source        = link "config/waybar";
     "wofi".source          = link "config/wofi";
+    "mako".source          = link "config/mako";
+    "cava".source          = link "config/cava";
+    "eww".source           = link "config/eww";
     "tmux".source          = link "config/tmux";
     "ghostty".source       = link "config/ghostty";
     "nvim".source          = link "config/nvim";
