@@ -1,37 +1,60 @@
+// cyberdream — glass launcher, neon selection.
 @use "rice" as theme;
 
-window {
-  margin: 5px;
-  border: 2px solid theme.$green;
-  background-color: theme.$mantle;
-
-  height: 100%;
-  margin-right: 20px;
+* {
   font-family: theme.$font;
+  font-size: 14px;
 }
 
-#input {
-  margin: 5px;
-  border: 2px solid theme.$mauve;
-  background-color: theme.$base;
-}
-
-#inner-box {
-  margin: 5px;
-  background-color: theme.$base;
+window {
+  background-color: theme.$glass-bg-solid;
+  border: 1px solid rgba(theme.$mauve, 0.4);
+  border-radius: 18px;
+  // compositor blur via `layerrule = blur, wofi` in hyprland.conf
 }
 
 #outer-box {
-  margin: 5px;
-  border: 2px solid theme.$crust;
-  background-color: theme.$base;
+  margin: 8px;
+}
+
+#input {
+  margin: 8px;
+  padding: 12px 16px;
+  color: theme.$text;
+  background-color: rgba(30, 30, 46, 0.6);
+  border: 1px solid rgba(theme.$mauve, 0.25);
+  border-radius: 12px;
+
+  &:focus {
+    border-color: rgba(theme.$mauve, 0.6);
+  }
+}
+
+#inner-box {
+  margin: 4px 8px 8px 8px;
 }
 
 #scroll {
-  margin: 5px;
-  border: 2px solid theme.$red;
+  margin: 0;
+}
+
+#entry {
+  padding: 10px 14px;
+  margin: 2px 0;
+  border-radius: 10px;
+  color: theme.$subtext0;
+
+  &:selected {
+    color: theme.$text;
+    background: rgba(theme.$mauve, 0.16);
+    outline: none;
+  }
+
+  image {
+    margin-right: 12px;
+  }
 }
 
 #text {
-  margin: 5px;
+  color: inherit;
 }
