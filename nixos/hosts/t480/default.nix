@@ -11,8 +11,8 @@
   imports = [
     ./hardware.nix              # nixos-generate-config output (T480 install)
     ../../modules/luks.nix      # cryptroot tuning; device UUID in hardware.nix
-    ../../modules/code-drive.nix
     ../../modules/laptop.nix    # brightnessctl, upower, power-profiles-daemon
+    ../../modules/root-snapshots.nix # hourly btrbk snapshots of @ + @home
   ];
 
   # Intel iGPU acceleration (VA-API). The generated hardware config

@@ -5,9 +5,12 @@
   "margin-left": 16,
   "margin-right": 16,
   "spacing": 6, // Gaps between modules
+  // hyprland/workspaces lives in this GENERATED include (icons come from
+  // rice/icons.json via bin/rice-build). Waybar merges per top-level key,
+  // first-defined wins — so don't redefine the module here.
+  "include": ["~/.config/waybar/workspaces.jsonc"],
   // Choose the order of the modules
   "modules-left": [
-    "custom/logo",
     "hyprland/workspaces",
     "hyprland/submap",
     "hyprland/scratchpad",
@@ -30,18 +33,12 @@
     "custom/docker-status",
     "clock",
     "tray",
-    "custom/control-center",
-    "custom/power"
+    "custom/control-center"
   ],
-  "custom/logo": {
-    "format": "✦",
-    "tooltip": false,
-    "on-click": "wofi --show drun"
-  },
   "custom/control-center": {
     "format": "󰕮",
     "tooltip": false,
-    "on-click": "eww open --toggle control-center"
+    "on-click": "eww open-many --toggle cc-closer control-center"
   },
   "custom/docker-status": {
     "format": "{text}",
@@ -56,22 +53,6 @@
     "return-type": "json",
     "interval": 5,
     "tooltip": true
-  },
-  "hyprland/workspaces": {
-    "format": "{icon} {windows}",
-    "on-scroll-up": "hyprctl dispatch workspace e+1",
-    "on-scroll-down": "hyprctl dispatch workspace e-1",
-    "on-click": "activate",
-    "icon-size": 45,
-    "window-rewrite-default": "", // Default icon for windows not matched by rewrite rules
-    "window-rewrite": {
-      "title<.*youtube.*>": "", // Windows whose titles contain "youtube"
-      "class<chromium>": "", // Windows whose classes are "firefox"
-      "class<com.mitchellh.ghostty>": "",
-      "class<spotify>": "",
-      "class<Steam>": "",
-      "class<LM Studio>": "󰧑",
-    }
   },
   "hyprland/submap": {
     "format": "<span style=\"italic\">{}</span>"
@@ -233,17 +214,5 @@
     "escape": true,
     "exec": "$XDG_CONFIG_HOME/waybar/mediaplayer.py 2> /dev/null" // Script in resources folder
     // "exec": "$XDG_CONFIG_HOME/waybar/mediaplayer.py --player spotify 2> /dev/null" // Filter player based on name
-  },
-  "custom/power": {
-    "format": "⏻ ",
-    "tooltip": false,
-    "menu": "on-click",
-    "menu-file": "$XDG_CONFIG_HOME/waybar/power_menu.xml", // Menu file in resources folder
-    "menu-actions": {
-      "shutdown": "shutdown",
-      "reboot": "reboot",
-      "suspend": "systemctl suspend",
-      "hibernate": "systemctl hibernate"
-    }
   }
 }

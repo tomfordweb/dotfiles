@@ -13,7 +13,7 @@ for _ in $(seq 1 20); do
 done
 
 while IFS= read -r monitor; do
-  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" \) | shuf -n 1)
+  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" \) ! -iname "*.preview.*" | shuf -n 1)
   awww img --outputs "$monitor" "$WALLPAPER" \
     --transition-type grow --transition-fps 60 --transition-duration 1.2
 done < <(hyprctl monitors -j | jq -r '.[] | .name')
