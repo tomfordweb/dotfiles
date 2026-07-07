@@ -1,3 +1,4 @@
+// cyberdream — floating glass pill bar, neon mauve->cyan accents.
 @use "rice" as theme;
 
 @keyframes danger {
@@ -10,149 +11,46 @@
 @keyframes charge {
   to {
     background-color: theme.$green;
-    color: theme.$surface0;
-  }
-}
-
-@keyframes rainbow-bg {
-  0% {
-    background-color: rgb(255, 0, 0);
-  }
-  8% {
-    background-color: rgb(255, 127, 0);
-  }
-  16% {
-    background-color: rgb(255, 255, 0);
-  }
-  25% {
-    background-color: rgb(127, 255, 0);
-  }
-  33% {
-    background-color: rgb(0, 255, 0);
-  }
-  41% {
-    background-color: rgb(0, 255, 127);
-  }
-  50% {
-    background-color: rgb(0, 255, 255);
-  }
-  58% {
-    background-color: rgb(0, 127, 255);
-  }
-  66% {
-    background-color: rgb(0, 0, 255);
-  }
-  75% {
-    background-color: rgb(127, 0, 255);
-  }
-  83% {
-    background-color: rgb(255, 0, 255);
-  }
-  91% {
-    background-color: rgb(255, 0, 127);
-  }
-}
-
-@keyframes rainbow {
-  0% {
-    color: rgb(255, 0, 0);
-  }
-  8% {
-    color: rgb(255, 127, 0);
-  }
-  16% {
-    color: rgb(255, 255, 0);
-  }
-  25% {
-    color: rgb(127, 255, 0);
-  }
-  33% {
-    color: rgb(0, 255, 0);
-  }
-  41% {
-    color: rgb(0, 255, 127);
-  }
-  50% {
-    color: rgb(0, 255, 255);
-  }
-  58% {
-    color: rgb(0, 127, 255);
-  }
-  66% {
-    color: rgb(0, 0, 255);
-  }
-  75% {
-    color: rgb(127, 0, 255);
-  }
-  83% {
-    color: rgb(255, 0, 255);
-  }
-  91% {
-    color: rgb(255, 0, 127);
+    color: theme.$base;
   }
 }
 
 * {
-  /* `otf-font-awesome` is required to be installed for icons */
   font-family: theme.$font;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 0;
+  min-height: 0;
   color: theme.$text;
-}
-
-.base-waybar-button {
-  padding: 0 10px;
-  color: theme.$text;
-  border-radius: 10px;
-  margin-right: 0;
-  background-color: theme.$surface0;
-  border: 1px solid theme.$mantle;
 }
 
 window#waybar {
   background-color: transparent;
-  margin: 2px;
-  /* border-bottom: 3px solid rgba(100, 114, 125, 0.5); */
   color: theme.$text;
-  transition-property: background-color;
-  transition-duration: 0.5s;
+
   &.hidden {
     opacity: 0.2;
   }
 }
 
-#workspaces button {
-  @extend .base-waybar-button;
-  background-color: theme.$surface1;
-  margin-right: 5px;
-
-  &:last-child {
-    margin-right: 0;
-  }
-
-  &:hover {
-    background: theme.$surface1;
-  }
-
-  &.active {
-    background: theme.$crust;
-    border: 1px solid theme.$surface1;
-    animation-name: rainbow-bg;
-    animation-duration: 0.2s;
-    animation-iteration-count: 1;
-    label {
-      background: transparent;
-      color: theme.$text;
-    }
-  }
-
-  &.urgent {
-    background-color: theme.$red;
-  }
+// the three floating pills
+.modules-left,
+.modules-center,
+.modules-right {
+  background: theme.$glass-bg;
+  border: 1px solid theme.$glass-border;
+  border-radius: 21px;
+  padding: 0 6px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
 }
 
-#mode {
-  background-color: #64727d;
-  box-shadow: inset 0 -3px #ffffff;
+// glass module chip (shared)
+.chip {
+  padding: 0 10px;
+  margin: 4px 2px;
+  border-radius: 13px;
+  background: theme.$glass-chip;
 }
 
 #clock,
@@ -163,42 +61,124 @@ window#waybar {
 #temperature,
 #backlight,
 #network,
+#bluetooth,
 #pulseaudio,
 #wireplumber,
-#custom-media,
 #tray,
 #mode,
 #idle_inhibitor,
 #scratchpad,
+#submap,
 #custom-docker-status,
+#custom-nvidia-smi,
+#custom-control-center,
+#custom-power,
 #power-profiles-daemon,
 #mpd {
-  @extend .base-waybar-button;
+  @extend .chip;
 }
 
-#window,
-#workspaces {
-  margin: 0 4px;
-}
-
-/* If workspaces is the leftmost module, omit left margin */
-.modules-left > widget:first-child > #workspaces {
-  margin-left: 0;
+#custom-logo {
+  @include theme.neon-gradient;
+  padding: 0 11px;
+  margin: 4px 2px 4px 4px;
+  border-radius: 16px;
+  font-size: 15px;
 }
 
 #clock {
-  color: theme.$maroon;
+  @include theme.neon-gradient;
+  font-weight: 700;
+}
+
+#window {
+  background: transparent;
+  color: theme.$overlay0;
+  margin: 0 10px;
+}
+
+#workspaces {
+  padding: 0 2px;
+
+  button {
+    color: theme.$overlay0;
+    padding: 0 8px;
+    margin: 4px 1px;
+    border-radius: 11px;
+    background: theme.$glass-chip;
+
+    &:hover {
+      color: theme.$text;
+      background: rgba(theme.$mauve, 0.2);
+      box-shadow: 0 0 12px rgba(theme.$mauve, 0.4);
+    }
+
+    &.active {
+      @include theme.neon-gradient;
+      box-shadow: 0 0 12px theme.$glow-mauve;
+
+      label {
+        background: transparent;
+        color: theme.$base;
+      }
+    }
+
+    &.urgent {
+      background-color: theme.$danger;
+      color: theme.$base;
+    }
+  }
+}
+
+// per-module accents
+#cpu {
+  color: theme.$blue;
+}
+
+#memory {
+  color: theme.$green;
+}
+
+#custom-nvidia-smi {
+  color: theme.$accent-media;
+}
+
+#temperature {
+  color: theme.$peach;
+
+  &.critical {
+    background-color: theme.$danger;
+    color: theme.$base;
+  }
+}
+
+#pulseaudio {
+  color: theme.$mauve;
+
+  &.muted {
+    color: theme.$overlay0;
+  }
+}
+
+#network {
+  color: theme.$sky;
+
+  &.disconnected {
+    background-color: theme.$danger;
+    color: theme.$base;
+  }
+}
+
+#bluetooth {
+  color: theme.$blue;
 }
 
 #battery {
-  color: theme.$teal;
+  color: theme.$green;
 
-  #battery.charging,
-  #battery.plugged {
-    color: theme.$green;
-    background-color: theme.$crust;
-  }
-  &.charging {
+  &.charging,
+  &.plugged {
+    color: theme.$base;
     animation-name: charge;
     animation-duration: 2s;
     animation-timing-function: steps(12);
@@ -206,8 +186,12 @@ window#waybar {
     animation-direction: alternate;
   }
 
+  &.warning:not(.charging) {
+    color: theme.$peach;
+  }
+
   &.critical:not(.charging) {
-    background-color: theme.$red;
+    background-color: theme.$danger;
     color: #ffffff;
     animation-name: danger;
     animation-duration: 0.5s;
@@ -217,11 +201,26 @@ window#waybar {
   }
 }
 
-#power-profiles-daemon {
-  padding-right: 15px;
+#mpd {
+  color: theme.$teal;
 
+  &.disconnected {
+    color: theme.$overlay0;
+  }
+
+  &.stopped,
+  &.paused {
+    color: theme.$subtext0;
+  }
+}
+
+#custom-docker-status {
+  color: theme.$sky;
+}
+
+#power-profiles-daemon {
   &.performance {
-    color: theme.$red;
+    color: theme.$danger;
   }
 
   &.balanced {
@@ -233,107 +232,36 @@ window#waybar {
   }
 }
 
-label:focus {
-  background-color: #000000;
+#custom-control-center {
+  color: theme.$accent-secondary;
 }
 
-#cpu {
-  color: theme.$sky;
+#custom-power {
+  color: theme.$danger;
 }
 
-#memory {
-  color: theme.$maroon;
-}
+#idle_inhibitor {
+  color: theme.$overlay0;
 
-#network {
-  color: theme.$mauve;
-  &.disconnected {
-    background-color: theme.$red;
-    color: theme.$surface0;
+  &.activated {
+    color: theme.$yellow;
   }
 }
 
-#pulseaudio {
-  color: theme.$flamingo;
-  &.muted {
-    color: theme.$subtext0;
-  }
-}
-
-#custom-media {
-  background-color: #66cc99;
-  color: #2a5c45;
-  min-width: 100px;
-
-  &.custom-spotify {
-    background-color: #66cc99;
-  }
-
-  &.custom-vlc {
-    background-color: #ffa000;
-  }
-}
-
-#temperature {
-  color: theme.$yellow;
-
-  &.critical {
-    background-color: theme.$red;
-    color: theme.$surface0;
+#scratchpad {
+  .empty {
+    background-color: transparent;
   }
 }
 
 #tray {
-  background-color: #2980b9;
-
   > .passive {
     -gtk-icon-effect: dim;
   }
 
   > .needs-attention {
     -gtk-icon-effect: highlight;
-    background-color: #eb4d4b;
-  }
-}
-
-#idle_inhibitor {
-  background-color: #2d3436;
-
-  &.activated {
-    background-color: #ecf0f1;
-    color: #2d3436;
-  }
-}
-
-#mpd {
-  color: theme.$lavender;
-
-  &.disconnected {
-    background-color: #f53c3c;
-  }
-
-  &.stopped {
-    background-color: #90b1b1;
-  }
-
-  &.paused {
-    background-color: #51a37a;
-  }
-}
-
-#language {
-  background: #00b093;
-  color: #740864;
-  padding: 0 5px;
-  margin: 0 5px;
-  min-width: 16px;
-}
-
-#scratchpad {
-  background: rgba(0, 0, 0, 0.2);
-
-  .empty {
-    background-color: transparent;
+    background-color: theme.$danger;
   }
 }
 
@@ -343,16 +271,16 @@ label:focus {
 
 #privacy-item {
   padding: 0 5px;
-  color: white;
 
   &.screenshare {
-    background-color: #cf5700;
+    color: theme.$peach;
   }
 
   &.audio-in {
-    background-color: #1ca000;
+    color: theme.$green;
   }
+
   &.audio-out {
-    background-color: #0069d4;
+    color: theme.$blue;
   }
 }
