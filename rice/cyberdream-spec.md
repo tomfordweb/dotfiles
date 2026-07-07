@@ -1,0 +1,85 @@
+# CYBERDREAM — desktop rice spec
+
+Neon-catppuccin: glass/blur surfaces, bright mauve → cyan gradient accents,
+pink tertiary, over a near-black base. Beads epic: `dotfiles-qzs`.
+
+## Single source of truth
+
+`rice/palette.json` holds every color + semantic role. `bin/rice-build`
+renders it into each app's native format (templates in `rice/templates/`):
+
+| Output (generated, committed)      | Consumer                          |
+|------------------------------------|-----------------------------------|
+| `rice/_palette.scss`               | waybar / wofi / eww via `rice.scss` (sass) |
+| `config/hypr/colors.conf`          | hyprland.conf + hyprlock.conf (`source =`) |
+| `config/tmux/theme.conf`           | tmux.conf (`source-file`)         |
+| `config/ghostty/themes/cyberdream` | ghostty (`theme = cyberdream`)    |
+| `config/mako/config`               | mako (whole file generated)       |
+| `config/cava/config`               | cava (whole file generated)       |
+
+Retheme = edit `palette.json`, run `bin/rice-build`, recompile sass
+(`install/rice.sh` does both). **Never hand-edit generated files.**
+
+## Palette
+
+| Role        | Hex       |
+|-------------|-----------|
+| crust       | `#0d0d16` |
+| base        | `#11111b` |
+| mantle      | `#181825` |
+| surface     | `#313244` |
+| overlay     | `#6c7086` |
+| text        | `#cdd6f4` |
+| **mauve**   | `#cba6f7` (accent-primary) |
+| **cyan**    | `#22d3ee` (accent-secondary) |
+| **neon-pink** | `#ff6ac1` (accent-media) |
+| blue        | `#89b4fa` |
+| sky         | `#89dceb` |
+| teal        | `#94e2d5` |
+| green       | `#a6e3a1` |
+| peach       | `#fab387` |
+| yellow      | `#f9e2af` |
+| red         | `#f38ba8` (danger) |
+
+**Signature gradient:** `linear-gradient(135deg, mauve, cyan)` — active
+workspace, clock, waybar logo, launcher selection, eww slider highlight.
+tmux can't gradient; the current-window pill carries solid mauve.
+
+**Fonts:** JetBrainsMono Nerd Font (bar, launcher, widgets, lock,
+notifications) · MonaspiceNe Nerd Font Mono (terminal).
+
+## Geometry
+
+rounding 14 · gaps_in 8 · gaps_out 16 · blur size 8 / passes 3 (xray) ·
+active_opacity 0.95 / inactive 0.88 · border gradient mauve→cyan 45° ·
+mauve glow shadow · "dream"/"glow" bezier animations.
+
+Waybar: three floating glass pills (radius 21), glass chips (radius 13),
+height 42, margins 8/16. Wofi: glass window radius 18. Notifications:
+per-urgency / per-app border colors (Spotify → neon-pink, screenshots →
+mauve, critical → red).
+
+## Components
+
+- **waybar** — floating pill bar; all modules kept (mpd, docker-status,
+  nvidia-smi, power-profiles, …) restyled as glass chips; ✦ logo launches
+  wofi; 󰕮 chip toggles the eww control center.
+- **wofi** — glass launcher, mauve selection.
+- **hyprland** — gradient borders, blur, dream animations, layerrule blur
+  for bar/launcher/notifications.
+- **awww** (ex-swww) — wallpaper daemon; `bin/hyprwallpapers` rotates
+  per-monitor with a grow transition.
+- **hyprlock** — screenshot-blur background, 118pt mauve clock, avatar
+  ring (`~/.face`), glass input field. Wired to hypridle (10 min lock)
+  and `$mainMod CTRL+L`.
+- **cava** — ambient visualizer in a `ghostty --class=cava-bg` window
+  pinned behind windows (bottom 60%, 55% opacity, 6-color gradient).
+- **eww** — `calendar-ghost` (ghosted month, stacking bg) and
+  `control-center` (volume/brightness sliders, wifi/bt/lock toggles,
+  now-playing, power row). `$mainMod C` or bar chip toggles.
+- **ghostty / tmux** — same palette via generated theme files.
+
+## Follow-ups
+
+- neotom (nvim submodule): adopt `cyberdream.nvim` upstream colorscheme
+  (beads `dotfiles-qzs.14`).
