@@ -1,0 +1,56 @@
+;; cyberdream — eww widgets: ghosted desktop calendar + control center.
+;; Styles: theme.scss (sass, rice palette) -> eww.css. Never add an
+;; eww.scss here — eww would prefer it and can't resolve the rice import.
+
+;; ── polls ────────────────────────────────────────────────────────────
+(defpoll volume :interval "1s"
+  "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{print int($2*100)}' || echo 0")
+(defpoll brightness :interval "2s"
+  "brightnessctl -m 2>/dev/null | cut -d, -f4 | tr -d % || echo 100")
+(defpoll wifi-on :interval "5s"
+  "nmcli radio wifi 2>/dev/null | grep -q enabled && echo true || echo false")
+(defpoll bt-on :interval "5s"
+  "bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' && echo true || echo false")
+(defpoll now-playing :interval "2s"
+  "playerctl metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo ''")
+
+;; ── ghosted desktop calendar ─────────────────────────────────────────
+(defwindow calendar-ghost
+  :monitor 0
+  :stacking "bg"
+  :focusable false
+  :exclusive false
+  :geometry (geometry :anchor "top right" :x "32px" :y "72px"
+                      :width "340px" :height "320px")
+  (box :class "cal-ghost" :orientation "v"
+    (calendar :class "cal")))
+
+;; ── control center (toggled from the waybar chip) ────────────────────
+(defwindow control-center
+  :monitor 0
+  :stacking "overlay"
+  :focusable true
+  :geometry (geometry :anchor "top right" :x "16px" :y "58px" :width "360px")
+  (box :class "cc" :orientation "v" :spacing 12
+    (label :class "cc-title" :halign "start" :text "control center")
+    (box :class "cc-card" :orientation "v" :spacing 6
+      (label :class "cc-sub" :halign "start" :text "󰕾  volume")
+      (scale :class "cc-slider" :min 0 :max 101 :value volume
+             :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
+    (box :class "cc-card" :orientation "v" :spacing 6
+      (label :class "cc-sub" :halign "start" :text "󰃟  brightness")
+      (scale :class "cc-slider" :min 5 :max 101 :value brightness
+             :onchange "brightnessctl set {}% 2>/dev/null"))
+    (box :class "cc-toggles" :spacing 8 :homogeneous true
+      (button :class "cc-toggle ${wifi-on == 'true' ? 'on' : ''}"
+              :onclick "nmcli radio wifi ${wifi-on == 'true' ? 'off' : 'on'}" "󰤨")
+      (button :class "cc-toggle ${bt-on == 'true' ? 'on' : ''}"
+              :onclick "bluetoothctl power ${bt-on == 'true' ? 'off' : 'on'}" "󰂯")
+      (button :class "cc-toggle"
+              :onclick "eww close control-center && hyprlock &" "󰌾"))
+    (label :class "cc-media" :halign "start" :truncate true
+           :visible {now-playing != ""} :text now-playing)
+    (box :class "cc-power" :spacing 8 :homogeneous true
+      (button :class "cc-danger" :onclick "systemctl suspend" "󰤄")
+      (button :class "cc-danger" :onclick "systemctl reboot" "󰜉")
+      (button :class "cc-danger" :onclick "systemctl poweroff" "󰐥"))))
