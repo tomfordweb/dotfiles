@@ -73,7 +73,7 @@
         # The T480 laptop: real hardware config (nixos-generate-config
         # output from the install) + LUKS + laptop extras.
         t480 = mkHost {
-          hostName = "nixos-laptop";
+          hostName = "t480";
           extraModules = [ ./hosts/t480 ];
           homeModules = [ ./home/gui-apps.nix ];
         };
