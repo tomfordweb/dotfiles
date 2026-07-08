@@ -84,8 +84,8 @@ window#waybar.hidden {
   padding: 0 10px 0 2px;
 }
 #workspaces button {
-  padding: 6px;
-  margin: 1px 5px;
+  padding: 1px 11px;
+  margin: 9px 5px;
   border-radius: 10px;
   background: linear-gradient(to right, #29293a 0, #29293a 26px, #313244 26px);
 }

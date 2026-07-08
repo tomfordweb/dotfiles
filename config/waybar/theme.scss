@@ -111,10 +111,12 @@ $ws-cap: 26px; // width of the dark number segment; must clear " N " in 13pt Big
   padding: 0 10px 0 2px;
 
   button {
-    // equal padding all round
-    padding: 6px;
-    // gap between adjacent workspace chips
-    margin: 1px 5px;
+    // tight vertical, roomier horizontal so the chip hugs the number
+    padding: 1px 11px;
+    // buttons stretch to the full bar height, so vertical margin (not
+    // padding) sets the chip height — big top/bottom margin = short chip.
+    // gap between adjacent workspace chips comes from the horizontal margin.
+    margin: 9px 5px;
     border-radius: 10px;
     // solid opaque body — no translucency for the bar-blur to frost
     @include ws-chip(theme.$surface0);
