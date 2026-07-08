@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Given a directory of jpg or png images... updates all monitors with a
 # random image from the dir via awww (ex-swww; codeberg.org/LGFae/awww)

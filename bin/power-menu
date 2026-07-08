@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Power menu for the waybar ⏻ chip. Uses wofi in dmenu mode so the popup
 # closes on Esc or focus loss — waybar's built-in GTK "menu" takes a seat
