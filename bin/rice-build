@@ -57,7 +57,7 @@ out="$REPO/config/waybar/workspaces.jsonc"
   jq --slurpfile p "$PALETTE" '
     $p[0].colors as $c |
     { "hyprland/workspaces": {
-        "format": "<span fgcolor=\"#\($c.text)\" font=\"BigBlueTermPlus Nerd Font\" size=\"13pt\" rise=\"3000\">{id} </span><span size=\"16pt\">{windows}</span>",
+        "format": "<span fgcolor=\"#\($c.text)\" font=\"BigBlueTermPlus Nerd Font\" size=\"13pt\" rise=\"3000\">{id} </span>{windows}",
         "format-window-separator": " ",
         "on-scroll-up": "hyprctl dispatch workspace e+1",
         "on-scroll-down": "hyprctl dispatch workspace e-1",
