@@ -27,6 +27,16 @@
       url = "github:hyprwm/Hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Reverse-engineered driver stack for the T480's Synaptics 06cb:009a
+    # fingerprint sensor — mainline libfprint has no driver for it. Exposes a
+    # NixOS module (imported only by hosts/t480) that runs open-fprintd +
+    # python-validity. Deliberately NOT following our nixpkgs: the driver +
+    # firmware packages are built against the branch's pinned nixos-25.05,
+    # which is what upstream tests, so forcing them onto our unstable nixpkgs
+    # risks Python/build breakage. open-fprintd/fprintd still come from our
+    # system pkgs, so PAM integration tracks the rest of the system.
+    nixos-06cb-009a-fingerprint-sensor.url = "github:ahbnr/nixos-06cb-009a-fingerprint-sensor?ref=25.05";
   };
 
   outputs = { self, nixpkgs, home-manager, hyprland, ... }@inputs:
