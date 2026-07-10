@@ -83,12 +83,15 @@ in
   # NixOS has no /etc/cron.daily; run the ops scripts from the code
   # drive via systemd timers instead. Scripts stay in ops (single source
   # of truth); ConditionPathExists keeps boots clean before the code
-  # drive is mounted/cloned. Both write to /mnt/storage.
+  # drive is mounted/cloned. Both write to /mnt/storage. Machine-local SSH
+  # target details live in /etc/nixos-secrets/ops-droplet.env:
+  #   OPS_DROPLET_SSH_HOST=<local ssh alias>
   systemd.services.download-droplet-backups = {
     description = "Sync production droplet backups to /mnt/storage";
     path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
     serviceConfig = {
       Type = "oneshot";
+      EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
       ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
     };
     unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
