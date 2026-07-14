@@ -43,15 +43,23 @@
     nvidiaSettings = true;
     powerManagement.enable = true;      # cleaner suspend/resume
 
-    # NOTE 2 — driver must be >= 570 (first branch with Blackwell support).
-    # `beta` tracks the freshest branch; by now `production` may also be
-    # >= 570. VERIFY at build (`nix flake check` / nixos-rebuild build),
-    # then PIN the exact version here once it builds green. If nixpkgs'
-    # packaged driver ever predates your card, override explicitly:
-    #   package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-    #     version = "XXX.XX"; sha256_64bit = "..."; ...
-    #   };
-    package = config.boot.kernelPackages.nvidiaPackages.beta;
+    # NOTE 2 — driver PINNED to 595.45.04 (>= 570, the first Blackwell branch).
+    # Previously `nvidiaPackages.beta`, a MOVING label that jumps to a new
+    # version on every `nix flake update`. Hard-pinned here (hashes lifted
+    # from nixpkgs' `beta` attr; verified green on kernel 6.12) so an
+    # unrelated flake update can't silently swap in an untested driver and
+    # black-screen the desktop. There is no semver-range pin in nix — this is
+    # the exact-version equivalent; the driver moves ONLY when you edit below.
+    # To BUMP: change `version`, run `nixos-rebuild build` (it prints the
+    # correct `sha256-…` on hash mismatch), paste the new hashes, then switch.
+    package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
+      version            = "595.45.04";
+      sha256_64bit       = "sha256-zUllSSRsuio7dSkcbBTuxF+dN12d6jEPE0WgGvVOj14=";
+      sha256_aarch64     = "sha256-jl6lQWsgF6ya22sAhYPpERJ9r+wjnWzbGnINDpUMzsk=";
+      openSha256         = "sha256-uqNfImwTKhK8gncUdP1TPp0D6Gog4MSeIJMZQiJWDoE=";
+      settingsSha256     = "sha256-Y45pryyM+6ZTJyRaRF3LMKaiIWxB5gF5gGEEcQVr9nA=";
+      persistencedSha256 = "sha256-5FoeUaRRMBIPEWGy4Uo0Aho39KXmjzQsuAD9m/XkNpA=";
+    };
   };
 
   # Kernel mode-setting from early boot — required for a good Wayland

@@ -18,7 +18,7 @@
 
 {
   environment.systemPackages = with pkgs; [
-    openai-whisper-cpp   # whisper-cli binary
+    whisper-cpp          # whisper-cli binary (was openai-whisper-cpp; renamed in nixpkgs)
     wtype                # type transcribed text into focused wlroots window
     libnotify            # notify-send status toasts (mako renders them)
     curl                 # first-run model download
@@ -26,9 +26,9 @@
 
   # ---- Live streaming (bin/whisper-stream-toggle) ------------------
   # The live VAD dictation path needs the `whisper-stream` binary, which is
-  # the SDL2 example — nixpkgs' openai-whisper-cpp does NOT build it. When
+  # the SDL2 example — nixpkgs' whisper-cpp does NOT build it. When
   # backfilling this host, override to build the examples with SDL2, e.g.
-  #   (openai-whisper-cpp.overrideAttrs (o: {
+  #   (whisper-cpp.overrideAttrs (o: {
   #     buildInputs = (o.buildInputs or []) ++ [ SDL2 ];
   #     cmakeFlags  = (o.cmakeFlags or []) ++ [ "-DWHISPER_SDL2=ON" ];
   #   }))
@@ -39,6 +39,6 @@
   # base.en on CPU transcribes a short clip in well under a second on
   # this box, so CPU is the default. To offload to the Blackwell dGPU,
   # swap the package above for:
-  #   (openai-whisper-cpp.override { cudaSupport = true; })
+  #   (whisper-cpp.override { cudaSupport = true; })
   # (large recompile; only worth it for large-v3 / long recordings).
 }

@@ -5,9 +5,11 @@ A flake with four outputs:
 - `vm` — QEMU VM for iterating on the config from anywhere with Nix + flakes.
 - `laptop` — T480 real install (Intel-only, LUKS).
 - `minerva` — desktop real install: Intel Arrow Lake (Core Ultra 7 265K) + a
-  **Blackwell NVIDIA dGPU**, all AI tooling (`modules/ai.nix`). LUKS at its
-  (pending) reinstall. `hosts/minerva/hardware.nix` carries the current
-  Pop!_OS UUIDs as a placeholder until then.
+  **Blackwell NVIDIA dGPU**, all AI tooling (`modules/ai.nix`). Reinstall is
+  **preserve-`/home`, unencrypted**: reformat only the root partition; the
+  ext4 `/home` (and its ~/ state) carries over. ollama models live on the code
+  NVMe (`/mnt/code-btr/ollama-models`). `hosts/minerva/hardware.nix` carries
+  the current Pop!_OS UUIDs. (LUKS is the t480 path, not minerva.)
 - `minerva-live` — live-USB ISO of the minerva system for a no-disk test drive.
 
 ## How dotfiles work here
@@ -175,10 +177,49 @@ Confirm: `ping -c 2 cache.nixos.org`.
 
 ### 4. Partition + install
 
-**Point of no return — everything on `$DISK` is destroyed.** On minerva:
-reformat ONLY the root disk — do NOT touch `nvme1n1` (btrfs label `code`),
-`sda` (btrfs label `storage`), or a preserved `/home` partition if you're
-keeping one.
+**Before anything destructive, on minerva run the pre-migration backup** so
+nothing is lost when `/` — and the docker dev-DB volumes on it — are wiped:
+
+```bash
+~/code/tomfordweb/dotfiles/install/minerva-premigration-backup.sh
+```
+
+It COPIES ollama models to the code NVMe, dumps every running MySQL container
+and compresses `andromeda` to `/mnt/storage`, and pushes beads. Non-destructive.
+
+> **minerva: identify disks by MODEL, never by `nvmeXnY`.** Kernel nvme
+> enumeration is NOT stable and is currently **reversed** vs older notes —
+> `nvme0n1` may be the Crucial T500 (the `code` drive!) and `nvme1n1` the
+> WD_BLACK. Always `lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL` first. The root
+> disk is the **WD_BLACK SN850X 2TB**. Do NOT touch the `code` drive, `storage`
+> (`sda`), or — on the preserve path — the `/home` partition.
+
+Two paths follow. **minerva uses the preserve-`/home` / no-LUKS path.**
+
+#### minerva — preserve `/home`, no encryption
+
+Reformat ONLY the root partition of the WD_BLACK; keep its ESP and its ext4
+`/home` (user data + the `mv /home/tomford /home/tom` migration in §5).
+
+```bash
+lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL      # confirm the WD_BLACK partitions
+ROOT_PART=/dev/nvme1n1p1   # WD_BLACK root — CONFIRM the device name first
+ESP_PART=/dev/nvme1n1p2    # existing EFI system partition — keep
+HOME_PART=/dev/nvme1n1p3   # existing ext4 /home — DO NOT format
+
+mkfs.ext4 -F "$ROOT_PART"                   # ONLY the root partition
+mount "$ROOT_PART" /mnt
+mkdir -p /mnt/{home,boot}
+mount "$ESP_PART"  /mnt/boot                # existing ESP, not reformatted
+mount "$HOME_PART" /mnt/home                # preserved /home, not reformatted
+```
+
+Leave `../../modules/luks.nix` **commented out** in `hosts/minerva/default.nix`
+(no encryption on this install).
+
+#### t480 — full-disk LUKS
+
+**Point of no return — everything on `$DISK` is destroyed.**
 
 ```bash
 DISK=/dev/nvme0n1     # <-- YOUR internal disk (lsblk to confirm)
@@ -189,9 +230,9 @@ parted $DISK -- set 1 esp on
 parted $DISK -- mkpart cryptroot 1GiB 100%
 ```
 
-**LUKS** (both t480 and minerva). The mapper name **must** be `cryptroot`;
-`modules/luks.nix` and the generated hardware config reference
-`/dev/mapper/cryptroot`. The passphrase is typed every boot.
+**LUKS.** The mapper name **must** be `cryptroot`; `modules/luks.nix` and the
+generated hardware config reference `/dev/mapper/cryptroot`. The passphrase is
+typed every boot.
 
 ```bash
 cryptsetup luksFormat ${DISK}p2
@@ -243,19 +284,21 @@ cp /mnt/etc/nixos/hardware-configuration.nix \
    /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/minerva/hardware.nix
 ```
 
-**minerva only:** uncomment the `../../modules/luks.nix` import in
-`nixos/hosts/minerva/default.nix` (it's gated because the module fails eval
-without a cryptroot device — which now exists).
+**LUKS path (t480) only:** uncomment the `../../modules/luks.nix` import in
+that host's `default.nix` (gated because the module fails eval without a
+cryptroot device). **minerva (no-LUKS) — leave it commented.**
 
-**LUKS UUID sanity check** — `nixos-generate-config` detects the LUKS device
-and writes it into the copied hardware config; nothing to edit by hand:
+**Confirm the generated `hardware.nix` matches the layout:**
 
 ```bash
-grep -A1 luks /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/*/hardware.nix
+grep -A1 -E 'fileSystems|luks' /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/*/hardware.nix
 ```
 
-It should show `boot.initrd.luks.devices."cryptroot".device` with the UUID
-of the raw LUKS partition (`blkid -s UUID -o value ${DISK}p2` to compare).
+- **minerva:** should list `/`, `/boot` (ESP), and `/home` by their reused
+  UUIDs and **no** LUKS device (the preserved `/home` UUID `fa19d155-…` and
+  ESP `A137-BB42` carry over; only `/` gets a fresh UUID from `mkfs.ext4`).
+- **t480:** should show `boot.initrd.luks.devices."cryptroot".device` with the
+  raw LUKS partition UUID (`blkid -s UUID -o value ${DISK}p2` to compare).
 
 Stage the changes (flakes only see git-tracked files; no commit needed):
 
@@ -291,6 +334,12 @@ passwd tom
 
 1. Migrate the preserved Pop!_OS home (same uid 1000):
    ```bash
+   # NixOS activation may have already created an EMPTY /home/tom. If it did,
+   # `mv /home/tomford /home/tom` would NEST it to /home/tom/tomford — so
+   # clear the empty scaffold first. rmdir (not rm -rf) is intentional: it
+   # only succeeds if /home/tom is truly empty, so a populated dir warns
+   # loudly instead of being destroyed.
+   [ -d /home/tom ] && rmdir /home/tom
    mv /home/tomford /home/tom
    chown tom:users /home/tom
    ```
@@ -340,6 +389,13 @@ cd ~/code/tomfordweb/ops && ansible-playbook local.ai.yml
 
 # beads + ollama come from nix (modules/ai.nix) — verify:
 bd version && systemctl status ollama
+
+# ollama models were COPIED to the code NVMe pre-migration (modules/ai.nix
+# points services.ollama.models there). The service runs as the `ollama`
+# user, so fix ownership once, then confirm every model loads — no re-download:
+sudo chown -R ollama:ollama /mnt/code-btr/ollama-models
+sudo systemctl restart ollama
+ollama list
 
 # nvim deps (LSPs, formatters, tree-sitter) come from nix — verify inside nvim:
 #   :checkhealth  and  which tree-sitter / prettierd from :!which
