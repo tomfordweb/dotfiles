@@ -37,6 +37,12 @@ in
     "workmux".source       = link "config/workmux";
     "glab-cli".source      = link "config/glab-cli";
     "thefuck".source       = link "config/thefuck";
+    # Single file, not the whole dir — WirePlumber writes state under
+    # ~/.config/wireplumber too, which must stay real (not repo-linked).
+    # Forces the Yeti Orb to a COSMIC-visible profile + priority over the
+    # S600 cam mic (see the .conf header).
+    "wireplumber/wireplumber.conf.d/50-yeti-orb.conf".source =
+      link "config/wireplumber/wireplumber.conf.d/50-yeti-orb.conf";
     # Deliberately NOT linked: browsers, dconf, pulse, gnome*, htop,
     # pnpm, and other app-generated state — that junk belongs in real
     # ~/.config, not the repo.

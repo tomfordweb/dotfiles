@@ -11,6 +11,7 @@
 {
   imports = [
     ./dotfiles.nix   # symlinks ~/.config/* into this repo (live-editable)
+    ./ssh.nix        # SSH client local include hooks
     ./shell.nix      # zsh + oh-my-zsh + starship + direnv
     ./dev.nix        # terminals, language toolchains, CLIs
     ./neovim.nix     # nvim + all its runtime deps (LSPs, formatters, tree-sitter)

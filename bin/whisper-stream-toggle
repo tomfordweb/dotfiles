@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# whisper-stream-toggle — start/stop LIVE dictation.
+#   press 1 -> start whisper-stream (VAD): types each phrase as you pause
+#   press 2 -> stop
+#
+# Bind to a key (a second macropad key). The recognizer runs in its own
+# transient systemd --user scope so the compositor tearing down the keybind
+# process doesn't kill it (same reason as whisper-toggle).
+#
+# This is the streaming counterpart to whisper-toggle (which is record-then-
+# transcribe). Pick one per key; both can coexist.
+set -euo pipefail
+
+UNIT="whisper-stream"
+RUN="$(command -v whisper-stream-run || echo "$HOME/code/tomfordweb/dotfiles/bin/whisper-stream-run")"
+
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -t 2000 -a whisper "🎙 live" "$1" || true; }
+active() { systemctl --user is-active --quiet "$UNIT.service"; }
+
+do_stop() {
+  systemctl --user stop "$UNIT.service" 2>/dev/null || true
+  systemctl --user reset-failed "$UNIT.service" 2>/dev/null || true
+  notify "live dictation off"
+}
+
+do_start() {
+  active && return 0
+  # Clear any lingering failed unit from a prior run before reusing the name.
+  systemctl --user stop "$UNIT.service" 2>/dev/null || true
+  systemctl --user reset-failed "$UNIT.service" 2>/dev/null || true
+  # Pass the caller's env (PATH, XDG, WAYLAND_DISPLAY) so wtype can reach the
+  # compositor from inside the scope.
+  systemd-run --user --quiet -u "$UNIT" \
+    -p KillSignal=SIGINT -p SuccessExitStatus=SIGINT \
+    -E "PATH=$PATH" -E "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}" \
+    -E "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}" \
+    -- "$RUN" \
+    || { notify "✗ failed to start live dictation"; exit 1; }
+  notify "live dictation ON — speak, pause to emit"
+}
+
+# start | stop | toggle (default). start/stop drive push-to-talk (hold).
+case "${1:-toggle}" in
+  start)  do_start ;;
+  stop)   do_stop ;;
+  toggle) if active; then do_stop; else do_start; fi ;;
+  *)      notify "usage: [start|stop|toggle]"; exit 1 ;;
+esac

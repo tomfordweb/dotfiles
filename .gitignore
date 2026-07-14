@@ -47,3 +47,9 @@
 /config/monitors.xml
 /config/tiling-assistant/
 /config/cosmic/
+
+# workmux git worktrees — never commit as gitlinks
+/.worktrees/
+
+# Next.js CLI telemetry cache — machine-local, not managed config
+/config/nextjs-nodejs/
