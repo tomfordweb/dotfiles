@@ -12,13 +12,15 @@
 # as long as those partitions are reused (do NOT format /home — user
 # data).
 #
-# Disk map:
-#   nvme0n1 (WD_BLACK SN850X 2TB):
+# Disk map — IDENTIFY BY MODEL/LABEL. The nvmeN names are NOT stable (they
+# enumerate reversed on some boots); the parenthesised names below are just the
+# current boot. Confirm with `lsblk -o NAME,SIZE,LABEL,MODEL`. UUIDs are truth.
+#   WD_BLACK SN850X 2TB  (nvme1n1 this boot) — the root disk:
 #     p1 /         ext4  fb708e51-3b4d-4a7b-abb8-5eb4645bf038 (reformat → new UUID)
 #     p2 /boot/efi vfat  A137-BB42                            (reuse ESP → UUID keeps)
 #     p3 /home     ext4  fa19d155-ac19-4efc-82a8-bc11188c9158 (KEEP — user data; don't format)
-#   nvme1n1 (Crucial T500 1TB): btrfs label "code"    → modules/code-drive.nix
-#   sda     (WD 4TB):           btrfs label "storage" → hosts/minerva/default.nix
+#   Crucial T500 1TB     (nvme0n1 this boot): btrfs label "code"    → modules/code-drive.nix
+#   WD 4TB (sda):                             btrfs label "storage" → hosts/minerva/default.nix
 # Swap: zram only (hosts/minerva/default.nix), no swap partition.
 # ------------------------------------------------------------------
 
