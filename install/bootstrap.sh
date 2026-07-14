@@ -21,7 +21,7 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 # Dev core — safe everywhere, including mac and headless work boxes.
 MINIMAL="tmux ghostty nvim lazygit gh git starship.toml workmux glab-cli thefuck"
 # Wayland/Hyprland desktop extras — Linux ricing hosts only.
-DESKTOP="hypr waybar wofi"
+DESKTOP="hypr waybar wofi mako cava eww"
 
 entries="$MINIMAL $DESKTOP"
 [ "${1:-}" = "--minimal" ] && entries="$MINIMAL"

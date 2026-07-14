@@ -1,0 +1,22 @@
+#!/bin/sh
+# Print "<icon> <name>" for a tmux window chip. Args (expanded by
+# window-status-format): pane_pid, pane_current_command, #W,
+# automatic-rename. ssh panes delegate to tmux-ssh-label for the
+# user@host label. Icons come from config/tmux/app-icons.tsv,
+# GENERATED from rice/icons.json by bin/rice-build.
+
+pid="${1:-}"; cmd="${2:-}"; name="${3:-}"; auto="${4:-on}"
+
+tsv="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/app-icons.tsv"
+lookup() { [ -f "$tsv" ] && awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$tsv"; }
+
+if [ "$auto" = "on" ] && [ "$cmd" = "ssh" ]; then
+    icon="$(lookup ssh)"
+    label="$(tmux-ssh-label "$pid")"
+else
+    label="$name"
+    icon="$(lookup "$name")"
+    [ -n "$icon" ] || icon="$(lookup "$cmd")"   # manually renamed windows still get an icon
+fi
+
+if [ -n "$icon" ]; then printf '%s %s\n' "$icon" "$label"; else printf '%s\n' "$label"; fi

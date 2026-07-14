@@ -33,7 +33,7 @@ nixos/
 ├── flake.lock              # pinned input revs (commit after `nix flake update`)
 ├── hosts/                  # one dir per machine
 │   ├── vm/                 #   default.nix (imports) + hardware.nix (qemu)
-│   ├── t480/               #   default.nix (VA-API, imports luks/laptop/code-drive) + hardware.nix (generated)
+│   ├── t480/               #   default.nix (VA-API, imports luks/laptop) + hardware.nix (generated)
 │   ├── minerva/            #   default.nix (zram, storage/smb mounts, steam, backup timers) + hardware.nix (placeholder)
 │   └── minerva-live/       #   ISO wrapper (installer profile + nvidia)
 ├── modules/                # system-level, shared
@@ -44,7 +44,7 @@ nixos/
 │   ├── nvidia.nix          #   Blackwell open module, driver ≥570, wayland env (minerva only)
 │   ├── luks.nix            #   cryptroot preLVM/TRIM tuning (device UUID comes from hardware.nix)
 │   ├── tor.nix             #   tor daemon (SOCKS5 :9050) + torsocks (all hosts)
-│   └── code-drive.nix      #   ~/code btrfs drive + hourly btrbk snapshots (t480 + minerva)
+│   └── code-drive.nix      #   ~/code btrfs drive + hourly btrbk snapshots (minerva only)
 └── home/                   # Home Manager (user tom)
     ├── default.nix         #   entry point — imports the dev core below
     ├── dotfiles.nix        #   ~/.config symlinks into the repo + PATH + EDITOR
@@ -455,8 +455,8 @@ Web (when online): <https://search.nixos.org/packages>, <https://search.nixos.or
 
 ### `~/code` btrfs drive + hourly btrbk snapshots
 
-Declared in `modules/code-drive.nix`, imported by `t480` and `minerva` (the
-VM has none). The drive is found by btrfs label `code`, not device name.
+Declared in `modules/code-drive.nix`, imported by `minerva` only (the T480
+and VM have none). The drive is found by btrfs label `code`, not device name.
 
 One-time bootstrap on a new machine: `sudo mkfs.btrfs -L code /dev/nvmeXnY`
 (confirm with `lsblk`!), then rebuild. First boot mounts the fs top at

@@ -5,6 +5,7 @@ cache_file=/dev/null
 hide_scroll=true
 insensitive=true
 no_actions=true
+close_on_focus_loss=true
 gtk_dark=true
 hide_search=false
 term=ghostty

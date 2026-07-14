@@ -1,0 +1,114 @@
+* {
+  all: unset;
+  font-family: "JetBrainsMono Nerd Font", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: #cdd6f4;
+}
+
+.cal-ghost {
+  background-color: transparent;
+}
+.cal-ghost .cal {
+  background-color: transparent;
+  color: rgba(205, 214, 244, 0.4);
+  font-size: 16px;
+}
+.cal-ghost .cal:selected {
+  color: #11111b;
+  background-image: linear-gradient(135deg, #cba6f7, #22d3ee);
+  border-radius: 8px;
+}
+.cal-ghost .cal.header {
+  color: rgba(203, 166, 247, 0.6);
+  font-weight: 700;
+}
+.cal-ghost .cal.highlight {
+  color: rgba(34, 211, 238, 0.7);
+  font-weight: 700;
+}
+
+.cc {
+  background-color: rgba(20, 20, 32, 0.86);
+  border: 1px solid rgba(203, 166, 247, 0.22);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.cc-title {
+  color: #6c7086;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cc-card {
+  background-color: rgba(49, 50, 68, 0.5);
+  border-radius: 13px;
+  padding: 12px;
+}
+
+.cc-sub {
+  color: #a6adc8;
+  font-size: 12px;
+}
+
+.cc-slider trough {
+  background-color: rgba(13, 13, 22, 0.8);
+  border-radius: 8px;
+  min-height: 8px;
+}
+.cc-slider trough highlight {
+  background-image: linear-gradient(90deg, #cba6f7, #22d3ee);
+  color: #11111b;
+  border-radius: 8px;
+}
+.cc-slider slider {
+  background-color: #cba6f7;
+  border-radius: 8px;
+  min-height: 16px;
+  min-width: 16px;
+  margin: -4px;
+}
+
+.cc-toggles {
+  margin: 2px 0;
+}
+
+.cc-toggle {
+  background-color: rgba(49, 50, 68, 0.5);
+  border-radius: 13px;
+  padding: 10px 0;
+  font-size: 16px;
+  color: #6c7086;
+}
+.cc-toggle:hover {
+  color: #cdd6f4;
+  background-color: rgba(203, 166, 247, 0.2);
+}
+.cc-toggle.on {
+  background-image: linear-gradient(135deg, #cba6f7, #22d3ee);
+  color: #11111b;
+  box-shadow: 0 0 12px rgba(203, 166, 247, 0.5);
+}
+
+.cc-media {
+  color: #ff6ac1;
+  font-size: 12px;
+  margin: 2px 4px;
+}
+
+.cc-power {
+  margin-top: 2px;
+}
+
+.cc-danger {
+  background-color: rgba(243, 139, 168, 0.12);
+  border-radius: 13px;
+  padding: 10px 0;
+  font-size: 15px;
+  color: #f38ba8;
+}
+.cc-danger:hover {
+  background-color: rgba(243, 139, 168, 0.3);
+  color: #cdd6f4;
+}

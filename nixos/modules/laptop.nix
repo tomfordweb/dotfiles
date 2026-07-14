@@ -12,4 +12,9 @@
   # waybar battery + power-profiles-daemon modules
   services.upower.enable = true;
   services.power-profiles-daemon.enable = true;
+
+  # NB: the T480 fingerprint reader is NOT set up here. Its Synaptics
+  # 06cb:009a sensor has no mainline libfprint driver, so it needs the
+  # reverse-engineered python-validity stack — wired up in
+  # hosts/t480/default.nix, which force-disables services.fprintd.
 }
