@@ -19,6 +19,8 @@ in
     ../../modules/nvidia.nix    # Blackwell dGPU: open module + recent kernel
     ../../modules/code-drive.nix
     ../../modules/ai.nix        # ollama-cuda, beads — big-GPU host only
+    ../../modules/webcam.nix    # EMEET SmartCam S600 tooling + OBS virtual cam
+    ../../modules/whisper-dictate.nix  # whisper.cpp voice dictation (F13 toggle)
     # INSTALL DAY: uncomment once the disk is LUKS-partitioned and
     # nixos-generate-config has written the cryptroot device into
     # hardware.nix — the module fails eval without a device (see
