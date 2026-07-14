@@ -18,7 +18,7 @@
     # install/minerva-premigration-backup.sh; chown ollama:ollama on first boot.
     models = "/mnt/code-btr/ollama-models";
     # Default 4096-token context makes ollama SILENTLY truncate longer
-    # prompts (produced garbage bevvi taxonomy drafts). The bevvi harness
+    # prompts (produced garbage and hallucinations in outputs). Custom harness
     # context guard assumes this matches (HARNESS_CONTEXT_TOKENS=16384).
     environmentVariables.OLLAMA_CONTEXT_LENGTH = "16384";
   };
