@@ -8,18 +8,17 @@
 
 {
   # ollama with CUDA (was ops/local.ollama.yml: tarball + user unit)
+  # Models live at the default /var/lib/private/ollama/models (root btrfs
+  # pool) — the pre-migration copy on the code drive (/mnt/code-btr/
+  # ollama-models, made by install/minerva-premigration-backup.sh) is kept
+  # only as a reinstall backup, not the live path.
   services.ollama = {
     enable = true;
     package = pkgs.ollama-cuda;
-    # Models live on the code NVMe (Crucial T500, plenty of room, NVMe-fast
-    # cold loads), NOT the default /var/lib/ollama on the small root. Plain
-    # dir at the btrfs top (subvolid=5) so btrbk — which only snapshots
-    # @code — ignores it. Populated pre-migration by
-    # install/minerva-premigration-backup.sh; chown ollama:ollama on first boot.
-    models = "/mnt/code-btr/ollama-models";
     # Default 4096-token context makes ollama SILENTLY truncate longer
     # prompts (produced garbage and hallucinations in outputs). Custom harness
     # context guard assumes this matches (HARNESS_CONTEXT_TOKENS=16384).
+    # (Was the Pop-era systemd user drop-in; declared here so it survives.)
     environmentVariables.OLLAMA_CONTEXT_LENGTH = "16384";
   };
 

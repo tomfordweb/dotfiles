@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Back up Docker named volumes to a surviving drive before the minerva NixOS
+# reinstall. The root drive (which holds /var/lib/docker) gets wiped, so run
+# this as the LAST step before booting the Nix installer USB.
+#
+# Scope: named volumes only — images are intentionally NOT backed up (they
+# re-pull). Defaults to the andromeda* volumes (the critical dev data).
+#
+# Recovery of the andromeda MySQL data is also possible from production via
+# andromeda/bin/sync-prod-db — this tarball is the local-state safety net.
+#
+# Usage:
+#   backup-docker-volumes [name-filter] [dest-dir]
+#   backup-docker-volumes                 # andromeda* -> /mnt/storage/docker-volume-backup
+#   backup-docker-volumes mysql           # any volume whose name contains "mysql"
+#   backup-docker-volumes '' /mnt/code-btr/docker-volume-backup   # ALL volumes, code drive
+#
+# Restore (after reinstall), per volume:
+#   docker volume create <vol>
+#   docker run --rm -v <vol>:/data -v <dest>:/backup busybox \
+#     tar xzf /backup/<vol>.tar.gz -C /data
+# (MySQL raw datadir restore is safe only into the same major version — the
+#  stacks use mysql:8. If a datadir refuses to start, fall back to sync-prod-db.)
+set -euo pipefail
+
+FILTER="${1-andromeda}"
+DEST="${2:-/mnt/storage/docker-volume-backup}"
+
+command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found" >&2; exit 1; }
+
+# Confirm the destination is on a drive that will SURVIVE the wipe.
+mkdir -p "$DEST"
+case "$(realpath "$DEST")" in
+  /mnt/storage/*|/mnt/code-btr/*) : ;;
+  *) echo "WARNING: $DEST is not on the storage or code drive — it may be wiped." >&2
+     read -rp "Continue anyway? [y/N] " a; [ "$a" = y ] || exit 1 ;;
+esac
+
+mapfile -t VOLS < <(docker volume ls -q | { [ -n "$FILTER" ] && grep -- "$FILTER" || cat; } || true)
+[ "${#VOLS[@]}" -gt 0 ] || { echo "No volumes match filter '${FILTER:-<all>}'." >&2; exit 1; }
+
+echo "Volumes to back up (${#VOLS[@]}):"; printf '  %s\n' "${VOLS[@]}"
+echo "Destination: $DEST"
+
+# Stop running containers so datadirs (MySQL etc.) are copied consistently.
+# We are about to reinstall, so there is no need to restart them afterward.
+RUNNING="$(docker ps -q)"
+if [ -n "$RUNNING" ]; then
+  echo "Stopping running containers for a consistent copy..."
+  docker stop $RUNNING >/dev/null
+fi
+
+for v in "${VOLS[@]}"; do
+  echo "  archiving $v ..."
+  docker run --rm -v "$v":/data:ro -v "$DEST":/backup busybox \
+    tar czf "/backup/$v.tar.gz" -C /data .
+done
+
+echo
+echo "Done. Backups in $DEST:"
+ls -lh "$DEST"
+echo "Verify these before wiping the root drive. See docs/nixos/minerva-btrfs-migration.md."
