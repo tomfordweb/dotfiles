@@ -4,6 +4,7 @@ glab-cli/recover
 
 # Contains auth tokens
 glab-cli/config.yml
+Slack/
 google-chrome-for-testing
 pudb
 nwg-look
