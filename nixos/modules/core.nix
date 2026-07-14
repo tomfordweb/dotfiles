@@ -52,6 +52,9 @@
   users.users.tom = {
     isNormalUser = true;
     description = "tom";
+    # Pinned to 1000 so the minerva reinstall's migrated /home (from Pop
+    # user `tomford`, also uid 1000) keeps valid ownership with no chown.
+    uid = 1000;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" "docker" ];
     shell = pkgs.zsh;
   };
@@ -116,6 +119,11 @@
   virtualisation.docker = {
     enable = true;
     autoPrune.enable = true;
+    # overlay2 (what Pop already ran) rather than the btrfs storage driver,
+    # even though /var/lib/docker is a btrfs subvol on minerva — avoids the
+    # btrfs-driver subvolume sprawl/quirks. Named volumes (the critical dev
+    # data) are plain dirs under volumes/ and are unaffected by this choice.
+    storageDriver = "overlay2";
   };
 
   # ------------------------------------------------------------------
