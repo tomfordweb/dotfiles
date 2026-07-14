@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# whisper-stream-run — live (VAD-chunked) dictation loop. Runs whisper.cpp's
+# `whisper-stream` in voice-activity mode: after each pause it transcribes the
+# phrase you just spoke and types it into the focused window via wtype.
+#
+# Blocks until killed (SIGINT/SIGTERM). Meant to be run inside a transient
+# systemd --user scope by whisper-stream-toggle — NOT bound to a key directly.
+#
+# Env:
+#   WHISPER_STREAM_BIN   default: whisper-stream on PATH
+#   WHISPER_MODEL        default: ~/.cache/whisper/ggml-base.en.bin
+#   WHISPER_STREAM_ARGS  extra whisper-stream flags (e.g. tuning VAD)
+set -uo pipefail
+
+BIN="${WHISPER_STREAM_BIN:-$(command -v whisper-stream || true)}"
+MODEL="${WHISPER_MODEL:-$HOME/.cache/whisper/ggml-base.en.bin}"
+[ -n "$BIN" ] || { echo "whisper-stream not found" >&2; exit 1; }
+[ -f "$MODEL" ] || { echo "model missing: $MODEL" >&2; exit 1; }
+
+# --step 0 => VAD mode (transcribe on speech, print on pause).
+# --length 10000 caps a single un-paused utterance at 10s.
+# -vth 0.45 (default 0.60): more sensitive VAD so quieter trailing words
+#   don't trip an early "pause" and get clipped.
+# --keep 500 retains more audio across the boundary. -vth/--keep are the
+#   two knobs to tune if words are still lost (lower vth / raise keep).
+# SDL opens the default capture device (the Yeti Orb here).
+# --keep 0: don't carry audio across VAD boundaries — the retained tail was
+# getting re-transcribed and emitted twice. Dedupe below is a second guard.
+# shellcheck disable=SC2086
+exec "$BIN" -m "$MODEL" --step 0 --length 10000 --keep 0 -vth 0.5 -t 6 ${WHISPER_STREAM_ARGS:-} 2>/dev/null \
+  | { last=""; while IFS= read -r line; do
+      # Keep only the timestamped transcription lines; drop the text after "]  ".
+      case "$line" in
+        *']  '*) phrase="${line#*']  '}" ;;
+        *) continue ;;
+      esac
+      # Strip whisper's non-speech tags and edge whitespace.
+      phrase="$(printf '%s' "$phrase" \
+        | sed -E 's/\([^)]*\)//g; s/\[[^]]*\]//g; s/\*[^*]*\*//g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
+      [ -n "$phrase" ] || continue
+      # Skip a phrase identical to the one just emitted (VAD re-transcription).
+      [ "$phrase" = "$last" ] && continue
+      last="$phrase"
+      command -v wtype >/dev/null 2>&1 && wtype -- "$phrase " 2>/dev/null || printf '%s ' "$phrase" | wl-copy
+    done; }
