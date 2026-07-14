@@ -79,7 +79,10 @@ in
       "x-systemd.idle-timeout=300"
     ];
   };
-  environment.systemPackages = [ pkgs.cifs-utils ];
+  environment.systemPackages = [
+    pkgs.cifs-utils
+    pkgs.bambu-studio    # 3D-print slicer (desktop-only)
+  ];
 
   # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
   # NixOS has no /etc/cron.daily; run the ops scripts from the code
