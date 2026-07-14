@@ -135,40 +135,42 @@ Drive names below are placeholders — always confirm with `lsblk` first:
 >
 > Run on the **current Pop system**, before booting the installer USB. Full
 > detail in the [migration runbook § 1](../docs/nixos/minerva-btrfs-migration.md);
-> this is the quick checklist. The only disk wiped later is `nvme1n1`; every
-> target below is on a surviving drive (`nvme0n1` code / `sda` storage).
+> this is the quick checklist. The only disk wiped later is the WD_BLACK root
+> drive; every target below is on the code NVMe.
+>
+> **The WD 4TB storage drive DIED 2026-07-14** (dropped off the SATA bus
+> mid-backup; replacement ordered). All backups go to the code drive only —
+> accepted single-copy risk for `/home` until first boot verifies, then the
+> send/receive duplicate on the new pool makes two.
 >
 > ```bash
+> # one-time root setup for the user-writable code-drive dirs:
+> sudo btrfs subvolume create /mnt/code-btr/@home-stage
+> sudo mkdir -p /mnt/code-btr/minerva-premigration /mnt/code-btr/docker-volume-backup
+> sudo chown -R tomford:tomford /mnt/code-btr/{@home-stage,minerva-premigration,docker-volume-backup}
+>
 > # 0. ollama models -> code drive, mysqldump running MySQL containers,
-> #    andromeda tarball -> storage, beads push (all non-destructive)
-> ~/code/tomfordweb/dotfiles/install/minerva-premigration-backup.sh
+> #    andromeda tarball, beads push (all non-destructive)
+> STORAGE_DST=/mnt/code-btr/minerva-premigration \
+>   ~/code/tomfordweb/dotfiles/install/minerva-premigration-backup.sh
 >
 > # 1. stage /home as a btrfs subvol on the code drive (the migration source)
-> btrfs subvolume create /mnt/code-btr/@home-stage
 > rsync -aHAX --info=progress2 --exclude='/code' /home/tomford/ /mnt/code-btr/@home-stage/
+> # checksum verify pass — MUST print nothing (single-copy risk demands it):
+> rsync -aHAXn -c --info=name --exclude='/code' /home/tomford/ /mnt/code-btr/@home-stage/
 >
-> # 2. second /home copy on the storage drive
-> mount /dev/disk/by-label/storage /mnt/storage
-> rsync -aHAX --info=progress2 --exclude='/code' /home/tomford/ /mnt/storage/home-backup/
->
-> # 3. code subvol copy, minus regenerable build junk
-> rsync -aHAX --info=progress2 \
->   --exclude='node_modules/' --exclude='dist/' --exclude='.next/' \
->   --exclude='build/' --exclude='target/' --exclude='.turbo/' \
->   /mnt/code-btr/@code/ /mnt/storage/code-backup/
->
-> # 4. LAST thing before the USB: docker volumes (critical dev data).
+> # 2. LAST thing before the USB: docker volumes (critical dev data).
 > #    Empty filter = ALL named volumes — there are ~20 non-andromeda ones
 > #    (map-app, deck-grimoire, bundle-analyzer, tradesman, …); the default
-> #    'andromeda*' filter would silently skip them.
-> backup-docker-volumes ''         # -> /mnt/storage/docker-volume-backup/*.tar.gz
+> #    'andromeda*' filter would silently skip them. STOPS ALL CONTAINERS.
+> backup-docker-volumes '' /mnt/code-btr/docker-volume-backup
 > ```
 >
 > **Verify before wiping the WD_BLACK root drive:**
 > ```bash
-> du -sh /mnt/code-btr/@home-stage /mnt/storage/home-backup /mnt/storage/code-backup
-> ls -lh /mnt/storage/docker-volume-backup/*.tar.gz     # non-empty volume tarballs
-> ls /mnt/code-btr/ollama-models /mnt/storage/minerva-premigration/mysql
+> du -sh /mnt/code-btr/@home-stage                      # ~247G
+> ls -lh /mnt/code-btr/docker-volume-backup/*.tar.gz    # non-empty volume tarballs
+> ls /mnt/code-btr/ollama-models /mnt/code-btr/minerva-premigration/mysql
 > ```
 > Proceed only when all of the above exist and are sized sanely. Restores:
 > `/home` via the runbook's send/receive; docker via `sync-prod-db` (or the

@@ -21,7 +21,10 @@ set -euo pipefail
 OLLAMA_SRC="$HOME/.ollama/models"
 OLLAMA_DST="/mnt/code-btr/ollama-models"        # code NVMe (survives reinstall)
 ANDROMEDA="$HOME/code/tomfordweb/andromeda"
-STORAGE="/mnt/storage/minerva-premigration"     # WD 4TB (survives reinstall)
+# Dump target. Default was the WD 4TB storage drive; it died 2026-07-14, so
+# override to the code NVMe until the replacement lands:
+#   STORAGE_DST=/mnt/code-btr/minerva-premigration ./minerva-premigration-backup.sh
+STORAGE="${STORAGE_DST:-/mnt/storage/minerva-premigration}"
 STAMP="$(date +%F)"
 
 log(){ printf '\n\033[1;36m== %s ==\033[0m\n' "$*"; }
@@ -30,8 +33,11 @@ warn(){ printf '\033[1;33mWARN:\033[0m %s\n' "$*"; }
 # ---- preflight: mounts present; dest dirs creatable -----------------------
 # The mount ROOTS are root-owned (btrfs subvolid=5 top / the storage drive),
 # so we check writability of the actual dest dirs, not the mounts themselves.
+# Only require the mounts the chosen targets actually live under.
 for m in /mnt/code-btr /mnt/storage; do
-  mountpoint -q "$m" || { echo "FATAL: $m not mounted"; exit 1; }
+  case "$OLLAMA_DST $STORAGE" in *"$m"*)
+    mountpoint -q "$m" || { echo "FATAL: $m not mounted"; exit 1; } ;;
+  esac
 done
 # /mnt/code-btr is root:root — the ollama dest needs a one-time sudo setup:
 if ! mkdir -p "$OLLAMA_DST" 2>/dev/null; then
@@ -40,8 +46,12 @@ if ! mkdir -p "$OLLAMA_DST" 2>/dev/null; then
   echo "  sudo mkdir -p $OLLAMA_DST && sudo chown -R $(id -un):$(id -gn) $OLLAMA_DST"
   exit 1
 fi
-mkdir -p "$STORAGE/mysql" "$STORAGE/andromeda" \
-  || { echo "FATAL: cannot write under $STORAGE"; exit 1; }
+if ! mkdir -p "$STORAGE/mysql" "$STORAGE/andromeda" 2>/dev/null; then
+  echo "FATAL: cannot write under $STORAGE (root-owned mount top?)."
+  echo "Run this once, then re-run this script:"
+  echo "  sudo mkdir -p $STORAGE && sudo chown -R $(id -un):$(id -gn) $STORAGE"
+  exit 1
+fi
 
 # ---- 1. ollama models: COPY to code NVMe (source stays put) ---------------
 if [ -d "$OLLAMA_SRC" ]; then

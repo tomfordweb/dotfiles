@@ -55,14 +55,17 @@ in
     memoryPercent = 50;
   };
 
-  # ---- storage drive (WD 4TB, btrfs label "storage") ---------------
-  # Bulk data drive, survives reinstalls. nofail so a missing/dead
-  # drive never blocks boot.
-  fileSystems."/mnt/storage" = {
-    device = "/dev/disk/by-label/storage";
-    fsType = "btrfs";
-    options = [ "noatime" "compress=zstd" "nofail" ];
-  };
+  # ---- storage drive: DEAD (2026-07-14) ------------------------------
+  # The WD 4TB (btrfs label "storage") dropped off the SATA bus under
+  # write load mid-backup (DID_BAD_TARGET, btrfs forced readonly) and no
+  # longer answers SMART INQUIRY. Replacement ordered. Re-enable this
+  # mount AND the two backup units below once the new drive is
+  # partitioned btrfs + labelled "storage".
+  # fileSystems."/mnt/storage" = {
+  #   device = "/dev/disk/by-label/storage";
+  #   fsType = "btrfs";
+  #   options = [ "noatime" "compress=zstd" "nofail" ];
+  # };
 
   # ---- Steam --------------------------------------------------------
   # programs.steam (not home.packages) because it needs the 32-bit
@@ -110,39 +113,41 @@ in
   # drive is mounted/cloned. Both write to /mnt/storage. Machine-local SSH
   # target details live in /etc/nixos-secrets/ops-droplet.env:
   #   OPS_DROPLET_SSH_HOST=<local ssh alias>
-  systemd.services.download-droplet-backups = {
-    description = "Sync production droplet backups to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
-    serviceConfig = {
-      Type = "oneshot";
-      EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
-    };
-    unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
-  };
-  systemd.timers.download-droplet-backups = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
+  # DISABLED with the dead storage drive (both write to /mnt/storage) —
+  # uncomment together with the mount above when the replacement lands.
+  # systemd.services.download-droplet-backups = {
+  #   description = "Sync production droplet backups to /mnt/storage";
+  #   path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
+  #     ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+  #   };
+  #   unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+  # };
+  # systemd.timers.download-droplet-backups = {
+  #   wantedBy = [ "timers.target" ];
+  #   timerConfig = {
+  #     OnCalendar = "daily";
+  #     Persistent = true;
+  #   };
+  # };
 
-  systemd.services.backup-local-state = {
-    description = "Back up beads DBs + Claude config to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync gnutar gzip jq libnotify getent ]
-      ++ [ "/run/wrappers" ];  # su (for the desktop notification)
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
-    };
-    unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
-  };
-  systemd.timers.backup-local-state = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
+  # systemd.services.backup-local-state = {
+  #   description = "Back up beads DBs + Claude config to /mnt/storage";
+  #   path = with pkgs; [ bash coreutils findutils rsync gnutar gzip jq libnotify getent ]
+  #     ++ [ "/run/wrappers" ];  # su (for the desktop notification)
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+  #   };
+  #   unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+  # };
+  # systemd.timers.backup-local-state = {
+  #   wantedBy = [ "timers.target" ];
+  #   timerConfig = {
+  #     OnCalendar = "daily";
+  #     Persistent = true;
+  #   };
+  # };
 }
