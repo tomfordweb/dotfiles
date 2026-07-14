@@ -5,11 +5,12 @@ A flake with four outputs:
 - `vm` — QEMU VM for iterating on the config from anywhere with Nix + flakes.
 - `laptop` — T480 real install (Intel-only, LUKS).
 - `minerva` — desktop real install: Intel Arrow Lake (Core Ultra 7 265K) + a
-  **Blackwell NVIDIA dGPU**, all AI tooling (`modules/ai.nix`). Reinstall is
-  **preserve-`/home`, unencrypted**: reformat only the root partition; the
-  ext4 `/home` (and its ~/ state) carries over. ollama models live on the code
-  NVMe (`/mnt/code-btr/ollama-models`). `hosts/minerva/hardware.nix` carries
-  the current Pop!_OS UUIDs. (LUKS is the t480 path, not minerva.)
+  **Blackwell NVIDIA dGPU**, all AI tooling (`modules/ai.nix`). Its pending
+  reinstall converts the root drive to a whole-drive btrfs pool and migrates
+  the Pop `/home` into it (**no LUKS this round**), renaming the user
+  `tomford` → `tom` — see [minerva-btrfs-migration](../docs/nixos/minerva-btrfs-migration.md)
+  for the full runbook. `hosts/minerva/hardware.nix` carries the current
+  Pop!_OS UUIDs as a placeholder until then.
 - `minerva-live` — live-USB ISO of the minerva system for a no-disk test drive.
 
 ## How dotfiles work here
@@ -129,6 +130,53 @@ Drive names below are placeholders — always confirm with `lsblk` first:
 - `$DISK` — the internal target disk (e.g. `/dev/nvme0n1`)
 - NVMe partition suffix is `p1`/`p2` (`${DISK}p1`); SATA is plain numbers.
 
+<!-- BEGIN TEMP:minerva-hop — DELETE this whole block once the hop is verified good -->
+> ## 🚧 minerva hop — pre-flight backups (TEMPORARY — remove after the hop)
+>
+> Run on the **current Pop system**, before booting the installer USB. Full
+> detail in the [migration runbook § 1](../docs/nixos/minerva-btrfs-migration.md);
+> this is the quick checklist. The only disk wiped later is the WD_BLACK root
+> drive; every target below is on the code NVMe.
+>
+> **The WD 4TB storage drive DIED 2026-07-14** (dropped off the SATA bus
+> mid-backup; replacement ordered). All backups go to the code drive only —
+> accepted single-copy risk for `/home` until first boot verifies, then the
+> send/receive duplicate on the new pool makes two.
+>
+> ```bash
+> # one-time root setup for the user-writable code-drive dirs:
+> sudo btrfs subvolume create /mnt/code-btr/@home-stage
+> sudo mkdir -p /mnt/code-btr/minerva-premigration /mnt/code-btr/docker-volume-backup
+> sudo chown -R tomford:tomford /mnt/code-btr/{@home-stage,minerva-premigration,docker-volume-backup}
+>
+> # 0. ollama models -> code drive, mysqldump running MySQL containers,
+> #    andromeda tarball, beads push (all non-destructive)
+> STORAGE_DST=/mnt/code-btr/minerva-premigration \
+>   ~/code/tomfordweb/dotfiles/install/minerva-premigration-backup.sh
+>
+> # 1. stage /home as a btrfs subvol on the code drive (the migration source)
+> rsync -aHAX --info=progress2 --exclude='/code' /home/tomford/ /mnt/code-btr/@home-stage/
+> # checksum verify pass — MUST print nothing (single-copy risk demands it):
+> rsync -aHAXn -c --info=name --exclude='/code' /home/tomford/ /mnt/code-btr/@home-stage/
+>
+> # 2. LAST thing before the USB: docker volumes (critical dev data).
+> #    Empty filter = ALL named volumes — there are ~20 non-andromeda ones
+> #    (map-app, deck-grimoire, bundle-analyzer, tradesman, …); the default
+> #    'andromeda*' filter would silently skip them. STOPS ALL CONTAINERS.
+> backup-docker-volumes '' /mnt/code-btr/docker-volume-backup
+> ```
+>
+> **Verify before wiping the WD_BLACK root drive:**
+> ```bash
+> du -sh /mnt/code-btr/@home-stage                      # ~247G
+> ls -lh /mnt/code-btr/docker-volume-backup/*.tar.gz    # non-empty volume tarballs
+> ls /mnt/code-btr/ollama-models /mnt/code-btr/minerva-premigration/mysql
+> ```
+> Proceed only when all of the above exist and are sized sanely. Restores:
+> `/home` via the runbook's send/receive; docker via `sync-prod-db` (or the
+> tarballs); ollama via the code-drive copy.
+<!-- END TEMP:minerva-hop -->
+
 ### 1. Download the installer ISO
 
 The flake tracks `nixos-unstable`, so match with the unstable minimal ISO:
@@ -177,52 +225,26 @@ Confirm: `ping -c 2 cache.nixos.org`.
 
 ### 4. Partition + install
 
-**Before anything destructive, on minerva run the pre-migration backup** so
-nothing is lost when `/` — and the docker dev-DB volumes on it — are wiped:
-
-```bash
-~/code/tomfordweb/dotfiles/install/minerva-premigration-backup.sh
-```
-
-It COPIES ollama models to the code NVMe, dumps every running MySQL container
-and compresses `andromeda` to `/mnt/storage`, and pushes beads. Non-destructive.
-
-> **minerva: identify disks by MODEL, never by `nvmeXnY`.** Kernel nvme
-> enumeration is NOT stable and is currently **reversed** vs older notes —
-> `nvme0n1` may be the Crucial T500 (the `code` drive!) and `nvme1n1` the
-> WD_BLACK. Always `lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL` first. The root
-> disk is the **WD_BLACK SN850X 2TB**. Do NOT touch the `code` drive, `storage`
-> (`sda`), or — on the preserve path — the `/home` partition.
-
-Two paths follow. **minerva uses the preserve-`/home` / no-LUKS path.**
-
-#### minerva — preserve `/home`, no encryption
-
-Reformat ONLY the root partition of the WD_BLACK; keep its ESP and its ext4
-`/home` (user data + the `mv /home/tomford /home/tom` migration in §5).
-
-```bash
-lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL      # confirm the WD_BLACK partitions
-ROOT_PART=/dev/nvme1n1p1   # WD_BLACK root — CONFIRM the device name first
-ESP_PART=/dev/nvme1n1p2    # existing EFI system partition — keep
-HOME_PART=/dev/nvme1n1p3   # existing ext4 /home — DO NOT format
-
-mkfs.ext4 -F "$ROOT_PART"                   # ONLY the root partition
-mount "$ROOT_PART" /mnt
-mkdir -p /mnt/{home,boot}
-mount "$ESP_PART"  /mnt/boot                # existing ESP, not reformatted
-mount "$HOME_PART" /mnt/home                # preserved /home, not reformatted
-```
-
-Leave `../../modules/luks.nix` **commented out** in `hosts/minerva/default.nix`
-(no encryption on this install).
-
-#### t480 — full-disk LUKS
-
 **Point of no return — everything on `$DISK` is destroyed.**
 
+> ### ⚠️ minerva: STOP — use the migration runbook, not the steps below
+> The root drive is the **WD_BLACK SN850X 2TB** (1.8 TB: ext4 `/` + ESP + ext4
+> `/home`) — address it by stable id, **never** by `nvmeXnY` (enumeration
+> swaps between boots):
+> `/dev/disk/by-id/nvme-WD_BLACK_SN850X_2000GB_25283V805351`. Do **NOT** touch
+> the Crucial T500 (btrfs label `code`,
+> `nvme-CT1000T500SSD5_24094750E9C5`) or `sda` (btrfs label `storage`).
+> Always `lsblk -o NAME,SIZE,FSTYPE,LABEL,MODEL` first.
+> minerva uses a **different layout** from the LUKS walkthrough below —
+> whole-drive btrfs, no LUKS, and a staged `/home` migration (`tomford` → `tom`).
+>
+> **Go now to [minerva-btrfs-migration](../docs/nixos/minerva-btrfs-migration.md)**
+> and run its steps 1–6 (backup → partition → subvolumes → `/home` send/receive →
+> `nixos-install`). **Then come back to [§ 5. First boot](#5-first-boot) below**
+> and continue there. Everything between here and § 5 is the **t480 LUKS path**.
+
 ```bash
-DISK=/dev/nvme0n1     # <-- YOUR internal disk (lsblk to confirm)
+DISK=/dev/nvme0n1     # <-- t480's sole disk (lsblk to confirm); minerva does NOT use this block
 wipefs -a $DISK
 parted $DISK -- mklabel gpt
 parted $DISK -- mkpart ESP fat32 1MiB 1GiB
@@ -230,9 +252,9 @@ parted $DISK -- set 1 esp on
 parted $DISK -- mkpart cryptroot 1GiB 100%
 ```
 
-**LUKS.** The mapper name **must** be `cryptroot`; `modules/luks.nix` and the
-generated hardware config reference `/dev/mapper/cryptroot`. The passphrase is
-typed every boot.
+**LUKS** (t480 path). The mapper name **must** be `cryptroot`;
+`modules/luks.nix` and the generated hardware config reference
+`/dev/mapper/cryptroot`. The passphrase is typed every boot.
 
 ```bash
 cryptsetup luksFormat ${DISK}p2
@@ -284,21 +306,22 @@ cp /mnt/etc/nixos/hardware-configuration.nix \
    /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/minerva/hardware.nix
 ```
 
-**LUKS path (t480) only:** uncomment the `../../modules/luks.nix` import in
-that host's `default.nix` (gated because the module fails eval without a
-cryptroot device). **minerva (no-LUKS) — leave it commented.**
+**t480 (and any future LUKS minerva rebuild):** uncomment the
+`../../modules/luks.nix` import in the host's `default.nix` (it's gated
+because the module fails eval without a cryptroot device — which now exists).
+**minerva this round is no-LUKS — leave that import commented**, and note the
+whole `$DISK`/`cryptroot` block above is the t480 path; minerva partitions per
+the [migration runbook](../docs/nixos/minerva-btrfs-migration.md) instead.
 
-**Confirm the generated `hardware.nix` matches the layout:**
+**LUKS UUID sanity check** — `nixos-generate-config` detects the LUKS device
+and writes it into the copied hardware config; nothing to edit by hand:
 
 ```bash
-grep -A1 -E 'fileSystems|luks' /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/*/hardware.nix
+grep -A1 luks /mnt/home/tom/code/tomfordweb/dotfiles/nixos/hosts/*/hardware.nix
 ```
 
-- **minerva:** should list `/`, `/boot` (ESP), and `/home` by their reused
-  UUIDs and **no** LUKS device (the preserved `/home` UUID `fa19d155-…` and
-  ESP `A137-BB42` carry over; only `/` gets a fresh UUID from `mkfs.ext4`).
-- **t480:** should show `boot.initrd.luks.devices."cryptroot".device` with the
-  raw LUKS partition UUID (`blkid -s UUID -o value ${DISK}p2` to compare).
+It should show `boot.initrd.luks.devices."cryptroot".device` with the UUID
+of the raw LUKS partition (`blkid -s UUID -o value ${DISK}p2` to compare).
 
 Stage the changes (flakes only see git-tracked files; no commit needed):
 
@@ -323,31 +346,27 @@ reboot
 
 ### 5. First boot
 
-LUKS passphrase prompt, then SDDM. **`tom` has NO password on a real
-install** — switch to a TTY (Ctrl+Alt+F2), log in as root, and:
+> **minerva:** you rejoin here after the migration runbook's `nixos-install`.
+> Everything below applies; skip only the LUKS-passphrase mention.
+
+LUKS passphrase prompt (t480 only — **minerva has no LUKS this round** and
+boots straight to SDDM). **`tom` has NO password on a real install** — switch
+to a TTY (Ctrl+Alt+F2), log in as root, and:
 
 ```bash
 passwd tom
 ```
 
-**minerva only — do BOTH of these on this TTY, before the first SDDM login:**
+**minerva only — do this on this TTY, before the first SDDM login:**
 
-1. Migrate the preserved Pop!_OS home (same uid 1000):
+1. **/home is already migrated** — the btrfs send/receive during install
+   populated `@home`, so `/home/tom` already holds the old Pop data (same
+   uid 1000). There is **no `/home/tomford` to move**; just sanity-check:
    ```bash
-   # NixOS activation may have already created an EMPTY /home/tom. If it did,
-   # `mv /home/tomford /home/tom` would NEST it to /home/tom/tomford — so
-   # clear the empty scaffold first. rmdir (not rm -rf) is intentional: it
-   # only succeeds if /home/tom is truly empty, so a populated dir warns
-   # loudly instead of being destroyed.
-   [ -d /home/tom ] && rmdir /home/tom
-   mv /home/tomford /home/tom
-   chown tom:users /home/tom
+   ls /home/tom          # ~/.ssh, ~/.local/bin/workmux, ~/.claude, ~/.tmux, etc.
    ```
-   Log in first by accident and home-manager scaffolds a fresh `/home/tom`
-   you'll have to merge. After migration everything survives in place:
-   `~/.ssh`, `~/.local/bin/workmux`, `~/.claude`, `~/.tmux`,
-   `~/Documents/Wallpaper-Bank`. `~/code` is the separate btrfs drive,
-   mounted by label regardless.
+   (`~/code` is the separate btrfs drive, mounted by label regardless. Then
+   run the `tomford → tom` absolute-path sweep from the migration runbook.)
 2. Move aside pre-existing real config dirs that would block home-manager's
    symlink activation (it refuses to clobber real files):
    ```bash
@@ -390,20 +409,13 @@ cd ~/code/tomfordweb/ops && ansible-playbook local.ai.yml
 # beads + ollama come from nix (modules/ai.nix) — verify:
 bd version && systemctl status ollama
 
-# ollama models were COPIED to the code NVMe pre-migration (modules/ai.nix
-# points services.ollama.models there). The service runs as the `ollama`
-# user, so fix ownership once, then confirm every model loads — no re-download:
-sudo chown -R ollama:ollama /mnt/code-btr/ollama-models
-sudo systemctl restart ollama
-ollama list
-
 # nvim deps (LSPs, formatters, tree-sitter) come from nix — verify inside nvim:
 #   :checkhealth  and  which tree-sitter / prettierd from :!which
 
 # tmux plugins (tpm is cloned by home-manager activation)
 #   inside tmux: <C-a I>
 
-# workmux survives on the preserved /home — verify + rewire hooks/skills
+# workmux survives on the migrated /home — verify + rewire hooks/skills
 workmux --version && workmux setup
 
 # Tor: daemon should be up; browser is in the app launcher

@@ -21,12 +21,31 @@ in
     ../../modules/ai.nix        # ollama-cuda, beads — big-GPU host only
     ../../modules/webcam.nix    # EMEET SmartCam S600 tooling + OBS virtual cam
     ../../modules/whisper-dictate.nix  # whisper.cpp voice dictation (F13 toggle)
+    ../../modules/root-snapshots.nix   # hourly btrbk snapshots of @ + @home
     # INSTALL DAY: uncomment once the disk is LUKS-partitioned and
     # nixos-generate-config has written the cryptroot device into
     # hardware.nix — the module fails eval without a device (see
     # README "minerva install").
     # ../../modules/luks.nix
   ];
+
+  # ---- Root snapshots: plain btrfs pool, no LUKS mapper -------------
+  # The post-migration root is a whole-drive btrfs labelled "nixos"
+  # (docs/nixos/minerva-btrfs-migration.md); override the module's
+  # cryptroot default.
+  tomfordweb.root-snapshots.device = "/dev/disk/by-label/nixos";
+
+  # ---- OpenRGB: one daemon for all the RGB bullshit -----------------
+  # MSI Mystic Light (Z890 GAMING PLUS WIFI, USB 0db0:0076), Logitech
+  # Yeti Orb, GPU/RAM zones over i2c. motherboard="intel" loads
+  # i2c-dev + i2c-i801 so SMBus zones are reachable. The Keychron V0
+  # Ultra is QMK — OpenRGB only sees it with OpenRGB-QMK firmware;
+  # stock firmware stays on VIA. Verify: openrgb --list-devices.
+  services.hardware.openrgb = {
+    enable = true;
+    package = pkgs.openrgb-with-all-plugins;
+    motherboard = "intel";
+  };
 
   # ---- Swap: zram, no swap partition -------------------------------
   # 64 GB RAM, zram0. Compressed
@@ -36,14 +55,17 @@ in
     memoryPercent = 50;
   };
 
-  # ---- storage drive (WD 4TB, btrfs label "storage") ---------------
-  # Bulk data drive, survives reinstalls. nofail so a missing/dead
-  # drive never blocks boot.
-  fileSystems."/mnt/storage" = {
-    device = "/dev/disk/by-label/storage";
-    fsType = "btrfs";
-    options = [ "noatime" "compress=zstd" "nofail" ];
-  };
+  # ---- storage drive: DEAD (2026-07-14) ------------------------------
+  # The WD 4TB (btrfs label "storage") dropped off the SATA bus under
+  # write load mid-backup (DID_BAD_TARGET, btrfs forced readonly) and no
+  # longer answers SMART INQUIRY. Replacement ordered. Re-enable this
+  # mount AND the two backup units below once the new drive is
+  # partitioned btrfs + labelled "storage".
+  # fileSystems."/mnt/storage" = {
+  #   device = "/dev/disk/by-label/storage";
+  #   fsType = "btrfs";
+  #   options = [ "noatime" "compress=zstd" "nofail" ];
+  # };
 
   # ---- Steam --------------------------------------------------------
   # programs.steam (not home.packages) because it needs the 32-bit
@@ -91,39 +113,41 @@ in
   # drive is mounted/cloned. Both write to /mnt/storage. Machine-local SSH
   # target details live in /etc/nixos-secrets/ops-droplet.env:
   #   OPS_DROPLET_SSH_HOST=<local ssh alias>
-  systemd.services.download-droplet-backups = {
-    description = "Sync production droplet backups to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
-    serviceConfig = {
-      Type = "oneshot";
-      EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
-    };
-    unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
-  };
-  systemd.timers.download-droplet-backups = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
+  # DISABLED with the dead storage drive (both write to /mnt/storage) —
+  # uncomment together with the mount above when the replacement lands.
+  # systemd.services.download-droplet-backups = {
+  #   description = "Sync production droplet backups to /mnt/storage";
+  #   path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
+  #     ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+  #   };
+  #   unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+  # };
+  # systemd.timers.download-droplet-backups = {
+  #   wantedBy = [ "timers.target" ];
+  #   timerConfig = {
+  #     OnCalendar = "daily";
+  #     Persistent = true;
+  #   };
+  # };
 
-  systemd.services.backup-local-state = {
-    description = "Back up beads DBs + Claude config to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync gnutar gzip jq libnotify getent ]
-      ++ [ "/run/wrappers" ];  # su (for the desktop notification)
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
-    };
-    unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
-  };
-  systemd.timers.backup-local-state = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
+  # systemd.services.backup-local-state = {
+  #   description = "Back up beads DBs + Claude config to /mnt/storage";
+  #   path = with pkgs; [ bash coreutils findutils rsync gnutar gzip jq libnotify getent ]
+  #     ++ [ "/run/wrappers" ];  # su (for the desktop notification)
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+  #   };
+  #   unitConfig.ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+  # };
+  # systemd.timers.backup-local-state = {
+  #   wantedBy = [ "timers.target" ];
+  #   timerConfig = {
+  #     OnCalendar = "daily";
+  #     Persistent = true;
+  #   };
+  # };
 }
