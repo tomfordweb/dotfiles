@@ -18,7 +18,11 @@ in
     ./hardware.nix              # placeholder until nixos-generate-config at install
     ../../modules/nvidia.nix    # Blackwell dGPU: open module + recent kernel
     ../../modules/code-drive.nix
-    ../../modules/ai.nix        # ollama-cuda, beads — big-GPU host only
+    # ollama-cuda is a huge uncached compile that kept failing on the
+    # suspect RAM during the 2026-07-14 reinstall (same story as
+    # bambu-studio below). Re-enable after memtest passes and
+    # `nixos-rebuild switch`. NOTE: also disables beads (bd)!
+    # ../../modules/ai.nix      # ollama-cuda, beads — big-GPU host only
     ../../modules/webcam.nix    # EMEET SmartCam S600 tooling + OBS virtual cam
     ../../modules/whisper-dictate.nix  # whisper.cpp voice dictation (F13 toggle)
     ../../modules/root-snapshots.nix   # hourly btrbk snapshots of @ + @home
@@ -28,6 +32,13 @@ in
     # README "minerva install").
     # ../../modules/luks.nix
   ];
+
+  # ---- Memtest86+ in the boot menu ----------------------------------
+  # Added 2026-07-14: three random cc1plus segfaults during the btrfs
+  # reinstall (two in hyprland, one in ollama's ggml-cuda) while the
+  # identical drvs built clean on t480 — suspected marginal RAM. Keep
+  # a memory tester one reboot away on this box.
+  boot.loader.systemd-boot.memtest86.enable = true;
 
   # ---- Root snapshots: plain btrfs pool, no LUKS mapper -------------
   # The post-migration root is a whole-drive btrfs labelled "nixos"
@@ -103,7 +114,10 @@ in
   };
   environment.systemPackages = [
     pkgs.cifs-utils
-    pkgs.bambu-studio    # 3D-print slicer (desktop-only)
+    # bambu-studio 02.x is unfree in nixpkgs → never cached, always a huge
+    # local compile. Disabled 2026-07-14 mid-reinstall: minerva's suspect
+    # RAM kept segfaulting gcc on it. Re-enable after memtest passes.
+    # pkgs.bambu-studio    # 3D-print slicer (desktop-only)
   ];
 
   # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
