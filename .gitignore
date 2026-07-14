@@ -51,5 +51,8 @@
 # workmux git worktrees — never commit as gitlinks
 /.worktrees/
 
-# Next.js CLI telemetry cache — machine-local, not managed config
+# CLI tool state / telemetry spillover — regenerated, not managed config
+/config/clerk/
+/config/create-next-app-nodejs/
 /config/nextjs-nodejs/
+/config/systemd/
