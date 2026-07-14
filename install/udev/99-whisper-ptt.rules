@@ -1,0 +1,11 @@
+# Grant the active-session user read access to the Keychron V0 Ultra 8K macropad
+# input devices, so whisper-ptt-daemon (a --user service) can read its evdev
+# key events without root or `input` group membership.
+#
+# TAG+="uaccess" makes systemd-logind apply an ACL for the seat's active user
+# on every plug — persistent across reboot/replug, unlike a manual setfacl.
+#
+# Install:  sudo cp install/udev/99-whisper-ptt.rules /etc/udev/rules.d/
+#           sudo udevadm control --reload && sudo udevadm trigger
+# (replug the macropad, or just reboot, to apply)
+SUBSYSTEM=="input", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="0c00", TAG+="uaccess"
