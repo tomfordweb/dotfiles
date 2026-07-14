@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Screenshot / screen-record chooser bound to the Print key (see
+# config/hypr/hyprland.conf). Uses wofi in dmenu mode — same pattern as
+# power-menu — so the popup closes on Esc or focus loss instead of taking
+# a stuck seat grab.
+#
+# Screenshots go through grimblast: --notify fires a mako toast, copysave
+# both copies to the clipboard AND writes a PNG. --freeze holds the screen
+# still during region select so closing the menu doesn't change the shot.
+
+SHOT_DIR="$HOME/Pictures/Screenshots"
+mkdir -p "$SHOT_DIR"
+FILE="$SHOT_DIR/$(date +%Y-%m-%d_%H-%M-%S).png"
+
+choice=$(printf '%s\n' \
+  "󰩭 region" \
+  "󰖯 window" \
+  "󰍹 screen" \
+  "󰑊 record" \
+  | wofi --dmenu --prompt capture --lines 5 --cache-file /dev/null \
+  | awk '{print $2}')
+
+case "$choice" in
+  region) grimblast --notify --freeze copysave area "$FILE" ;;
+  window) grimblast --notify copysave active "$FILE" ;;
+  screen) grimblast --notify copysave screen "$FILE" ;;
+  record) exec screenrecord ;;
+esac

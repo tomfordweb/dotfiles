@@ -5,8 +5,24 @@
 # environment is the same on all ports" module.
 # ------------------------------------------------------------------
 
+let
+  # TeX Live — was `apt install texlive-luatex texlive-xetex
+  # texlive-fonts-extra` on non-nix hosts. scheme-medium is the
+  # working-LaTeX base (already pulls luatex+xetex); the extra
+  # collections mirror the three apt packages explicitly.
+  tex = pkgs.texlive.combine {
+    inherit (pkgs.texlive)
+      scheme-medium
+      collection-luatex
+      collection-xetex
+      collection-fontsextra
+      ;
+  };
+in
 {
   home.packages = with pkgs; [
+    tex
+
     # Terminal
     ghostty
 

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Paste a clipboard IMAGE into a terminal TUI (Claude Code / codex / opencode)
+# that only accepts file paths. Terminals — and tmux — forward only text, so an
+# image on the Wayland clipboard (image/png) can't be pasted; but a dragged file
+# works because the terminal delivers its PATH as text. This reproduces the drop:
+# dump the clipboard image to a file and type its path at the cursor via wtype.
+# Bound to Ctrl+Alt+V in Hyprland; no-ops (toast only) when no image is present.
+
+set -euo pipefail
+
+# Act only on an image clipboard — leave text pastes to the normal terminal paste.
+if ! wl-paste --list-types 2>/dev/null | grep -qi '^image/'; then
+  notify-send "Image paste" "No image on the clipboard" 2>/dev/null || true
+  exit 0
+fi
+
+DIR="$HOME/Pictures/clipboard"
+mkdir -p "$DIR"
+FILE="$DIR/$(date +%Y-%m-%d_%H-%M-%S).png"
+wl-paste --type image/png > "$FILE"
+
+# Type the absolute path (+ trailing space so the CLI tokenizes it) at the
+# cursor, mirroring a drag-and-drop. Timestamped name has no spaces to escape.
+wtype "$FILE "

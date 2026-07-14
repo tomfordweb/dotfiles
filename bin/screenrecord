@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# Toggle a GPU-encoded screen recording via wl-screenrec. First run starts
+# recording to ~/Videos, second run stops it. Reached from the Print capture
+# menu (bin/capture-menu) or a keybind. notify-send surfaces start/stop/errors.
+#
+# Region: drag a box with slurp to record just that area; a plain click or Esc
+# records the whole focused monitor instead (so you can't "click and nothing
+# happens"). --low-power=off avoids the Intel iGPU low-power VAAPI encoder,
+# which fails unless i915 enable_guc=2 is set. On a host where VAAPI won't work
+# at all (e.g. nvidia), add --no-hw or swap in wf-recorder — nothing else changes.
+
+LOG="$HOME/.cache/screenrecord.log"
+
+if pgrep -x wl-screenrec >/dev/null; then
+  # SIGINT lets wl-screenrec finalize (mux + close) the MP4 cleanly.
+  pkill -INT -x wl-screenrec
+  notify-send "Screen recording" "Stopped — saved to ~/Videos"
+  exit 0
+fi
+
+# Ask for a region; a real drag gives "x,y WxH", a click gives a tiny/empty one.
+geom=$(slurp 2>/dev/null) || geom=""
+region=false
+if [ -n "$geom" ]; then
+  wh=${geom##* }              # trailing "WxH"
+  w=${wh%x*}; h=${wh#*x}
+  if [ "${w:-0}" -ge 10 ] && [ "${h:-0}" -ge 10 ]; then region=true; fi
+fi
+
+if $region; then
+  target=(-g "$geom"); what="region"
+else
+  mon=$(hyprctl monitors -j | jq -r '.[] | select(.focused==true) | .name')
+  target=(-o "$mon"); what="monitor $mon"
+fi
+
+mkdir -p "$HOME/Videos"
+FILE="$HOME/Videos/rec-$(date +%Y-%m-%d_%H-%M-%S).mp4"
+
+# setsid fully detaches so the short-lived menu/keybind shell exiting can't
+# take the recorder down with it; log stderr so failures are diagnosable.
+setsid wl-screenrec --low-power=off "${target[@]}" -f "$FILE" >>"$LOG" 2>&1 &
+
+# Confirm it actually came up — otherwise report the error instead of dying silently.
+sleep 0.6
+if pgrep -x wl-screenrec >/dev/null; then
+  notify-send "Screen recording" "Recording $what — press again to stop"
+else
+  notify-send -u critical "Screen recording failed" "$(tail -n1 "$LOG")"
+fi

@@ -102,6 +102,10 @@ in
     foot            # lightweight Wayland terminal (fallback)
     grim            # screenshot
     slurp           # region selection for grim
+    grimblast       # grim/slurp wrapper: region/window/screen, copysave + notify (bin/capture-menu)
+    wl-screenrec    # GPU-encoded screen recorder (bin/screenrecord toggle)
+    wtype           # types text at the cursor (bin/clip-image-paste bridge)
+    libnotify       # notify-send, used by grimblast --notify + bin/screenrecord
     wl-clipboard    # wl-copy / wl-paste
     playerctl       # media keys
     mako            # notification daemon (dotfiles: exec-once = mako)
