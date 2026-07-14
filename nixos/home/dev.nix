@@ -37,5 +37,13 @@
 
     # Ricing
     dart-sass  # install/rice.sh — waybar/wofi SCSS compile
+
+    # LaTeX — medium base (latex + latexmk + xetex/luatex engines),
+    # plus the extra font collection.
+    (texliveMedium.withPackages (ps: with ps; [
+      collection-luatex
+      collection-xetex
+      collection-fontsextra
+    ]))
   ];
 }

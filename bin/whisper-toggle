@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# whisper-toggle — record-then-transcribe voice dictation via whisper.cpp.
+#
+#   whisper-toggle start   -> begin recording the mic (pw-record, 16k mono wav)
+#   whisper-toggle stop    -> transcribe with whisper.cpp, type text via wtype
+#   whisper-toggle toggle  -> flip between the two (default with no arg)
+#
+# Push-to-talk = start on key-down, stop on key-up. On COSMIC that's driven by
+# whisper-ptt-daemon (reads evdev, since COSMIC has no key-release binding); on
+# Hyprland use bind (down) + bindr (up). Never bind in ghostty (no run-shell).
+#
+# The recorder runs in its OWN transient systemd --user scope, NOT a plain
+# background child: a compositor/daemon that launches the keybind command in a
+# transient scope tears it down when that process exits, which would SIGKILL a
+# backgrounded pw-record mid-write and leave a headerless, corrupt WAV. A
+# separate scope survives; KillSignal=SIGINT lets pw-record finalize the header.
+#
+# Overridable env:
+#   WHISPER_BIN    whisper.cpp cli        (default: first of whisper-cli/main on PATH)
+#   WHISPER_MODEL  ggml model path        (default: ~/.cache/whisper/ggml-base.en.bin)
+#   WHISPER_MIC    pw-record --target src (default: the Logitech Yeti Orb; =default for system default)
+set -euo pipefail
+
+STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/whisper-dictate"
+mkdir -p "$STATE_DIR"
+WAV="$STATE_DIR/rec.wav"
+UNIT="whisper-rec"          # transient --user scope name
+
+WHISPER_BIN="${WHISPER_BIN:-$(command -v whisper-cli || command -v main || true)}"
+WHISPER_MODEL="${WHISPER_MODEL:-$HOME/.cache/whisper/ggml-base.en.bin}"
+# Pin the Yeti Orb; override with WHISPER_MIC=other-source, or =default for system default.
+WHISPER_MIC="${WHISPER_MIC-alsa_input.usb-Logitech_Yeti_Orb_2603GVE0A338-00.mono-fallback}"
+
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -t 2500 -a whisper "🎙 dictate" "$1" || true; }
+die()    { notify "✗ $1"; echo "whisper-toggle: $1" >&2; exit 1; }
+recording() { systemctl --user is-active --quiet "$UNIT.service"; }
+
+do_start() {
+  command -v pw-record >/dev/null 2>&1 || die "pw-record missing (pipewire)"
+  rm -f "$WAV"
+  # Clear any lingering unit from a prior run — SIGINT-stopped pw-record exits
+  # non-zero, leaving the transient unit in 'failed' state, which blocks reuse
+  # of the name on the next start.
+  systemctl --user stop "$UNIT.service" 2>/dev/null || true
+  systemctl --user reset-failed "$UNIT.service" 2>/dev/null || true
+  set -- --rate 16000 --channels 1 --format s16 "$WAV"
+  [ -n "$WHISPER_MIC" ] && [ "$WHISPER_MIC" != "default" ] && set -- --target "$WHISPER_MIC" "$@"
+  # SuccessExitStatus=SIGINT so the clean stop isn't recorded as a failure.
+  systemd-run --user --quiet -u "$UNIT" -p KillSignal=SIGINT -p SuccessExitStatus=SIGINT \
+    -- pw-record "$@" \
+    || die "systemd-run failed to start recorder"
+  notify "recording…"
+}
+
+do_stop() {
+  recording || { notify "not recording"; exit 0; }
+  systemctl --user stop "$UNIT.service" 2>/dev/null || true
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    recording || break
+    sleep 0.1
+  done
+
+  [ -s "$WAV" ] || die "empty recording"
+  [ -n "$WHISPER_BIN" ] || die "whisper cli not found (run install/whisper-dictate.sh)"
+  [ -f "$WHISPER_MODEL" ] || die "model missing: $WHISPER_MODEL"
+
+  notify "transcribing…"
+  # -nt no timestamps, -np no prints -> clean text on stdout.
+  # Strip whisper's non-speech annotations — (dramatic music), [BLANK_AUDIO],
+  # *sigh* — that it hallucinates on silence/noise, then collapse whitespace.
+  text="$("$WHISPER_BIN" -m "$WHISPER_MODEL" -f "$WAV" -nt -np 2>/dev/null \
+          | tr '\n' ' ' \
+          | sed -E 's/\([^)]*\)//g; s/\[[^]]*\]//g; s/\*[^*]*\*//g' \
+          | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/  */ /g')"
+
+  [ -n "$text" ] || die "no speech detected"
+
+  if command -v wtype >/dev/null 2>&1 && wtype -- "$text" 2>/dev/null; then
+    :   # typed into focused window
+  elif command -v wl-copy >/dev/null 2>&1; then
+    printf '%s' "$text" | wl-copy
+    notify "clipboard (wtype unavailable) — paste it"
+  else
+    die "no wtype/wl-copy to output text"
+  fi
+  notify "✓ ${text:0:60}"
+}
+
+# start | stop | toggle (default). start/stop drive push-to-talk (hold);
+# toggle keeps the press-once/press-again behaviour.
+case "${1:-toggle}" in
+  start)  do_start ;;
+  stop)   do_stop ;;
+  toggle) if recording; then do_stop; else do_start; fi ;;
+  *)      die "usage: whisper-toggle [start|stop|toggle]" ;;
+esac
