@@ -12,7 +12,9 @@ let
     if [ -f "$hm_vars" ]; then
       . "$hm_vars"
     fi
-    exec Hyprland
+    # start-hyprland is Hyprland 0.55's watchdog launcher. Launching the
+    # bare `Hyprland` binary makes it warn "started without start-hyprland".
+    exec start-hyprland
   '';
 
   # Wayland session entry exposing the wrapper to SDDM's session picker.
@@ -28,6 +30,17 @@ let
       Type=Application
     '';
     derivationArgs.passthru.providedSessions = [ "hyprland-hm" ];
+  };
+
+  # SDDM theme matching hyprlock (see sddm-theme/cyberdream/Main.qml).
+  # Preview in-session: sddm-greeter-qt6 --test-mode --theme <that dir>.
+  sddm-cyberdream = pkgs.stdenvNoCC.mkDerivation {
+    name = "sddm-cyberdream-theme";
+    src = ./sddm-theme/cyberdream;
+    installPhase = ''
+      mkdir -p $out/share/sddm/themes/cyberdream
+      cp -r . $out/share/sddm/themes/cyberdream/
+    '';
   };
 in
 {
@@ -53,10 +66,10 @@ in
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-color-emoji
-    nerd-fonts.jetbrains-mono
+    nerd-fonts.jetbrains-mono     # waybar/wofi/eww/hyprlock: JetBrainsMono Nerd Font
     nerd-fonts.fira-code
     nerd-fonts.monaspace          # ghostty: MonaspiceNe Nerd Font Mono
-    nerd-fonts.bigblue-terminal   # waybar/wofi css: BigBlueTermPlus Nerd Font
+    nerd-fonts.bigblue-terminal
     font-awesome                  # waybar/wofi css fallback: FontAwesome
   ];
 
@@ -70,6 +83,9 @@ in
     sddm = {
       enable = true;
       wayland.enable = true;
+      # Absolute store path (module example style) — no need to also put
+      # the theme package in environment.systemPackages for ThemeDir lookup.
+      theme = "${sddm-cyberdream}/share/sddm/themes/cyberdream";
     };
     sessionPackages = [ hyprland-hm-session ];
     defaultSession = "hyprland-hm";
@@ -88,12 +104,20 @@ in
     slurp           # region selection for grim
     wl-clipboard    # wl-copy / wl-paste
     playerctl       # media keys
-    mako            # notification daemon
+    mako            # notification daemon (dotfiles: exec-once = mako)
     polkit_gnome    # graphical polkit auth prompts
     hypridle        # idle daemon (dotfiles: exec-once = hypridle)
-    hyprpaper       # wallpaper daemon (dotfiles: exec-once = hyprpaper)
+    awww            # wallpaper daemon, ex-swww (dotfiles: exec-once = awww-daemon)
     hyprpolkitagent # dotfiles: systemctl --user start hyprpolkitagent
+    cava            # ambient desktop visualizer (cava-bg windowrule)
+    eww             # widgets: ghost calendar + control center
+    brightnessctl   # eww control-center brightness slider (inert on desktops)
   ];
+
+  # Lock screen. MUST be the NixOS module (not a bare package) so
+  # security.pam.services.hyprlock is registered — otherwise unlock
+  # always fails.
+  programs.hyprlock.enable = true;
 
   # Polkit is required for anything that needs privilege elevation
   # from a GUI (e.g. mounting disks in a file manager).

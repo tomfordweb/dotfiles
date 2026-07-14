@@ -1,0 +1,94 @@
+#!/bin/sh
+# System metrics + uptime for the tmux status line. Prints ONE line:
+#   " 12% 󰍛 34% 󰢮 5% 󰋊 47% 󰅐 3d 4h"
+# with optional #[fg=#hex] icon colors. Metrics that can't be sampled on
+# this host (no nvidia-smi, first CPU run, macOS) are silently omitted.
+#
+# Usage: tmux-sysinfo [CPU MEM GPU DISK UP TEXT]   (bare hex, no '#';
+# passed riced from rice/templates/tmux-theme.tmpl so palette stays
+# single-source). Called from status-right via #().
+
+# Throttle: tmux re-runs #() jobs on every status redraw (up to 1/s under
+# heavy pane activity), ignoring status-interval — so reuse cached output
+# while it's fresh. Also keeps the CPU delta window at ~5s instead of ~1s.
+cache="${XDG_RUNTIME_DIR:-/tmp}/tmux-sysinfo-out.$(id -u).$#"
+if [ -r "$cache" ]; then
+    now=$(date +%s)
+    mt=$(stat -c %Y "$cache" 2>/dev/null || stat -f %m "$cache" 2>/dev/null || echo 0)
+    if [ $((now - mt)) -lt 5 ]; then
+        cat "$cache"
+        exit 0
+    fi
+fi
+
+c() { [ -n "${1:-}" ] && printf '#[fg=#%s]' "$1"; }
+CPU_C=$(c "${1:-}"); MEM_C=$(c "${2:-}"); GPU_C=$(c "${3:-}")
+DISK_C=$(c "${4:-}"); UP_C=$(c "${5:-}"); TXT_C=$(c "${6:-}")
+
+os=$(uname)
+
+# cpu: delta of /proc/stat between invocations (state file) — no CPU
+# segment on the very first run, then a rolling status-interval average
+cpu=""
+if [ -r /proc/stat ]; then
+    state="${XDG_RUNTIME_DIR:-/tmp}/tmux-sysinfo-cpu.$(id -u)"
+    read -r _ us ni sy id io irq sirq st _ < /proc/stat
+    total=$((us + ni + sy + id + io + irq + sirq + st))
+    idle=$((id + io))
+    if [ -r "$state" ]; then
+        read -r ptotal pidle < "$state"
+        dt=$((total - ptotal)); di=$((idle - pidle))
+        [ "$dt" -gt 0 ] && cpu=$(( (100 * (dt - di)) / dt ))
+    fi
+    printf '%s %s\n' "$total" "$idle" > "$state"
+elif [ "$os" = Darwin ]; then
+    # crude: per-process %cpu sum / ncpu (averages since process start)
+    cpu=$(ps -A -o %cpu | awk -v n="$(sysctl -n hw.ncpu)" \
+        'NR>1 {s+=$1} END {if (n) printf "%d", s/n}')
+fi
+
+mem=""
+if [ -r /proc/meminfo ]; then
+    mem=$(awk '/^MemTotal:/{t=$2} /^MemAvailable:/{a=$2}
+               END {if (t) printf "%d", (t-a)*100/t}' /proc/meminfo)
+elif [ "$os" = Darwin ]; then
+    mem=$(vm_stat | awk -v total="$(sysctl -n hw.memsize)" '
+        /page size of/            {ps=$8}
+        /Pages active/            {gsub(/\./,"",$3); a=$3}
+        /Pages wired down/        {gsub(/\./,"",$4); w=$4}
+        /occupied by compressor/  {gsub(/\./,"",$5); c=$5}
+        END {if (total && ps) printf "%d", (a+w+c)*ps*100/total}')
+fi
+
+# gpu: nvidia only (minerva), hidden when absent or erroring
+gpu=""
+if command -v nvidia-smi >/dev/null 2>&1; then
+    gpu=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits \
+          2>/dev/null | head -n1 | tr -d '[:space:]')
+    case "$gpu" in ''|*[!0-9]*) gpu="" ;; esac
+fi
+
+disk=$(df -P / 2>/dev/null | awk 'NR==2 {sub(/%/,"",$5); print $5}')
+
+up=""; secs=""
+if [ -r /proc/uptime ]; then
+    secs=$(awk '{printf "%d", $1}' /proc/uptime)
+elif [ "$os" = Darwin ]; then
+    boot=$(sysctl -n kern.boottime 2>/dev/null | awk -F'[ ,]+' '{print $4}')
+    case "$boot" in *[!0-9]*|'') ;; *) secs=$(( $(date +%s) - boot )) ;; esac
+fi
+if [ -n "$secs" ]; then
+    d=$((secs / 86400)); h=$((secs % 86400 / 3600)); m=$((secs % 3600 / 60))
+    if   [ "$d" -gt 0 ]; then up="${d}d ${h}h"
+    elif [ "$h" -gt 0 ]; then up="${h}h ${m}m"
+    else                      up="${m}m"; fi
+fi
+
+# assemble (single line — tmux #() keeps only the first line)
+out=""
+[ -n "$cpu" ]  && out="$out ${CPU_C} ${TXT_C}${cpu}%"
+[ -n "$mem" ]  && out="$out ${MEM_C}󰍛 ${TXT_C}${mem}%"
+[ -n "$gpu" ]  && out="$out ${GPU_C}󰢮 ${TXT_C}${gpu}%"
+[ -n "$disk" ] && out="$out ${DISK_C}󰋊 ${TXT_C}${disk}%"
+[ -n "$up" ]   && out="$out ${UP_C}󰅐 ${TXT_C}${up}"
+printf '%s\n' "${out# }" | tee "$cache"

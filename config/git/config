@@ -6,5 +6,3 @@
 [user]
 	name = Tom Ford
 	email = tomfordweb@gmail.com
-[include]
-	path = ~/.config/git/config

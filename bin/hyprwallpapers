@@ -1,13 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Given a directory of jpg or png images...Updates all 
-# monitors with a random image from the dir
+# Given a directory of jpg or png images... updates all monitors with a
+# random image from the dir via awww (ex-swww; codeberg.org/LGFae/awww)
+# with a soft grow transition.
 
 WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/Documents/Wallpaper-Bank}"
+
+# awww-daemon may still be starting at login; wait briefly.
+for _ in $(seq 1 20); do
+  awww query >/dev/null 2>&1 && break
+  sleep 0.25
+done
+
 while IFS= read -r monitor; do
-  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" \) | shuf -n 1)
-  hyprctl hyprpaper wallpaper "$monitor, $WALLPAPER, cover"
-
-done < <(hyprctl monitors -j | jq -r '.[] | .name');
-
-
+  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" \) ! -iname "*.preview.*" | shuf -n 1)
+  awww img --outputs "$monitor" "$WALLPAPER" \
+    --transition-type grow --transition-fps 60 --transition-duration 1.2
+done < <(hyprctl monitors -j | jq -r '.[] | .name')

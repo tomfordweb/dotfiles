@@ -14,6 +14,7 @@
     # Media / comms
     spotify
     discord
+    slack
 
     # Dev GUIs
     dbeaver-bin

@@ -1,9 +1,16 @@
 #!/bin/bash
 
-# Sass watcher for all of my gtk styled stuff
+# Rice pipeline: render palette-driven configs, then watch the sass
+# sources. rice/palette.json is the single source of truth for colors —
+# bin/rice-build regenerates hypr/tmux/ghostty/mako/cava configs and the
+# _palette.scss the sass targets import.
 # It's been like 10 years since I have used gulp and I refuse to go back.
+
+cd "$(dirname "$0")/.." || exit 1
+
+bin/rice-build
 
 sass -I ./rice --watch \
   config/wofi/theme.scss:config/wofi/style.css \
-  config/waybar/theme.scss:config/waybar/style.css
-
+  config/waybar/theme.scss:config/waybar/style.css \
+  config/eww/theme.scss:config/eww/eww.css

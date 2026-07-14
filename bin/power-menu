@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# Power menu for the waybar ⏻ chip. Uses wofi in dmenu mode so the popup
+# closes on Esc or focus loss — waybar's built-in GTK "menu" takes a seat
+# grab on Hyprland, and a stuck grab locks the whole session.
+
+choice=$(printf '%s\n' \
+  "󰌾 lock" \
+  "󰤄 suspend" \
+  "󰋊 hibernate" \
+  "󰜉 reboot" \
+  "󰐥 shutdown" \
+  | wofi --dmenu --prompt power --lines 6 --cache-file /dev/null \
+  | awk '{print $2}')
+
+case "$choice" in
+  lock) hyprlock & ;;
+  suspend) systemctl suspend ;;
+  hibernate) systemctl hibernate ;;
+  reboot) systemctl reboot ;;
+  shutdown) systemctl poweroff ;;
+esac

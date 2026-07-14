@@ -1,0 +1,46 @@
+#!/bin/sh
+# Print the ssh destination (user@host or host) for the tmux pane whose
+# root process is $1 (#{pane_pid}). Used by window-status-format when
+# pane_current_command is ssh. Always prints a label; falls back to "ssh".
+
+pid="${1:-}"
+[ -n "$pid" ] || { echo ssh; exit 0; }
+
+# BFS for an ssh process at/below the pane pid, max 3 levels deep
+# (handles exec'd ssh, direct child, and ssh under a wrapper script).
+spid=""
+set -- "$pid"; depth=0
+while [ $# -gt 0 ] && [ "$depth" -le 3 ] && [ -z "$spid" ]; do
+    next=""
+    for p in "$@"; do
+        case "$(ps -o comm= -p "$p" 2>/dev/null)" in
+            ssh|*/ssh) spid="$p"; break ;;
+        esac
+        next="$next $(pgrep -P "$p" 2>/dev/null | tr '\n' ' ')"
+    done
+    # shellcheck disable=SC2086
+    set -- $next; depth=$((depth + 1))
+done
+[ -n "$spid" ] || { echo ssh; exit 0; }
+
+# Parse ssh argv: skip options (and their values), first bare arg = dest.
+# shellcheck disable=SC2046
+set -- $(ps -o args= -p "$spid" 2>/dev/null)
+shift 2>/dev/null || { echo ssh; exit 0; }   # drop argv[0] "ssh"
+user=""; dest=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -l) user="${2:-}"; shift 2 ;;
+        -l?*) user="${1#-l}"; shift ;;
+        # options that consume a separate value
+        -[bcDeEFiIJLmoOpQRSwWB]) shift 2 ;;
+        -*) shift ;;                          # boolean flags / attached values
+        *) dest="$1"; break ;;
+    esac
+done
+[ -n "$dest" ] || { echo ssh; exit 0; }
+dest="${dest#ssh://}"
+case "$dest" in
+    *@*)                echo "$dest" ;;
+    *)  if [ -n "$user" ]; then echo "$user@$dest"; else echo "$dest"; fi ;;
+esac
