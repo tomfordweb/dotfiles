@@ -21,12 +21,31 @@ in
     ../../modules/ai.nix        # ollama-cuda, beads — big-GPU host only
     ../../modules/webcam.nix    # EMEET SmartCam S600 tooling + OBS virtual cam
     ../../modules/whisper-dictate.nix  # whisper.cpp voice dictation (F13 toggle)
+    ../../modules/root-snapshots.nix   # hourly btrbk snapshots of @ + @home
     # INSTALL DAY: uncomment once the disk is LUKS-partitioned and
     # nixos-generate-config has written the cryptroot device into
     # hardware.nix — the module fails eval without a device (see
     # README "minerva install").
     # ../../modules/luks.nix
   ];
+
+  # ---- Root snapshots: plain btrfs pool, no LUKS mapper -------------
+  # The post-migration root is a whole-drive btrfs labelled "nixos"
+  # (docs/nixos/minerva-btrfs-migration.md); override the module's
+  # cryptroot default.
+  tomfordweb.root-snapshots.device = "/dev/disk/by-label/nixos";
+
+  # ---- OpenRGB: one daemon for all the RGB bullshit -----------------
+  # MSI Mystic Light (Z890 GAMING PLUS WIFI, USB 0db0:0076), Logitech
+  # Yeti Orb, GPU/RAM zones over i2c. motherboard="intel" loads
+  # i2c-dev + i2c-i801 so SMBus zones are reachable. The Keychron V0
+  # Ultra is QMK — OpenRGB only sees it with OpenRGB-QMK firmware;
+  # stock firmware stays on VIA. Verify: openrgb --list-devices.
+  services.hardware.openrgb = {
+    enable = true;
+    package = pkgs.openrgb-with-all-plugins;
+    motherboard = "intel";
+  };
 
   # ---- Swap: zram, no swap partition -------------------------------
   # 64 GB RAM, zram0. Compressed
