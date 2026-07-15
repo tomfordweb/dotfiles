@@ -44,7 +44,7 @@ let
   };
   # hyprwinwrap: renders the class-matched window as part of the desktop
   # background (behind all windows, non-interactive) — used for the cava
-  # visualizer (exec-once ghostty --class=cava-bg in hyprland.conf). The
+  # visualizer (exec-once foot --app-id=cava-bg in hyprland.conf). The
   # plugin's store path can't live in the shared repo config, so it's
   # dropped into ~/.config/hypr-local (sourced by hyprland.conf) here.
   #
