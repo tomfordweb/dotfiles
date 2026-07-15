@@ -142,7 +142,13 @@ in
     # bambu-studio 02.x is unfree in nixpkgs → never cached, always a huge
     # local compile. Briefly disabled 2026-07-14 during the installer-env
     # segfault episode; RAM since cleared (3x memtest), builds fine here.
-    pkgs.bambu-studio    # 3D-print slicer (desktop-only)
+    pkgs.bambu-studio    # 3D-print slicer (desktop-only). NOTE: the 02.08.x
+                         # nixpkgs build renders a BLANK 3D bed on this host
+                         # (build bug, not the GL stack — glxgears/glxinfo fine,
+                         # sw-render + no-GLEW still blank). Kept for cloud/
+                         # MakerWorld browsing; slice in orca-slicer below.
+    pkgs.orca-slicer     # Bambu Studio fork — working slicer for the A1 (AMS,
+                         # multicolor, network send over LAN; no flash drive).
   ];
 
   # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
