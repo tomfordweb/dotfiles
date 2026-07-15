@@ -3,8 +3,9 @@
 # ------------------------------------------------------------------
 # AI tooling — the big-GPU host (minerva) only.
 # ------------------------------------------------------------------
-# Claude Code / opencode / codex CLIs are managed out-of-band by
-# ops/local.ai.yml (they update faster than nixpkgs) — not here.
+# Claude Code / opencode / codex CLIs are pnpm globals declared in
+# home/pnpm-globals.nix (they update faster than nixpkgs; `pnpm up -g`
+# updates them without a rebuild, nix-ld runs their native binaries).
 
 {
   # ollama with CUDA (was ops/local.ollama.yml: tarball + user unit)
