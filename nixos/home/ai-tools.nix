@@ -27,11 +27,17 @@ in
   # Pinned MCP server manifest (mirrors ops `ai_mcp_servers`). The activation
   # script npm-installs these into node_modules beside this file. All AI tools
   # launch `node ${mcpHome}/node_modules/<entry>` — no per-launch npx.
-  home.file.".local/share/tomfordweb-mcp/package.json".text = builtins.toJSON {
-    private = true;
-    dependencies = {
-      "@playwright/mcp" = "0.0.77";
-      "@upstash/context7-mcp" = "3.2.2";
+  # force: npm install rewrites package.json in place (identical content,
+  # reformatted), turning the symlink into a plain file — without force every
+  # later activation dies on the clobber check.
+  home.file.".local/share/tomfordweb-mcp/package.json" = {
+    force = true;
+    text = builtins.toJSON {
+      private = true;
+      dependencies = {
+        "@playwright/mcp" = "0.0.77";
+        "@upstash/context7-mcp" = "3.2.2";
+      };
     };
   };
 
