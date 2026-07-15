@@ -4,8 +4,7 @@
 # AI tool wiring — Claude Code / codex config + shared MCP servers.
 # ------------------------------------------------------------------
 # Port of ops/local.ai.yml's local wiring into home-manager so it is
-# nix-managed and reproducible (previously ansible-only; the tomford->tom
-# user migration left its symlinks dangling).
+# nix-managed and reproducible (previously ansible-only).
 #
 # The canonical sources live in the OPS repo, checked out at
 # ~/code/tomfordweb/ops (with its vendor/caveman submodule). This module

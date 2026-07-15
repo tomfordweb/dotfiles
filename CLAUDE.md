@@ -13,7 +13,7 @@ into the repo:
   (`nixos/home/dotfiles.nix`, `mkOutOfStoreSymlink`). Packages, shell, and
   nvim runtime deps are all declared under `nixos/` — see `nixos/README.md`
   for the module map and install/rebuild docs.
-- **Non-nix hosts** (work Ubuntu/Pop, mac): `install/bootstrap.sh`
+- **Non-nix hosts** (work Ubuntu/Debian, mac): `install/bootstrap.sh`
   (`--minimal` for the dev core only). Keep its app list in sync with
   `dotfiles.nix`.
 

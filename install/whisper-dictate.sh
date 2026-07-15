@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install/whisper-dictate.sh — set up whisper.cpp push-to-talk voice dictation
-# on a non-nix host (Pop!_OS / Ubuntu). Idempotent.
+# on a non-nix host (Ubuntu/Debian). Idempotent.
 #
 # Architecture (see bin/whisper-toggle, bin/whisper-ptt-daemon):
 #   * whisper.cpp built from source -> whisper-cli (+ whisper-stream, SDL2)
