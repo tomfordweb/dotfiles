@@ -66,6 +66,23 @@ in
     };
   };
 
+  # ---- WiFi: off by default (minerva is Ethernet-only) -------------
+  # Being dual-homed on WiFi + Ethernet on one subnet caused asymmetric
+  # routing / flaky connectivity (it broke the OrcaSlicer <-> A1 printer
+  # MQTT session). A desktop only needs the wired Killer NIC above, so switch
+  # the radio off at every boot. Re-enable on demand with `nmcli radio wifi
+  # on` — it stays on until the next reboot, when this turns it back off.
+  systemd.services.disable-wifi = {
+    description = "Turn the WiFi radio off at boot (minerva is Ethernet-only)";
+    after = [ "NetworkManager.service" ];
+    wants = [ "NetworkManager.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.networkmanager}/bin/nmcli radio wifi off";
+    };
+  };
+
   # ---- Root snapshots: plain btrfs pool, no LUKS mapper -------------
   # minerva's root is a whole-drive btrfs pool labelled "nixos" (no LUKS);
   # override the module's cryptroot default.
