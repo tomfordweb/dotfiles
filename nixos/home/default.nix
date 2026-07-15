@@ -16,6 +16,7 @@
     ./dev.nix        # terminals, language toolchains, CLIs
     ./neovim.nix     # nvim + all its runtime deps (LSPs, formatters, tree-sitter)
     ./tmux.nix       # tmux + tpm bootstrap
+    ./ai-tools.nix   # Claude/codex config symlinks + shared MCP servers (ex ops/local.ai.yml)
   ];
 
   home.username = "tom";
