@@ -25,15 +25,15 @@
   ];
 
   # ---- Live streaming (bin/whisper-stream-toggle) ------------------
-  # The live VAD dictation path needs the `whisper-stream` binary, which is
-  # the SDL2 example — nixpkgs' whisper-cpp does NOT build it. When
-  # backfilling this host, override to build the examples with SDL2, e.g.
+  # The live VAD dictation path needs the `whisper-stream` binary (SDL2
+  # example). As of nixpkgs whisper-cpp 1.8.x this ships in the package
+  # (verified: /run/current-system/sw/bin/whisper-stream) — no SDL2 override
+  # needed anymore. If a future bump drops it, rebuild examples with SDL2:
   #   (whisper-cpp.overrideAttrs (o: {
   #     buildInputs = (o.buildInputs or []) ++ [ SDL2 ];
   #     cmakeFlags  = (o.cmakeFlags or []) ++ [ "-DWHISPER_SDL2=ON" ];
   #   }))
-  # The record-then-transcribe path (whisper-toggle) needs only whisper-cli
-  # above, so it works without this.
+  # The record-then-transcribe path (whisper-toggle) needs only whisper-cli.
 
   # ---- CUDA build (optional) ---------------------------------------
   # base.en on CPU transcribes a short clip in well under a second on

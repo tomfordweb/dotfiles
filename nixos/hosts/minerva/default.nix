@@ -18,11 +18,13 @@ in
     ./hardware.nix              # placeholder until nixos-generate-config at install
     ../../modules/nvidia.nix    # Blackwell dGPU: open module + recent kernel
     ../../modules/code-drive.nix
-    # ollama-cuda is a huge uncached compile that kept failing on the
-    # suspect RAM during the 2026-07-14 reinstall (same story as
-    # bambu-studio below). Re-enable after memtest passes and
-    # `nixos-rebuild switch`. NOTE: also disables beads (bd)!
-    # ../../modules/ai.nix      # ollama-cuda, beads — big-GPU host only
+    # ollama-cuda is a huge uncached compile. It (and hyprland) hit random
+    # cc1plus segfaults during the 2026-07-14 USB-installer build — NOT bad
+    # RAM: 3 clean memtest86+ passes cleared it, and the delta was the
+    # installer env (BIOS microcode 0x110 vs the installed 0x121; swapless
+    # RAM-rootfs installer vs 31G zram here). Builds clean on the installed
+    # system. NOTE: ai.nix also provides beads (bd).
+    ../../modules/ai.nix      # ollama-cuda, beads — big-GPU host only
     ../../modules/webcam.nix    # EMEET SmartCam S600 tooling + OBS virtual cam
     ../../modules/whisper-dictate.nix  # whisper.cpp voice dictation (F13 toggle)
     ../../modules/root-snapshots.nix   # hourly btrbk snapshots of @ + @home
@@ -34,11 +36,35 @@ in
   ];
 
   # ---- Memtest86+ in the boot menu ----------------------------------
-  # Added 2026-07-14: three random cc1plus segfaults during the btrfs
-  # reinstall (two in hyprland, one in ollama's ggml-cuda) while the
-  # identical drvs built clean on t480 — suspected marginal RAM. Keep
-  # a memory tester one reboot away on this box.
+  # Added 2026-07-14 after random cc1plus segfaults during the USB-installer
+  # reinstall (two hyprland, one ollama ggml-cuda) that built clean on t480.
+  # Root cause was installer-env, not hardware: 3 clean memtest86+ passes
+  # cleared the RAM, and the installed system (newer microcode 0x121, 31G
+  # zram swap) builds the same drvs fine. Tester kept a reboot away anyway.
   boot.loader.systemd-boot.memtest86.enable = true;
+
+  # ---- Ethernet: Killer E5000 5GbE (2026-07-14) --------------------
+  # The onboard NIC (PCI 10ec:5000, "Killer E5000") is a rebadged
+  # Realtek RTL8126A and the in-kernel r8169 driver drives it fine — but
+  # r8169's PCI id-table only auto-matches the plain RTL8126 (10ec:8126),
+  # NOT the Killer's 10ec:5000, so nothing bound and no interface was
+  # created. Force-load r8169 and feed it the extra id via new_id at
+  # boot; enp130s0 then comes up and NetworkManager handles DHCP.
+  # Drop this once nixpkgs' kernel carries 10ec:5000 in the id-table.
+  boot.kernelModules = [ "r8169" ];
+  systemd.services.killer-e5000-bind = {
+    description = "Bind r8169 to the Killer E5000 NIC (PCI 10ec:5000)";
+    wantedBy = [ "network-pre.target" ];
+    before = [ "network-pre.target" ];
+    after = [ "systemd-modules-load.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      # new_id rescans and binds all matching unbound devices; a repeat
+      # write (id already registered) returns EEXIST, hence `|| true`.
+      ExecStart = "${pkgs.bash}/bin/sh -c 'echo 10ec 5000 > /sys/bus/pci/drivers/r8169/new_id || true'";
+    };
+  };
 
   # ---- Root snapshots: plain btrfs pool, no LUKS mapper -------------
   # The post-migration root is a whole-drive btrfs labelled "nixos"
@@ -115,9 +141,9 @@ in
   environment.systemPackages = [
     pkgs.cifs-utils
     # bambu-studio 02.x is unfree in nixpkgs → never cached, always a huge
-    # local compile. Disabled 2026-07-14 mid-reinstall: minerva's suspect
-    # RAM kept segfaulting gcc on it. Re-enable after memtest passes.
-    # pkgs.bambu-studio    # 3D-print slicer (desktop-only)
+    # local compile. Briefly disabled 2026-07-14 during the installer-env
+    # segfault episode; RAM since cleared (3x memtest), builds fine here.
+    pkgs.bambu-studio    # 3D-print slicer (desktop-only)
   ];
 
   # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)

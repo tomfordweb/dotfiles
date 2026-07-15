@@ -22,8 +22,13 @@
     environmentVariables.OLLAMA_CONTEXT_LENGTH = "16384";
   };
 
-  # beads (bd) — graph-based issue tracker driving the agent workflow
+  # beads (bd) — graph-based issue tracker driving the agent workflow.
+  # llama-cpp — local GGUF inference (llama-cli/llama-server), replacing the
+  # pre-migration hand-built ~/llama.cpp. Plain build (CPU/Vulkan); for the
+  # Blackwell dGPU swap to `(llama-cpp.override { cudaSupport = true; })`
+  # (large recompile).
   environment.systemPackages = with pkgs; [
     beads
+    llama-cpp
   ];
 }
