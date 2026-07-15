@@ -42,6 +42,30 @@ let
       cp -r . $out/share/sddm/themes/cyberdream/
     '';
   };
+  # hyprwinwrap: renders the class-matched window as part of the desktop
+  # background (behind all windows, non-interactive) — used for the cava
+  # visualizer (exec-once ghostty --class=cava-bg in hyprland.conf). The
+  # plugin's store path can't live in the shared repo config, so it's
+  # dropped into ~/.config/hypr-local (sourced by hyprland.conf) here.
+  #
+  # The plugins input is pinned pre-#663 (hyprwinwrap dropped as
+  # unmaintained), which predates Hyprland's CWindow m_size/m_position →
+  # size/position rename — patch the two accesses so it compiles.
+  hyprwinwrap = (inputs.hyprland-plugins.packages.${pkgs.system}.hyprwinwrap).overrideAttrs (o: {
+    postPatch = (o.postPatch or "") + ''
+      find . -name main.cpp -exec sed -i \
+        -e 's/pWindow->m_size/pWindow->size/g' \
+        -e 's/pWindow->m_position/pWindow->position/g' {} +
+    '';
+  });
+  hyprwinwrap-conf = pkgs.writeText "hyprwinwrap.conf" ''
+    plugin = ${hyprwinwrap}/lib/libhyprwinwrap.so
+    plugin {
+        hyprwinwrap {
+            class = cava-bg
+        }
+    }
+  '';
 in
 {
   # ------------------------------------------------------------------
@@ -54,6 +78,14 @@ in
     # Use the Hyprland flake's package for the freshest version.
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
   };
+
+  # hyprwinwrap plugin config → ~/.config/hypr-local (L+ so the symlink
+  # tracks store-path changes across rebuilds; C+ would go stale).
+  systemd.tmpfiles.rules = [
+    "d /home/tom/.config 0755 tom users -"
+    "d /home/tom/.config/hypr-local 0755 tom users -"
+    "L+ /home/tom/.config/hypr-local/hyprwinwrap.conf - - - - ${hyprwinwrap-conf}"
+  ];
 
   # XDG desktop portals: needed for screenshots, screen sharing,
   # file pickers, etc. hyprland-portal handles Hyprland-specific bits.

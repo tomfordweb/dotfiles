@@ -3,6 +3,10 @@
 let
   # Single source for tom's home dir — no /home/tom hardcoding below.
   homeDir = config.users.users.tom.home;
+
+  # Official Bambu Studio from the upstream AppImage (NVIDIA-EGL fixed). The
+  # nixpkgs bambu-studio build renders a blank 3D bed here — see the pkg file.
+  bambu-studio-appimage = pkgs.callPackage ../../pkgs/bambu-studio-appimage.nix { };
 in
 
 # ------------------------------------------------------------------
@@ -156,16 +160,15 @@ in
   };
   environment.systemPackages = [
     pkgs.cifs-utils
-    # bambu-studio 02.x is unfree in nixpkgs → never cached, always a huge
-    # local compile. Briefly disabled 2026-07-14 during the installer-env
-    # segfault episode; RAM since cleared (3x memtest), builds fine here.
-    pkgs.bambu-studio    # 3D-print slicer (desktop-only). NOTE: the 02.08.x
-                         # nixpkgs build renders a BLANK 3D bed on this host
-                         # (build bug, not the GL stack — glxgears/glxinfo fine,
-                         # sw-render + no-GLEW still blank). Kept for cloud/
-                         # MakerWorld browsing; slice in orca-slicer below.
-    pkgs.orca-slicer     # Bambu Studio fork — working slicer for the A1 (AMS,
-                         # multicolor, network send over LAN; no flash drive).
+    pkgs.socat            # bin/hypr-monitor-repaint taps Hyprland's socket2
+                          # event stream to repaint DP monitors after a KVM switch
+    # Official Bambu Studio via the upstream AppImage. Replaces the nixpkgs
+    # `bambu-studio` build, which renders a BLANK 3D bed on this host (in-build
+    # bug — GL stack is fine: glxgears/glxinfo work, blank even under sw-render).
+    # The AppImage needed an NVIDIA-EGL fix to render — details in the pkg file.
+    bambu-studio-appimage
+    pkgs.orca-slicer     # Bambu Studio fork — alternative slicer for the A1
+                         # (AMS, multicolor). Kept alongside as a fallback.
   ];
 
   # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
