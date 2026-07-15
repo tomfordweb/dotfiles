@@ -1,6 +1,6 @@
 #!/bin/sh
 # ----------------------------------------------------------------------
-# Dotfiles bootstrap for NON-NIX hosts (work Ubuntu/Pop, mac).
+# Dotfiles bootstrap for NON-NIX hosts (work Ubuntu/Debian, mac).
 # ----------------------------------------------------------------------
 # Creates the same per-app symlinks that home-manager creates on NixOS
 # hosts (nixos/home/dotfiles.nix — KEEP THE LIST IN SYNC), pointing
