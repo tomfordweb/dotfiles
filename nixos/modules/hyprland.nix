@@ -49,13 +49,15 @@ let
   # dropped into ~/.config/hypr-local (sourced by hyprland.conf) here.
   #
   # The plugins input is pinned pre-#663 (hyprwinwrap dropped as
-  # unmaintained), which predates Hyprland's CWindow m_size/m_position →
-  # size/position rename — patch the two accesses so it compiles.
+  # unmaintained), which predates Hyprland's geometry rework: CWindow's
+  # public m_size/m_position fields became the IGeometric interface, where
+  # setBox(CBox) replaces both assignments (the plugin already computes
+  # that exact CBox `b` on the previous line).
   hyprwinwrap = (inputs.hyprland-plugins.packages.${pkgs.system}.hyprwinwrap).overrideAttrs (o: {
     postPatch = (o.postPatch or "") + ''
       find . -name main.cpp -exec sed -i \
-        -e 's/pWindow->m_size/pWindow->size/g' \
-        -e 's/pWindow->m_position/pWindow->position/g' {} +
+        -e 's/pWindow->m_size     = newSize;/pWindow->setBox(b);/' \
+        -e '/pWindow->m_position = newPos;/d' {} +
     '';
   });
   hyprwinwrap-conf = pkgs.writeText "hyprwinwrap.conf" ''
