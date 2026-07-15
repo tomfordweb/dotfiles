@@ -28,6 +28,17 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Official plugins built against OUR hyprland (follows), not nixpkgs' —
+    # plugins hard-check the compositor version and refuse to load on any
+    # mismatch. Currently used: hyprwinwrap (cava as desktop background).
+    # PINNED to the last rev before "all: drop unmaintained plugins" (#663,
+    # 2026-05-12) removed hyprwinwrap from the repo. If a hyprland update
+    # breaks its build, look for a maintained fork (e.g. gen3vra/hyprwinwrap).
+    hyprland-plugins = {
+      url = "github:hyprwm/hyprland-plugins/eaf18d55d51cef00818c5a4fdd4170f8cc2de4dc";
+      inputs.hyprland.follows = "hyprland";
+    };
+
     # Reverse-engineered driver stack for the T480's Synaptics 06cb:009a
     # fingerprint sensor — mainline libfprint has no driver for it. Exposes a
     # NixOS module (imported only by hosts/t480) that runs open-fprintd +

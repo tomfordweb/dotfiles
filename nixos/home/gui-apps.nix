@@ -33,6 +33,19 @@
     Install.WantedBy = [ "default.target" ];
   };
 
+  # Cursor theme — Bibata Modern Ice (white, rounded edges). home.pointerCursor
+  # installs the theme package, sets the GTK cursor, and exports XCURSOR_THEME/
+  # SIZE via hm-session-vars. Hyprland's OWN cursor is additionally pinned with
+  # `env = XCURSOR_THEME,Bibata-Modern-Ice` in config/hypr/hyprland.conf, because
+  # session vars don't reliably reach the compositor when it's launched from a
+  # tty/greeter. Size 24 matches the XCURSOR_SIZE/HYPRCURSOR_SIZE env there.
+  home.pointerCursor = {
+    package = pkgs.bibata-cursors;
+    name = "Bibata-Modern-Ice";
+    size = 24;
+    gtk.enable = true;
+  };
+
   home.packages = with pkgs; [
     # Browsers
     firefox
