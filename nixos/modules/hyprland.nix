@@ -109,7 +109,6 @@ in
     hypridle        # idle daemon (dotfiles: exec-once = hypridle)
     awww            # wallpaper daemon, ex-swww (dotfiles: exec-once = awww-daemon)
     hyprpolkitagent # dotfiles: systemctl --user start hyprpolkitagent
-    cava            # ambient desktop visualizer (cava-bg windowrule)
     eww             # widgets: ghost calendar + control center
     brightnessctl   # eww control-center brightness slider (inert on desktops)
   ];

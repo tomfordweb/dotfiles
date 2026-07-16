@@ -1,0 +1,69 @@
+#!/bin/sh
+# Force a repaint when a monitor is (re)connected.
+#
+# WHY: on this NVIDIA host, switching the KVM back to minerva re-enables the
+# DisplayPort monitors, and Hyprland migrates workspaces back onto them — but
+# the re-added output keeps a STALE scanout buffer and never repaints. The
+# window tree is correct (waybar shows the windows, keyboard nav works) yet the
+# screen shows nothing new. A dpms off/on cycle forces a full re-scanout, which
+# is the general cure for a stuck buffer no matter what caused it.
+#
+# Listens on Hyprland's socket2 event stream and, after a short debounce
+# (a KVM switch fires monitoradded for several outputs in a burst), cycles
+# dpms off->on across all monitors. The extra sub-second blink is invisible
+# next to the KVM input-switch that just happened.
+#
+# minerva-only: wired from configs/minerva.conf exec-once so the laptop
+# doesn't blink on every dock. Needs socat (added to minerva systemPackages).
+
+set -u
+
+sig="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+sock="$runtime/hypr/$sig/.socket2.sock"
+
+# socat is the standard way to tap socket2; if it's missing (e.g. first boot
+# before the nixos-rebuild that installs it) stand down quietly rather than spin.
+if ! command -v socat >/dev/null 2>&1; then
+    echo "hypr-monitor-repaint: socat not found, exiting" >&2
+    exit 0
+fi
+[ -S "$sock" ] || { echo "hypr-monitor-repaint: no socket2 at $sock" >&2; exit 0; }
+
+# Single instance — exec-once already runs us once per launch, but guard against
+# a stray double-start.
+me="$(basename "$0")"
+for pid in $(pgrep -f "$me" 2>/dev/null); do
+    [ "$pid" = "$$" ] && continue
+    echo "hypr-monitor-repaint: already running (pid $pid), exiting" >&2
+    exit 0
+done
+
+gen_file="$runtime/hypr-monitor-repaint.gen"
+
+repaint() {
+    # No monitor arg = all outputs. off, settle, on -> full re-scanout.
+    hyprctl dispatch dpms off
+    sleep 1
+    hyprctl dispatch dpms on
+}
+
+# Debounce: bump a generation counter per event and schedule a delayed repaint;
+# only the LAST event in a burst survives to actually fire.
+schedule() {
+    gen=$(( $(cat "$gen_file" 2>/dev/null || echo 0) + 1 ))
+    echo "$gen" > "$gen_file"
+    (
+        sleep 2
+        [ "$(cat "$gen_file" 2>/dev/null)" = "$gen" ] || exit 0
+        repaint
+    ) &
+}
+
+# socket2 lines look like "EVENT>>DATA". monitoradded / monitoraddedv2 both
+# signal a new output; either is enough to trigger a repaint.
+socat -U - "UNIX-CONNECT:$sock" | while IFS= read -r line; do
+    case "$line" in
+        monitoradded\>*|monitoraddedv2\>*) schedule ;;
+    esac
+done

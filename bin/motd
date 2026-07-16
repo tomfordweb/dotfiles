@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# motd — tiny terminal MOTD, printed by zsh on interactive startup
+# (nixos/home/shell.nix). Each section is a function; add new sections
+# below and list them in `sections` at the bottom. Anything slow (network)
+# must cache and refresh in the background so shell startup stays instant.
+
+CACHE_DIR=${XDG_CACHE_HOME:-$HOME/.cache}/motd
+mkdir -p "$CACHE_DIR"
+
+# true if the file is missing or older than $2 minutes (portable: no stat -c)
+stale() {
+  [ ! -f "$1" ] || [ -n "$(find "$1" -mmin +"$2" 2>/dev/null)" ]
+}
+
+# ---- pnpm global packages -------------------------------------------
+# The floating-version globals declared in nixos/home/pnpm-globals.nix.
+# `pnpm outdated -g` is broken with pnpm v11's isolated global projects
+# (returns {} with updates available), so compare against the registry
+# ourselves. link: installs (e.g. sidemux -> local checkout) are skipped:
+# registry installs resolve into pnpm's store, link installs resolve to
+# the external checkout — and the registry may hold an unrelated package
+# under the same name.
+check_pnpm_globals() {
+  pnpm ls -g --depth 0 --json 2>/dev/null \
+    | jq -r '.[].dependencies // {} | to_entries[]
+             | "\(.key) \(.value.version) \(.value.path)"' \
+    | while read -r name installed path; do
+        case "$(readlink -f "$path" 2>/dev/null)" in
+          */pnpm/store/*) ;; *) continue ;;
+        esac
+        latest=$(pnpm view "$name" version 2>/dev/null) || continue
+        [ -n "$latest" ] && [ "$latest" != "$installed" ] \
+          && echo "  $name $installed -> $latest"
+      done
+}
+
+pnpm_globals() {
+  command -v pnpm >/dev/null && command -v jq >/dev/null || return 0
+  local cache="$CACHE_DIR/pnpm-outdated"
+  if stale "$cache" 720; then # refresh twice a day, in the background
+    { check_pnpm_globals >"$cache.tmp" 2>/dev/null
+      mv -f "$cache.tmp" "$cache"; } >/dev/null 2>&1 &
+  fi
+  if [ -s "$cache" ]; then
+    echo "pnpm globals out of date — update with: pnpm-globals-update"
+    cat "$cache"
+  fi
+}
+
+sections=(pnpm_globals)
+for s in "${sections[@]}"; do "$s"; done

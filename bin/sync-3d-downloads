@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Copy downloaded 3D model files (*.stl, *.3mf) from ~/Downloads to the
+# storage drive at /mnt/storage/3d (flat). Models only ever arrive via
+# the browser into Downloads, so that is the only place worth scanning.
+#
+# Copy-only: the drive is the archive, so files removed from Downloads
+# MUST survive there — never pass --delete, and the source is kept.
+# Idempotent; rsync skips files already in sync. Run daily by the
+# sync-3d-downloads systemd timer on minerva
+# (nixos/hosts/minerva/default.nix), or by hand anywhere.
+set -euo pipefail
+
+SRC="${SRC:-$HOME/Downloads}"
+DEST="${DEST:-/mnt/storage/3d}"
+STORAGE_MOUNT="/mnt/storage"
+
+if ! mountpoint -q "$STORAGE_MOUNT"; then
+  echo "sync-3d-downloads: $STORAGE_MOUNT is not mounted — skipping" >&2
+  exit 0
+fi
+
+[ -d "$SRC" ] || { echo "sync-3d-downloads: $SRC missing — nothing to do"; exit 0; }
+
+mkdir -p "$DEST"
+
+# Top-level Downloads only; %f = bare filename for the flat rsync copy.
+found=$(find "$SRC" -maxdepth 1 -type f \( -iname '*.stl' -o -iname '*.3mf' \) -printf '%f\n')
+
+if [ -z "$found" ]; then
+  echo "sync-3d-downloads: no .stl/.3mf files in $SRC"
+  exit 0
+fi
+
+printf '%s\n' "$found" | rsync -a --files-from=- "$SRC/" "$DEST/"
+echo "sync-3d-downloads: copied $(printf '%s\n' "$found" | wc -l) file(s) to $DEST"
