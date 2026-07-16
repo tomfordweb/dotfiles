@@ -241,6 +241,35 @@ in
     };
   };
 
+  # ---- nightly MOVE of Downloads *.stl/*.3mf to /mnt/storage/3d (dotfiles-44y)
+  # bin/move-3d-downloads relocates finished model files OUT of the Downloads
+  # inbox onto the storage drive (flat). Distinct from sync-3mf (a copy
+  # archive): this REMOVES the source once it is safely on the drive. On a
+  # name clash the destination wins and the source stays in Downloads.
+  # Scheduled at 02:00, NOT midnight: sync-3mf still copies Downloads *.3mf at
+  # 00:00, so staggering avoids a file vanishing mid-copy under sync-3mf.
+  systemd.services.move-3d-downloads = {
+    description = "Move ~/Downloads *.stl/*.3mf to /mnt/storage/3d";
+    path = with pkgs; [ bash coreutils findutils rsync util-linux ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "tom";
+      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/dotfiles/bin/move-3d-downloads";
+    };
+    unitConfig = {
+      ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/move-3d-downloads";
+      ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
+    };
+  };
+  systemd.timers.move-3d-downloads = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*-*-* 02:00:00";
+      Persistent = true;
+    };
+  };
+
   # ---- red "on fire" alert on ANY backup failure (dotfiles-tki) ------
   # The backup scripts' own notify-send fires only on their LAST line
   # (completion), and the OPS_DROPLET_SSH_HOST :?-exit dies before ever
