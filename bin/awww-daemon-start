@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Resiliently start awww-daemon at Hyprland login.
+#
+# WHY: Hyprland fires exec-once very early — often before its Wayland
+# socket accepts client connections. awww-daemon (0.12.1) does NOT wait:
+# it tries once, hits "wl_display (Connection refused)", panics and core
+# dumps. The daemon then never comes back, so hyprwallpapers has nothing
+# to talk to and every monitor stays black.
+#
+# Fix: (re)launch awww-daemon until `awww query` succeeds — i.e. until a
+# daemon is actually alive AND connected to the compositor. Once it is,
+# we exit and leave the daemon running in the background (reparented to
+# init). Bounded so a genuinely broken awww can't spin forever.
+#
+# Host-agnostic: minerva and the t480 share this script + hyprland.conf.
+set -u
+
+# Already up (e.g. re-run)? Nothing to do.
+awww query >/dev/null 2>&1 && exit 0
+
+for _ in $(seq 1 30); do
+  awww-daemon >/dev/null 2>&1 &
+  # Give it a moment to connect (or panic).
+  for _ in 1 2 3 4; do
+    awww query >/dev/null 2>&1 && exit 0
+    sleep 0.25
+  done
+done
+
+echo "awww-daemon-start: gave up after 30 attempts — awww never connected" >&2
+exit 1
