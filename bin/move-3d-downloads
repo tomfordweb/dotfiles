@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Nightly MOVE of every *.stl / *.3mf out of ~/Downloads onto the storage
+# drive at /mnt/storage/3d (flat, no subdirs preserved).
+#
+# Unlike bin/sync-3mf (a COPY-only archive of every *.3mf under ~), this
+# REMOVES the source from Downloads once the file is safely on the drive —
+# Downloads is a scratch inbox, the drive is the keep.
+#
+# Collision policy: if a file of the same basename already exists at the
+# destination, the DESTINATION wins — the source is left in Downloads
+# (never overwritten, never silently deleted) and reported. Resolve by hand.
+#
+# Runs 02:00 daily via the move-3d-downloads systemd timer on minerva
+# (nixos/hosts/minerva/default.nix) — staggered after sync-3mf's midnight
+# copy so the two never race over the same Downloads *.3mf. Safe by hand.
+set -euo pipefail
+
+SRC="${SRC:-$HOME/Downloads}"
+DEST="${DEST:-/mnt/storage/3d}"
+STORAGE_MOUNT="/mnt/storage"
+
+if ! mountpoint -q "$STORAGE_MOUNT"; then
+  echo "move-3d-downloads: $STORAGE_MOUNT is not mounted — skipping" >&2
+  exit 0
+fi
+[ -d "$SRC" ] || { echo "move-3d-downloads: $SRC missing — nothing to do"; exit 0; }
+mkdir -p "$DEST"
+
+moved=0
+skipped=0
+# Hidden dirs (caches, extracted-archive junk) pruned — '.?*' not '.*', which
+# would also match '.' and prune the whole tree. NUL-delimited: names here
+# carry spaces, '+', parens (browser download naming).
+while IFS= read -r -d '' f; do
+  base="$(basename "$f")"
+  dest="$DEST/$base"
+  if [ -e "$dest" ]; then
+    echo "move-3d-downloads: SKIP (exists at dest): $base — left in Downloads" >&2
+    skipped=$((skipped + 1))
+    continue
+  fi
+  # copy-then-remove: Downloads (nvme /home) and the drive (sda btrfs) are
+  # different filesystems, so this is a genuine cross-fs move. rsync's
+  # --remove-source-files unlinks the source ONLY after a verified transfer,
+  # so an interrupted run never loses the file.
+  rsync -a --remove-source-files "$f" "$dest"
+  moved=$((moved + 1))
+done < <(find "$SRC" -name '.?*' -prune -o -type f \
+  \( -iname '*.stl' -o -iname '*.3mf' \) -print0)
+
+echo "move-3d-downloads: moved $moved file(s) to $DEST, skipped $skipped (name clash)"
