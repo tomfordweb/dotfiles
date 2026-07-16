@@ -215,57 +215,29 @@ in
     };
   };
 
-  # ---- daily 3mf sweep to the storage drive (dotfiles-577) -----------
-  # bin/sync-3mf copies every *.3mf under ~ to /mnt/storage/3d/3mf-sync
-  # (copy-only archive — never deletes). Runs as tom; skips cleanly when
-  # the drive is absent.
-  systemd.services.sync-3mf = {
-    description = "Archive ~ *.3mf files to /mnt/storage/3d/3mf-sync";
+  # ---- daily copy of Downloads 3D models to storage (dotfiles-577/44y) ----
+  # bin/sync-3d-downloads copies ~/Downloads *.stl/*.3mf to /mnt/storage/3d
+  # (flat, copy-only — never deletes, source kept). Downloads is the only
+  # place browser-downloaded models land, so nothing else is scanned. Runs
+  # as tom; skips cleanly when the drive is absent.
+  systemd.services.sync-3d-downloads = {
+    description = "Copy ~/Downloads *.stl/*.3mf to /mnt/storage/3d";
     path = with pkgs; [ bash coreutils findutils rsync util-linux ];
     serviceConfig = {
       Type = "oneshot";
       User = "tom";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/dotfiles/bin/sync-3mf";
+      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/dotfiles/bin/sync-3d-downloads";
     };
     unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/sync-3mf";
+      ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/sync-3d-downloads";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
     };
   };
-  systemd.timers.sync-3mf = {
+  systemd.timers.sync-3d-downloads = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
-      Persistent = true;
-    };
-  };
-
-  # ---- nightly MOVE of Downloads *.stl/*.3mf to /mnt/storage/3d (dotfiles-44y)
-  # bin/move-3d-downloads relocates finished model files OUT of the Downloads
-  # inbox onto the storage drive (flat). Distinct from sync-3mf (a copy
-  # archive): this REMOVES the source once it is safely on the drive. On a
-  # name clash the destination wins and the source stays in Downloads.
-  # Scheduled at 02:00, NOT midnight: sync-3mf still copies Downloads *.3mf at
-  # 00:00, so staggering avoids a file vanishing mid-copy under sync-3mf.
-  systemd.services.move-3d-downloads = {
-    description = "Move ~/Downloads *.stl/*.3mf to /mnt/storage/3d";
-    path = with pkgs; [ bash coreutils findutils rsync util-linux ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "tom";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/dotfiles/bin/move-3d-downloads";
-    };
-    unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/move-3d-downloads";
-      ConditionPathIsMountPoint = "/mnt/storage";
-      OnFailure = "backup-notify-failure@%n.service";
-    };
-  };
-  systemd.timers.move-3d-downloads = {
-    wantedBy = [ "timers.target" ];
-    timerConfig = {
-      OnCalendar = "*-*-* 02:00:00";
       Persistent = true;
     };
   };
