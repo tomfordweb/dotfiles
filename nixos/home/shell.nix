@@ -38,6 +38,10 @@
       # service-account token to the command (`op run ... --`), don't
       # export it shell-wide.
       [ -f "$HOME/.zshrc.local" ] && . "$HOME/.zshrc.local"
+
+      # MOTD — bin/motd in this repo (outdated pnpm globals, etc.).
+      # Cached + background-refreshed, so this stays instant.
+      command -v motd >/dev/null && motd
     '';
   };
 
@@ -46,12 +50,16 @@
     MAX_THINKING_TOKENS = "10000";
     ECC_CONTEXT_MONITOR_COST_WARNINGS = "off";
     PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
+    # claude is a pnpm global (pnpm-globals.nix); its in-place background
+    # updater fights pnpm's layout — updates go through `pnpm up -g`.
+    DISABLE_AUTOUPDATER = "1";
   };
 
-  # rustup-installed cargo binaries + pnpm global installs
+  # rustup-installed cargo binaries + pnpm global installs (pnpm v11 puts
+  # global bin shims in $PNPM_HOME/bin, not $PNPM_HOME itself)
   home.sessionPath = [
     "${config.home.homeDirectory}/.cargo/bin"
-    "${config.home.homeDirectory}/.local/share/pnpm"
+    "${config.home.homeDirectory}/.local/share/pnpm/bin"
   ];
 
   # thefuck was removed from nixpkgs; pay-respects is the drop-in

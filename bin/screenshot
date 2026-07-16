@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# screenshot — grim/slurp wrapper for Hyprland.
+#
+#   screenshot [region]   drag-select a region      (default)
+#   screenshot full       all connected outputs
+#   screenshot active     the currently focused monitor
+#
+# Saves a timestamped PNG under ~/Pictures/Screenshots (override with
+# $SCREENSHOT_DIR), copies it to the Wayland clipboard, and posts a mako
+# notification with the path. Needs grim, slurp, wl-copy (+ jq for `active`).
+set -euo pipefail
+
+mode="${1:-region}"
+dir="${SCREENSHOT_DIR:-$HOME/Pictures/Screenshots}"
+mkdir -p "$dir"
+file="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
+
+case "$mode" in
+  region)
+    geom="$(slurp)" || exit 1     # empty/cancelled selection -> abort quietly
+    grim -g "$geom" "$file"
+    ;;
+  full)
+    grim "$file"
+    ;;
+  active)
+    mon="$(hyprctl -j activeworkspace | jq -r '.monitor')"
+    grim -o "$mon" "$file"
+    ;;
+  *)
+    echo "usage: screenshot [region|full|active]" >&2
+    exit 2
+    ;;
+esac
+
+wl-copy < "$file"
+if command -v notify-send >/dev/null 2>&1; then
+  notify-send -i "$file" "Screenshot saved" "$file"
+fi
+echo "$file"

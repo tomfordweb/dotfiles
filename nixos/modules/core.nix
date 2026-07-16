@@ -52,8 +52,8 @@
   users.users.tom = {
     isNormalUser = true;
     description = "tom";
-    # Pinned to 1000 so the minerva reinstall's migrated /home (from Pop
-    # user `tomford`, also uid 1000) keeps valid ownership with no chown.
+    # Pinned to 1000 to match existing /home ownership (the primary user is
+    # uid 1000 on the non-nix hosts too) — keeps file ownership valid, no chown.
     uid = 1000;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" "docker" ];
     shell = pkgs.zsh;
@@ -119,8 +119,8 @@
   virtualisation.docker = {
     enable = true;
     autoPrune.enable = true;
-    # overlay2 (what Pop already ran) rather than the btrfs storage driver,
-    # even though /var/lib/docker is a btrfs subvol on minerva — avoids the
+    # overlay2 rather than the btrfs storage driver, even though
+    # /var/lib/docker is a btrfs subvol on minerva — avoids the
     # btrfs-driver subvolume sprawl/quirks. Named volumes (the critical dev
     # data) are plain dirs under volumes/ and are unaffected by this choice.
     storageDriver = "overlay2";
@@ -167,8 +167,8 @@
   #
   # `source` is expanded by the shell inside the generated run-*-vm
   # script, so $HOME resolves to whoever launches the VM. The guest
-  # user is always `tom`, but the host launching the VM may not be
-  # yet (minerva pre-migration) — a hardcoded /home/tom source would
+  # user is always `tom`, but the host launching the VM may be a non-nix
+  # box whose primary user isn't `tom` — a hardcoded /home/tom source would
   # silently share a nonexistent dir and the guest falls back to
   # default Hyprland config.
   virtualisation.vmVariant.virtualisation.sharedDirectories.dotfiles = {

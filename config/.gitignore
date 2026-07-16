@@ -4,6 +4,7 @@ glab-cli/recover
 
 # Contains auth tokens
 glab-cli/config.yml
+Slack/
 google-chrome-for-testing
 pudb
 nwg-look
@@ -38,3 +39,4 @@ unity3d
 
 BambuStudio/cache
 BambuStudio/log
+gh/hosts.yml

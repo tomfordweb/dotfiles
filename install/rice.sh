@@ -2,7 +2,7 @@
 
 # Rice pipeline: render palette-driven configs, then watch the sass
 # sources. rice/palette.json is the single source of truth for colors —
-# bin/rice-build regenerates hypr/tmux/ghostty/mako/cava configs and the
+# bin/rice-build regenerates hypr/tmux/ghostty/mako configs and the
 # _palette.scss the sass targets import.
 # It's been like 10 years since I have used gulp and I refuse to go back.
 
