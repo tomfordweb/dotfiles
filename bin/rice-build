@@ -21,7 +21,6 @@ declare -A OUTPUTS=(
   [tmux-theme.tmpl]="config/tmux/theme.conf"
   [ghostty-colors.tmpl]="config/ghostty/themes/cyberdream"
   [mako.tmpl]="config/mako/config"
-  [cava.tmpl]="config/cava/config"
 )
 
 # Build one sed script: colors first, then roles resolved to their hex.

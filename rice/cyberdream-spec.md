@@ -19,7 +19,6 @@ native format (templates in `rice/templates/`):
 | `config/waybar/workspaces.jsonc`   | waybar config.jsonc (`include` — whole workspaces module) |
 | `config/ghostty/themes/cyberdream` | ghostty (`theme = cyberdream`)    |
 | `config/mako/config`               | mako (whole file generated)       |
-| `config/cava/config`               | cava (whole file generated)       |
 
 Retheme = edit `palette.json` / `icons.json`, run `bin/rice-build`,
 recompile sass (`install/rice.sh` does both). **Never hand-edit
@@ -83,8 +82,6 @@ mauve, critical → red).
 - **hyprlock** — screenshot-blur background, 118pt mauve clock, avatar
   ring (`~/.face`), glass input field. Wired to hypridle (10 min lock)
   and `$mainMod CTRL+L`.
-- **cava** — ambient visualizer in a `ghostty --class=cava-bg` window
-  pinned behind windows (bottom 60%, 55% opacity, 6-color gradient).
 - **eww** — `calendar-ghost` (ghosted month, stacking bg) and
   `control-center` (volume/brightness sliders, wifi/bt/lock toggles,
   now-playing, power row). `$mainMod C` or bar chip toggles.
