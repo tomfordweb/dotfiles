@@ -182,6 +182,7 @@ in
       ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
       # never write into an unmounted /mnt/storage (root subvol)
       ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
     };
   };
   systemd.timers.download-droplet-backups = {
@@ -203,6 +204,7 @@ in
     unitConfig = {
       ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
       ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
     };
   };
   systemd.timers.backup-local-state = {
@@ -228,6 +230,7 @@ in
     unitConfig = {
       ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/sync-3mf";
       ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
     };
   };
   systemd.timers.sync-3mf = {
@@ -236,5 +239,32 @@ in
       OnCalendar = "daily";
       Persistent = true;
     };
+  };
+
+  # ---- red "on fire" alert on ANY backup failure (dotfiles-tki) ------
+  # The backup scripts' own notify-send fires only on their LAST line
+  # (completion), and the OPS_DROPLET_SSH_HOST :?-exit dies before ever
+  # reaching it — so failures were silent. systemd knows the real exit
+  # code, so hang this template off each unit's OnFailure=. It fires a
+  # mako urgency=critical toast (red border + dark-red bg + persistent,
+  # already styled that way in config/mako/config) naming the dead unit.
+  # Runs as tom with the session bus address so notify-send reaches the
+  # graphical session. %n of the failing unit → this template's instance.
+  systemd.services."backup-notify-failure@" = {
+    description = "🔥 critical desktop alert when %i fails";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "tom";
+      Environment = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus";
+    };
+    scriptArgs = "%i";
+    script = ''
+      ${pkgs.libnotify}/bin/notify-send \
+        --urgency=critical --expire-time=0 --icon=dialog-error \
+        --app-name=backup-monitor \
+        "🔥🔥 BACKUP FAILED 🔥🔥" \
+        "$1 exited non-zero — data may NOT be backed up.
+      Check: journalctl -u $1 -n 30"
+    '';
   };
 }
