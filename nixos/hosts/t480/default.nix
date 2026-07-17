@@ -58,14 +58,12 @@
   # so opt the relevant stacks in by hand. sudo tries the finger first and
   # falls back to the password, so nothing is lost if the reader misbehaves.
   #
-  # NOT enabled for login (TTY/getty), hyprlock, or sddm. TTY login never
-  # worked reliably with the finger, so it stays password-only. hyprlock and
-  # sddm are GUI prompts with their own password text field, so a pam_fprintd
-  # entry means "type password AND scan finger", not "or". hyprlock instead
-  # does fingerprint natively over the fprintd D-Bus API (see auth{fingerprint}
-  # in config/hypr/hyprlock.conf), which runs concurrently with its password
-  # field = true finger-or-password. sddm's Qt greeter has no such native path,
-  # so boot login stays password-only.
+  # sudo is the ONLY fingerprint surface. NOT enabled for login (TTY/getty),
+  # hyprlock, or sddm: GUI prompts have their own password text field, so a
+  # pam_fprintd entry means "type password AND scan finger", not "or" — and
+  # hyprlock's native auth{fingerprint} path had the same both-required
+  # problem in practice, so it was removed from config/hypr/hyprlock.conf.
+  # Login and the lock screen are password-only by design.
   security.pam.services = {
     sudo.fprintAuth = true;       # sudo prompts (CLI, no competing text field)
   };
