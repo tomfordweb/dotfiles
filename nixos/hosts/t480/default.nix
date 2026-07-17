@@ -55,17 +55,18 @@
 
   # pam_fprintd talks to open-fprintd over D-Bus, but NixOS only wires
   # fingerprint into PAM when services.fprintd is enabled (it isn't here),
-  # so opt the relevant stacks in by hand. Each tries the finger first and
+  # so opt the relevant stacks in by hand. sudo tries the finger first and
   # falls back to the password, so nothing is lost if the reader misbehaves.
   #
-  # NOT enabled for hyprlock or sddm — both are GUI prompts with their own
-  # password text field, so a pam_fprintd entry means "type password AND
-  # scan finger", not "or". hyprlock instead does fingerprint natively over
-  # the fprintd D-Bus API (see auth{fingerprint} in config/hypr/hyprlock.conf),
-  # which runs concurrently with its password field = true finger-or-password.
-  # sddm's Qt greeter has no such native path, so boot login stays password-only.
+  # NOT enabled for login (TTY/getty), hyprlock, or sddm. TTY login never
+  # worked reliably with the finger, so it stays password-only. hyprlock and
+  # sddm are GUI prompts with their own password text field, so a pam_fprintd
+  # entry means "type password AND scan finger", not "or". hyprlock instead
+  # does fingerprint natively over the fprintd D-Bus API (see auth{fingerprint}
+  # in config/hypr/hyprlock.conf), which runs concurrently with its password
+  # field = true finger-or-password. sddm's Qt greeter has no such native path,
+  # so boot login stays password-only.
   security.pam.services = {
-    login.fprintAuth = true;      # TTY / getty
     sudo.fprintAuth = true;       # sudo prompts (CLI, no competing text field)
   };
 }
