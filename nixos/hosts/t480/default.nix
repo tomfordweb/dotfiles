@@ -58,13 +58,14 @@
   # so opt the relevant stacks in by hand. sudo tries the finger first and
   # falls back to the password, so nothing is lost if the reader misbehaves.
   #
-  # sudo is the ONLY fingerprint surface. NOT enabled for login (TTY/getty),
-  # hyprlock, or sddm: GUI prompts have their own password text field, so a
-  # pam_fprintd entry means "type password AND scan finger", not "or" — and
-  # hyprlock's native auth{fingerprint} path had the same both-required
-  # problem in practice, so it was removed from config/hypr/hyprlock.conf.
-  # Login and the lock screen are password-only by design.
+  # Fingerprint is for escalation INSIDE the session only: sudo and GUI
+  # polkit prompts (hyprpolkitagent → polkit-1 PAM stack). NOT enabled for
+  # login (TTY/getty), hyprlock, or sddm — hyprlock's native
+  # auth{fingerprint} demanded password AND finger in practice, so it was
+  # removed from config/hypr/hyprlock.conf; login and the lock screen are
+  # password-only by design.
   security.pam.services = {
-    sudo.fprintAuth = true;       # sudo prompts (CLI, no competing text field)
+    sudo.fprintAuth = true;       # sudo prompts (CLI)
+    polkit-1.fprintAuth = true;   # GUI privilege prompts via hyprpolkitagent
   };
 }
