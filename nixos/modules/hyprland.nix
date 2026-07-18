@@ -92,6 +92,24 @@ in
   };
 
   # ------------------------------------------------------------------
+  # System keyring — DBus Secret Service (org.freedesktop.secrets)
+  # ------------------------------------------------------------------
+  # Generic credential store that every libsecret consumer expects:
+  # NetworkManager (wifi/vpn secrets), Chromium/Electron (cookie +
+  # password encryption, else plaintext fallback), GNOME Online Accounts,
+  # git-credential-libsecret, etc. Without a provider the service is
+  # "not activatable" and each app silently degrades or re-prompts.
+  # Surfaced here because 1Password failed to persist its account 2FA
+  # token ("2FA will only be valid for this unlock session!"), but this
+  # is not 1Password-specific.
+  #
+  # gnome-keyring provides the service; the PAM hook unlocks it at SDDM
+  # login with the login password (login pw == keyring pw), so nothing
+  # extra to type.
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services.sddm.enableGnomeKeyring = true;
+
+  # ------------------------------------------------------------------
   # System-wide Wayland utilities
   # ------------------------------------------------------------------
   # These live at system level so any user can invoke them and
