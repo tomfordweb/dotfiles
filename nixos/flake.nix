@@ -96,7 +96,7 @@
         minerva = mkHost {
           hostName = "minerva";
           extraModules = [ ./hosts/minerva ];
-          homeModules = [ ./home/gui-apps.nix ];
+          homeModules = [ ./home/gui-apps.nix ./home/minerva-secrets.nix ];
         };
 
         # Live-USB test image of the minerva system (details in
