@@ -51,20 +51,6 @@
     # LaTeX — medium base (latex + latexmk + xetex/luatex engines),
     # plus the extra font collection.
     (texliveMedium.withPackages (ps: with ps; [
-      moderncv
-      needspace
-      (lib.getAttr "import" ps)
-      fontawesome5
-      fontawesome6
-      academicons
-      luatexbase
-      pgf
-      titlesec
-      textpos
-      xltxtra
-      xunicode
-      cite
-      realscripts
       collection-luatex
       collection-xetex
       collection-fontsextra
