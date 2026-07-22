@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 # ------------------------------------------------------------------
 # Dev core — identical on every machine. The "my code-writing
@@ -38,9 +38,6 @@
     nodejs_22  # pin per-project via flake + nix-direnv when it matters
     pnpm
     bun
-
-    # PDF text extraction
-    (lib.getAttr "poppler-utils" pkgs)
 
     # Infra
     ansible
