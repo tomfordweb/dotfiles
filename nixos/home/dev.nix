@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 # ------------------------------------------------------------------
 # Dev core — identical on every machine. The "my code-writing
@@ -18,19 +18,29 @@
     jq
     bat
     fzf
+    nix-index
+    nix-search-cli
 
     # Git ops
     lazygit
     gh
     glab
     gitleaks
+    beads
 
     # Language toolchains
-    python3    # bin/claude-killdevservers, tmux-which-key (pyyaml)
+    (python3.withPackages (ps: with ps; [
+      pyyaml
+      openpyxl
+    ]))
     rustup
     cmake
     nodejs_22  # pin per-project via flake + nix-direnv when it matters
     pnpm
+    bun
+
+    # PDF text extraction
+    (lib.getAttr "poppler-utils" pkgs)
 
     # Infra
     ansible
@@ -41,6 +51,20 @@
     # LaTeX — medium base (latex + latexmk + xetex/luatex engines),
     # plus the extra font collection.
     (texliveMedium.withPackages (ps: with ps; [
+      moderncv
+      needspace
+      (lib.getAttr "import" ps)
+      fontawesome5
+      fontawesome6
+      academicons
+      luatexbase
+      pgf
+      titlesec
+      textpos
+      xltxtra
+      xunicode
+      cite
+      realscripts
       collection-luatex
       collection-xetex
       collection-fontsextra
