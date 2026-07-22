@@ -35,11 +35,40 @@ in
     text = builtins.toJSON {
       private = true;
       dependencies = {
+        # COUPLED to pkgs.playwright-driver below: this mcp version resolves a
+        # playwright-core that expects a specific chromium rev, and the nixpkgs
+        # playwright-driver must ship that SAME rev (currently both -> 1228).
+        # Bump the two together; a mismatch = "browser executable doesn't exist".
         "@playwright/mcp" = "0.0.77";
         "@upstash/context7-mcp" = "3.2.2";
       };
     };
   };
+
+  # Playwright browser comes from nixpkgs (immutable /nix/store path), NOT from
+  # `npx playwright install` into ~/.cache/ms-playwright/chromium-<n>. That cache
+  # dir is mutable and its version suffix bumps on every install, which forced a
+  # brittle hand-chased `--executable-path` pin (with a stale /home/tomford user)
+  # baked into committed MCP configs. SKIP_DOWNLOAD stops any stray npx download.
+  #
+  # @playwright/mcp defaults to the `chrome` CHANNEL (system Google Chrome, which
+  # isn't installed) — so it still needs an explicit --executable-path pointing at
+  # the bundled chromium. PLAYWRIGHT_CHROMIUM_EXECUTABLE (set in the zsh init below)
+  # is that full path; committed MCP configs reference it as an env var, so they
+  # carry NO version suffix and NO /nix/store hash — both resolve per-machine here.
+  home.sessionVariables = {
+    PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
+  };
+
+  # Resolve the versioned chromium dir at login. The chromium-<rev> suffix tracks
+  # the nixpkgs playwright-driver bump; globbing it here means a nixpkgs upgrade
+  # needs no edit to any committed config. Glob `chromium-*` matches chromium-<rev>
+  # but NOT chromium_headless_shell-<rev> (hyphen vs underscore) — single match.
+  # mkAfter: runs after hm-session-vars.sh has exported PLAYWRIGHT_BROWSERS_PATH.
+  programs.zsh.initContent = lib.mkAfter ''
+    export PLAYWRIGHT_CHROMIUM_EXECUTABLE="$(echo "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux64/chrome)"
+  '';
 
   home.activation.tomfordwebAiWiring = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ops="${ops}"
