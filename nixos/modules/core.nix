@@ -85,6 +85,18 @@
   };
 
   # ------------------------------------------------------------------
+  # Shutdown: cap the user-manager stop timeout.
+  # ------------------------------------------------------------------
+  # workmux tmux-spawn scopes keep their cwd inside /home/tom/code, so
+  # at shutdown they hold the code NVMe busy. The agents inside them
+  # (node / python) ignore SIGTERM, and the default 90s
+  # DefaultTimeoutStopSec made "unmounting /home/tom/code" stall ~90s
+  # before systemd SIGKILLs them. 10s bounds the hang.
+  # NOT logind KillUserProcesses — that would kill tmux on logout and
+  # break workmux's detach-survives-logout.
+  systemd.user.settings.Manager.DefaultTimeoutStopSec = "10s";
+
+  # ------------------------------------------------------------------
   # Base system packages (available to all users)
   # ------------------------------------------------------------------
   environment.systemPackages = with pkgs; [
