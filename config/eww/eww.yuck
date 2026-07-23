@@ -11,6 +11,11 @@
   "nmcli radio wifi 2>/dev/null | grep -q enabled && echo true || echo false")
 (defpoll bt-on :interval "5s"
   "bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' && echo true || echo false")
+;; rice (glass) vs pro (flat presentation) desktop mode — bin/rice-mode.
+;; Polled, not deflisten, so nothing breaks if the state file is absent;
+;; rice-mode also pushes an immediate `eww update` on toggle.
+(defpoll rice-mode :interval "3s" :initial "rice"
+  "rice-mode get 2>/dev/null || echo rice")
 (defpoll now-playing :interval "2s"
   "playerctl metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo ''")
 
@@ -22,7 +27,7 @@
   :exclusive false
   :geometry (geometry :anchor "top right" :x "32px" :y "72px"
                       :width "340px" :height "320px")
-  (box :class "cal-ghost" :orientation "v"
+  (box :class "cal-ghost ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
     (calendar :class "cal")))
 
 ;; ── control center (toggled from the waybar chip) ────────────────────
@@ -34,7 +39,7 @@
   :stacking "overlay"
   :focusable false
   :geometry (geometry :anchor "top right" :x "16px" :y "58px" :width "360px")
-  (box :class "cc" :orientation "v" :spacing 12
+  (box :class "cc ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v" :spacing 12
     (label :class "cc-title" :halign "start" :text "control center")
     (box :class "cc-card" :orientation "v" :spacing 6
       (label :class "cc-sub" :halign "start" :text "󰕾  volume")

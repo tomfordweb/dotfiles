@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+# Desktop mode switch: "rice" (default, animated cycling wallpapers + glass
+# blur) vs "pro" (one static image, flat opaque surfaces, no blur) — for
+# screen-sharing / meetings.
+#
+#   rice-mode              # print current mode (rice|pro)
+#   rice-mode toggle       # flip and apply
+#   rice-mode set pro      # force a mode and apply
+#   rice-mode apply        # re-apply the stored mode (called from exec-once)
+#   rice-mode set-image P  # point pro mode at image P
+#   rice-mode waybar       # JSON for the waybar custom/rice-mode module
+#   rice-mode waybar-start # (re)start waybar with the mode's stylesheet
+#
+# State: $XDG_STATE_HOME/rice/mode. Static image: a symlink at
+# $XDG_CONFIG_HOME/rice/static-wallpaper (machine-local, never in the repo),
+# overridable with $RICE_STATIC_WALLPAPER.
+
+set -uo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+STATE_FILE="$STATE_DIR/mode"
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rice"
+STATIC_LINK="$CONF_DIR/static-wallpaper"
+WAYBAR_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
+
+get_mode() {
+  local m
+  m="$(cat "$STATE_FILE" 2>/dev/null)"
+  [ "$m" = "pro" ] && echo pro || echo rice
+}
+
+static_image() {
+  if [ -n "${RICE_STATIC_WALLPAPER:-}" ]; then
+    echo "$RICE_STATIC_WALLPAPER"
+  else
+    echo "$STATIC_LINK"
+  fi
+}
+
+# ── wallpaper ────────────────────────────────────────────────────────────
+apply_wallpaper() {
+  case "$1" in
+    pro)
+      local img
+      img="$(static_image)"
+      if [ ! -f "$img" ]; then
+        notify-send -u critical "rice-mode" \
+          "No static wallpaper. Run: rice-mode set-image /path/to/image.jpg" 2>/dev/null
+        return 1
+      fi
+      # hyprwallpapers_loop skips its tick while mode=pro, so nothing will
+      # overwrite this until we switch back.
+      awww img "$img" --transition-type fade --transition-duration 0.6 ||
+        awww img "$img"
+      ;;
+    rice) hyprwallpapers ;;
+  esac
+}
+
+# ── hyprland decoration ──────────────────────────────────────────────────
+# Set explicitly in both directions (rather than `hyprctl reload` back) so a
+# toggle never depends on config-file reload side effects. The rice values
+# below must stay in sync with decoration{} in config/hypr/hyprland.conf.
+apply_hypr() {
+  case "$1" in
+    pro)
+      hyprctl --batch "\
+        keyword decoration:blur:enabled false ;\
+        keyword decoration:active_opacity 1.0 ;\
+        keyword decoration:inactive_opacity 1.0 ;\
+        keyword decoration:shadow:enabled false" >/dev/null
+      ;;
+    rice)
+      hyprctl --batch "\
+        keyword decoration:blur:enabled true ;\
+        keyword decoration:active_opacity 0.95 ;\
+        keyword decoration:inactive_opacity 0.88 ;\
+        keyword decoration:shadow:enabled true" >/dev/null
+      ;;
+  esac
+}
+
+# ── waybar ───────────────────────────────────────────────────────────────
+waybar_start() {
+  local style="$WAYBAR_DIR/style.css"
+  [ "$(get_mode)" = "pro" ] && style="$WAYBAR_DIR/style-pro.css"
+  pkill -x waybar 2>/dev/null
+  setsid waybar -s "$style" >/dev/null 2>&1 &
+  disown 2>/dev/null || true
+}
+
+# ── eww ──────────────────────────────────────────────────────────────────
+# eww polls the state file itself (defpoll rice-mode, 3s), so widgets
+# restyle on their own. `eww update` only works on defvars, so there's no
+# push available — this just tightens the worst-case lag when eww is up.
+apply_eww() {
+  eww reload >/dev/null 2>&1 || true
+}
+
+apply() {
+  local mode="$(get_mode)"
+  apply_wallpaper "$mode"
+  apply_hypr "$mode"
+  apply_eww
+  pkill -RTMIN+8 -x waybar 2>/dev/null || true
+}
+
+set_mode() {
+  case "$1" in
+    rice | pro) ;;
+    *)
+      echo "rice-mode: unknown mode '$1' (want rice|pro)" >&2
+      exit 1
+      ;;
+  esac
+  mkdir -p "$STATE_DIR"
+  echo "$1" > "$STATE_FILE"
+  apply
+  waybar_start # picks up the new stylesheet + redraws the chip
+}
+
+case "${1:-get}" in
+  get) get_mode ;;
+  toggle)
+    if [ "$(get_mode)" = "pro" ]; then set_mode rice; else set_mode pro; fi
+    ;;
+  set) set_mode "${2:?usage: rice-mode set rice|pro}" ;;
+  apply) apply ;;
+  set-image)
+    img="${2:?usage: rice-mode set-image /path/to/image}"
+    [ -f "$img" ] || { echo "rice-mode: no such file: $img" >&2; exit 1; }
+    mkdir -p "$CONF_DIR"
+    ln -sfn "$(readlink -f "$img")" "$STATIC_LINK"
+    echo "static wallpaper -> $(readlink -f "$img")"
+    [ "$(get_mode)" = "pro" ] && apply_wallpaper pro
+    ;;
+  waybar)
+    if [ "$(get_mode)" = "pro" ]; then
+      printf '{"text":"󰋩","tooltip":"presentation mode (static wallpaper, no blur)","class":"pro"}\n'
+    else
+      printf '{"text":"󰸉","tooltip":"rice mode (cycling wallpapers, glass blur)","class":"rice"}\n'
+    fi
+    ;;
+  waybar-start) waybar_start ;;
+  *)
+    echo "usage: rice-mode [get|toggle|set rice|pro|apply|set-image PATH|waybar|waybar-start]" >&2
+    exit 1
+    ;;
+esac

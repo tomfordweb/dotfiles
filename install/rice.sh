@@ -13,4 +13,5 @@ bin/rice-build
 sass -I ./rice --watch \
   config/wofi/theme.scss:config/wofi/style.css \
   config/waybar/theme.scss:config/waybar/style.css \
+  config/waybar/theme-pro.scss:config/waybar/style-pro.css \
   config/eww/theme.scss:config/eww/eww.css

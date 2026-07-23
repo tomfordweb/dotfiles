@@ -5,12 +5,13 @@
 @forward "palette";
 @use "palette" as *;
 
-// glass surfaces
-$glass-bg: rgba(20, 20, 32, 0.72); // floating pill background
-$glass-bg-solid: rgba(20, 20, 32, 0.86); // launcher / panel background
-$glass-chip: rgba(49, 50, 68, 0.5); // module chip
-$glass-border: rgba($mauve, 0.22);
-$glow-mauve: rgba($mauve, 0.5);
+// glass surfaces. !default so a "pro" (presentation) stylesheet can flatten
+// them with `@use "rice" with (...)` — see config/waybar/theme-pro.scss.
+$glass-bg: rgba(20, 20, 32, 0.72) !default; // floating pill background
+$glass-bg-solid: rgba(20, 20, 32, 0.86) !default; // launcher / panel background
+$glass-chip: rgba(49, 50, 68, 0.5) !default; // module chip
+$glass-border: rgba($mauve, 0.22) !default;
+$glow-mauve: rgba($mauve, 0.5) !default;
 
 // signature mauve -> cyan gradient (active workspace, clock, launcher
 // selection, logo). Dark text on top.
