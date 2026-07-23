@@ -103,6 +103,9 @@ let
   });
 in
 {
+  # sox — audio recording backend for Claude Code's /voice mode.
+  home.packages = with pkgs; [ sox ];
+
   home.file.".local/share/tomfordweb-mcp/package.json" = {
     force = true;
     source = mcpPackageJson;
