@@ -3,6 +3,8 @@
 set -e
 
 while true; do
-  hyprwallpapers
+  # pro (presentation) mode pins one static image — skip the shuffle so it
+  # never gets clobbered mid-meeting. See bin/rice-mode.
+  [ "$(rice-mode get)" = "pro" ] || hyprwallpapers
   sleep "$1"
 done
