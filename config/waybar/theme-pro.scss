@@ -1,0 +1,62 @@
+// "pro" (presentation) waybar stylesheet — same layout as theme.scss, but
+// flat and opaque: no translucency for Hyprland's blur to frost, no neon
+// glow. Loaded by `waybar -s style-pro.css` when rice-mode = pro.
+//
+// Configures the shared glass vars first, then pulls in the normal theme —
+// @use rules must precede everything else, and a module may only be
+// configured once, by the first loader (this file).
+//
+// Hex literals, not theme.$mantle etc: the palette isn't in scope yet at
+// configuration time. Values mirror $mantle / $mantle2 / $surface1.
+@use "rice" as theme with (
+  $glass-bg: #181825,
+  $glass-bg-solid: #181825,
+  $glass-chip: #29293a,
+  $glass-border: #45475a,
+  $glow-mauve: transparent
+);
+@use "theme" as base;
+
+// ── flatten the neon ──────────────────────────────────────────────────
+.modules-center,
+.modules-right {
+  box-shadow: none;
+}
+
+#clock {
+  background-image: none;
+  background-color: theme.$surface1;
+  color: theme.$text;
+}
+
+#workspaces button {
+  &:hover,
+  &.active,
+  &.urgent {
+    box-shadow: none;
+  }
+
+  &.active {
+    background: linear-gradient(
+      to right,
+      theme.$mantle2 0,
+      theme.$mantle2 26px,
+      theme.$sapphire 26px
+    );
+  }
+}
+
+// muted module accents — no candy colors on a shared screen
+#cpu,
+#memory,
+#network,
+#bluetooth,
+#pulseaudio,
+#temperature,
+#custom-nvidia-smi {
+  color: theme.$subtext0;
+}
+
+#custom-rice-mode {
+  color: theme.$sapphire;
+}

@@ -112,3 +112,40 @@
   background-color: rgba(243, 139, 168, 0.3);
   color: #cdd6f4;
 }
+
+.cc.flat {
+  background-color: #181825;
+  border-color: #45475a;
+  box-shadow: none;
+}
+.cc.flat .cc-card,
+.cc.flat .cc-toggle {
+  background-color: #29293a;
+}
+.cc.flat .cc-toggle.on {
+  background-image: none;
+  background-color: #74c7ec;
+  box-shadow: none;
+  color: #11111b;
+}
+.cc.flat .cc-slider trough highlight {
+  background-image: none;
+  background-color: #74c7ec;
+}
+.cc.flat .cc-slider slider {
+  background-color: #74c7ec;
+}
+.cc.flat .cc-media {
+  color: #a6adc8;
+}
+
+.cal-ghost.flat .cal {
+  color: rgba(205, 214, 244, 0.28);
+}
+.cal-ghost.flat .cal.header, .cal-ghost.flat .cal.highlight {
+  color: rgba(166, 173, 200, 0.5);
+}
+.cal-ghost.flat .cal:selected {
+  background-image: none;
+  background-color: #74c7ec;
+}
