@@ -1,108 +1,235 @@
 { pkgs, lib, config, ... }:
 
 # ------------------------------------------------------------------
-# AI tool wiring — Claude Code / codex config + shared MCP servers.
+# AI tool wiring — Claude Code / opencode / codex config + shared MCP
+# servers. Full port of ops/local.ai.yml into home-manager: `ops` no
+# longer carries ANY AI-agent configuration.
 # ------------------------------------------------------------------
-# Port of ops/local.ai.yml's local wiring into home-manager so it is
-# nix-managed and reproducible (previously ansible-only).
+# Canonical content now lives INSIDE this repo at ./ai-tools/ (public —
+# generic ideas only, no tomfordweb-specific facts) plus a vendored
+# ./ai-tools/vendor/caveman submodule (public upstream). The one piece of
+# genuinely private, tomfordweb-specific content (deploy conventions,
+# secrets scheme, DB naming, etc.) lives in the private `wiki` repo,
+# checked out as the `docs` submodule of this repo (`dotfiles/docs`) —
+# never in this public repo's own tracked files.
 #
-# The canonical sources live in the OPS repo, checked out at
-# ~/code/tomfordweb/ops (with its vendor/caveman submodule). This module
-# only (re)creates the symlinks Claude/codex actually read + installs the
-# pinned MCP npm servers — it does NOT vendor the content. If the ops repo
-# is absent (e.g. a fresh VM), the activation guard skips everything.
-#
-# DEFERRED (still ops/local.ai.yml, not ported here): the blanket parent
-# ~/code/tomfordweb/CLAUDE.md + per-project CLAUDE.tomfordweb.md wiring
-# (those mutate OTHER repos, not this machine's config), opencode.jsonc
-# rendering, and `claude/codex mcp add` registration (runtime ~/.claude.json
-# state — the executable paths are re-registered on first use).
+# This module (re)creates the symlinks/config Claude/opencode/codex
+# actually read, renders opencode.jsonc, registers MCP servers with
+# claude/codex, and wires the blanket + per-project tomfordweb rules
+# import into other repos under ~/code — all driven from content that
+# ships with THIS checkout, no external `ops` dependency.
 
 let
   home = config.home.homeDirectory;
-  ops = "${home}/code/tomfordweb/ops";
+  dotfiles = "${home}/code/tomfordweb/dotfiles";
+  aiTools = "${dotfiles}/ai-tools";
+  wikiRules = "${dotfiles}/docs/ai/tomfordweb.md";
   mcpHome = "${home}/.local/share/tomfordweb-mcp";
+  xdgConfigHome = "${home}/.config";
+  opencodeLive = "${xdgConfigHome}/opencode";
+
+  # Mirrors the old ops `ai_mcp_servers` registry. npm-backed servers launch
+  # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
+  # sidemux is PATH-resolved so the sidemux repo's own flake+direnv shim can
+  # shadow it with a local build without any config change here.
+  npmServers = [
+    {
+      name = "playwright";
+      entry = "@playwright/mcp/cli.js";
+      # $CHROME resolved by the activation script below (chromium-<rev> is
+      # not knowable at eval time, only after the store path is realized).
+      args = [ "--executable-path" "$CHROME" ];
+    }
+    { name = "context7"; entry = "@upstash/context7-mcp/dist/index.js"; args = [ ]; }
+  ];
+  sidemux = { name = "sidemux"; command = "sidemux"; env = { SIDEMUX_SESSION = "smux"; }; };
+
+  mcpPackageJson = pkgs.writeText "tomfordweb-mcp-package.json" (builtins.toJSON {
+    private = true;
+    dependencies = {
+      # COUPLED to pkgs.playwright-driver below: this mcp version resolves a
+      # playwright-core that expects a specific chromium rev, and the nixpkgs
+      # playwright-driver must ship that SAME rev. Bump the two together.
+      "@playwright/mcp" = "0.0.77";
+      "@upstash/context7-mcp" = "3.2.2";
+    };
+  });
+
+  opencodeModels = {
+    "qwen2.5:72b".name = "Qwen2.5 72B";
+    "qwen2.5:14b-instruct-q5_K_M".name = "Qwen2.5 14B";
+    "qwen2.5-coder:32b".name = "Qwen2.5 Coder 32B";
+    "qwen2.5-coder:14b-instruct-q5_K_M".name = "Qwen2.5 Coder 14B";
+    "llama3.3:latest".name = "Llama 3.3";
+    "deepseek-r1:32b".name = "DeepSeek-R1 32B";
+  };
+  ollamaHost = "127.0.0.1:11434";
+
+  # opencode.jsonc — mirrors ops/templates/opencode.jsonc.j2's shape. Built
+  # by nix (structure/typos are eval-time checked) but the playwright
+  # chromium path can only be resolved at activation time (bash glob against
+  # the realized store path, same reason as $CHROME above) — so this is a
+  # TEMPLATE with a placeholder, substituted by the activation script below,
+  # not a `home.file` served straight from the nix store.
+  opencodeJsonTemplate = pkgs.writeText "opencode.jsonc.tmpl" (builtins.toJSON {
+    "$schema" = "https://opencode.ai/config.json";
+    shell = "/bin/zsh";
+    mcp =
+      (lib.listToAttrs (map
+        (s: lib.nameValuePair s.name {
+          type = "local";
+          command = [ "node" "${mcpHome}/node_modules/${s.entry}" ] ++ s.args;
+        })
+        npmServers))
+      // {
+        "${sidemux.name}" = {
+          type = "local";
+          command = [ sidemux.command ];
+          environment = sidemux.env;
+        };
+      };
+    provider.ollama = {
+      npm = "@ai-sdk/openai-compatible";
+      name = "Ollama";
+      options.baseURL = "http://${ollamaHost}/v1";
+      models = opencodeModels;
+    };
+    plugin = [
+      "./plugins/caveman/plugin.js"
+      "./plugins/claude-compat.ts"
+      "./plugins/workmux-status.ts"
+    ];
+  });
 in
 {
-  # Pinned MCP server manifest (mirrors ops `ai_mcp_servers`). The activation
-  # script npm-installs these into node_modules beside this file. All AI tools
-  # launch `node ${mcpHome}/node_modules/<entry>` — no per-launch npx.
-  # force: npm install rewrites package.json in place (identical content,
-  # reformatted), turning the symlink into a plain file — without force every
-  # later activation dies on the clobber check.
   home.file.".local/share/tomfordweb-mcp/package.json" = {
     force = true;
-    text = builtins.toJSON {
-      private = true;
-      dependencies = {
-        # COUPLED to pkgs.playwright-driver below: this mcp version resolves a
-        # playwright-core that expects a specific chromium rev, and the nixpkgs
-        # playwright-driver must ship that SAME rev (currently both -> 1228).
-        # Bump the two together; a mismatch = "browser executable doesn't exist".
-        "@playwright/mcp" = "0.0.77";
-        "@upstash/context7-mcp" = "3.2.2";
-      };
-    };
+    source = mcpPackageJson;
   };
 
-  # Playwright browser comes from nixpkgs (immutable /nix/store path), NOT from
-  # `npx playwright install` into ~/.cache/ms-playwright/chromium-<n>. That cache
-  # dir is mutable and its version suffix bumps on every install, which forced a
-  # brittle hand-chased `--executable-path` pin (with a stale /home/tomford user)
-  # baked into committed MCP configs. SKIP_DOWNLOAD stops any stray npx download.
-  #
-  # @playwright/mcp defaults to the `chrome` CHANNEL (system Google Chrome, which
-  # isn't installed) — so it still needs an explicit --executable-path pointing at
-  # the bundled chromium. PLAYWRIGHT_CHROMIUM_EXECUTABLE (set in the zsh init below)
-  # is that full path; committed MCP configs reference it as an env var, so they
-  # carry NO version suffix and NO /nix/store hash — both resolve per-machine here.
   home.sessionVariables = {
     PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
   };
 
-  # Resolve the versioned chromium dir at login. The chromium-<rev> suffix tracks
-  # the nixpkgs playwright-driver bump; globbing it here means a nixpkgs upgrade
-  # needs no edit to any committed config. Glob `chromium-*` matches chromium-<rev>
-  # but NOT chromium_headless_shell-<rev> (hyphen vs underscore) — single match.
-  # mkAfter: runs after hm-session-vars.sh has exported PLAYWRIGHT_BROWSERS_PATH.
   programs.zsh.initContent = lib.mkAfter ''
     export PLAYWRIGHT_CHROMIUM_EXECUTABLE="$(echo "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux64/chrome)"
   '';
 
   home.activation.tomfordwebAiWiring = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ops="${ops}"
+    aiTools="${aiTools}"
     claude="$HOME/.claude"
-    if [ -d "$ops/claude.tomfordweb" ]; then
+    CHROME=$(echo "${pkgs.playwright-driver.browsers}"/chromium-*/chrome-linux64/chrome)
+
+    if [ -d "$aiTools" ]; then
       $DRY_RUN_CMD mkdir -p "$claude/skills" "$claude/agents"
 
-      # SKILLS — global activation (~/.claude/skills is the only always-loaded
-      # location). Canonical tomfordweb skills + the pinned caveman submodule.
-      for d in "$ops"/claude.tomfordweb/skills/*/ "$ops"/vendor/caveman/skills/*/; do
+      # ---- Claude: skills, cavecrew agents, settings.json, CLAUDE.md, hooks
+      for d in "$aiTools"/skills/*/ "$aiTools"/vendor/caveman/skills/*/; do
         [ -e "$d" ] || continue
         $DRY_RUN_CMD ln -sfn "''${d%/}" "$claude/skills/$(basename "$d")"
       done
-
-      # AGENTS — cavecrew subagents from the caveman submodule.
-      for a in "$ops"/vendor/caveman/agents/*.md; do
+      for a in "$aiTools"/vendor/caveman/agents/*.md; do
         [ -e "$a" ] || continue
         $DRY_RUN_CMD ln -sfn "$a" "$claude/agents/$(basename "$a")"
       done
+      $DRY_RUN_CMD ln -sfn "$aiTools/settings.json" "$claude/settings.json"
+      $DRY_RUN_CMD ln -sfn "$aiTools/CLAUDE.md" "$claude/CLAUDE.md"
 
-      # Top-level Claude config adopted into ops (settings.json is co-written by
-      # Claude — version-controlling it is intentional).
-      $DRY_RUN_CMD ln -sfn "$ops/claude.tomfordweb/settings.json" "$claude/settings.json"
-      $DRY_RUN_CMD ln -sfn "$ops/claude.tomfordweb/CLAUDE.global.md" "$claude/CLAUDE.md"
-
-      # codex global instructions (caveman always-on) — only if codex is set up.
+      # ---- codex: caveman always-on global instructions
       if [ -d "$HOME/.codex" ]; then
-        $DRY_RUN_CMD ln -sfn "$ops/caveman.overlay/AGENTS.md" "$HOME/.codex/AGENTS.md"
+        $DRY_RUN_CMD ln -sfn "$aiTools/caveman-overlay/AGENTS.md" "$HOME/.codex/AGENTS.md"
       fi
 
-      # Shared MCP servers — install the pinned npm deps once (idempotent).
+      # ---- Shared MCP servers — one-time npm install of the pinned deps
       if [ ! -d "${mcpHome}/node_modules" ]; then
         $DRY_RUN_CMD ${pkgs.nodejs_22}/bin/npm install \
           --prefix "${mcpHome}" --no-audit --no-fund --omit=dev
+      fi
+
+      # ---- Register MCP servers with claude + codex (idempotent — both
+      # CLIs no-op on "already exists"; tolerate nonzero exit either way)
+      ${lib.concatMapStrings (s: ''
+        $DRY_RUN_CMD claude mcp add --scope user "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+        if [ -d "$HOME/.codex" ]; then
+          $DRY_RUN_CMD codex mcp add "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+        fi
+      '') npmServers}
+      $DRY_RUN_CMD claude mcp add --scope user "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "-e ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
+      if [ -d "$HOME/.codex" ]; then
+        $DRY_RUN_CMD codex mcp add "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--env ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
+      fi
+
+      # ---- opencode: static assets + rendered opencode.jsonc
+      $DRY_RUN_CMD mkdir -p "${opencodeLive}"
+      for entry in plugins skills agents commands AGENTS.md; do
+        target="${opencodeLive}/$entry"
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+          $DRY_RUN_CMD rm -rf "$target"
+        fi
+        $DRY_RUN_CMD ln -sfn "$aiTools/opencode/$entry" "$target"
+      done
+      $DRY_RUN_CMD cp "$aiTools/opencode/package.json" "${opencodeLive}/package.json"
+      $DRY_RUN_CMD cp "$aiTools/opencode/package-lock.json" "${opencodeLive}/package-lock.json"
+      if [ ! -d "${opencodeLive}/node_modules" ]; then
+        $DRY_RUN_CMD ${pkgs.nodejs_22}/bin/npm install --prefix "${opencodeLive}" --no-audit --no-fund
+      fi
+      $DRY_RUN_CMD sed "s|\$CHROME|$CHROME|" "${opencodeJsonTemplate}" > "${opencodeLive}/opencode.jsonc"
+
+      # ---- Blanket parent CLAUDE.md + per-project wiring — both need the
+      # private wiki rules file to exist (it's in a separate, private repo
+      # checked out as a submodule of this one; skip cleanly if absent, e.g.
+      # a fresh machine before that submodule is initialized).
+      if [ -f "${wikiRules}" ]; then
+      $DRY_RUN_CMD mkdir -p "${home}/code/tomfordweb"
+      parentClaude="${home}/code/tomfordweb/CLAUDE.md"
+      marker_begin="<!-- ANSIBLE MANAGED: tomfordweb shared claude rules -->"
+      marker_end="<!-- /ANSIBLE MANAGED: tomfordweb shared claude rules -->"
+      block="$marker_begin
+# tomfordweb — shared Claude rules (parent)
+
+Applies to every project under \`~/code/tomfordweb/\` (Claude loads CLAUDE.md
+up the directory tree). Canonical source is the private \`wiki\` repo,
+checked out as \`dotfiles/docs\`. Managed by dotfiles/nixos/home/ai-tools.nix —
+edit there, not here.
+
+@${wikiRules}
+$marker_end"
+      if [ -f "$parentClaude" ] && grep -qF "$marker_begin" "$parentClaude"; then
+        $DRY_RUN_CMD ${pkgs.gawk}/bin/awk -v b="$marker_begin" -v e="$marker_end" -v block="$block" '
+          $0==b {print block; skip=1; next}
+          $0==e {skip=0; next}
+          !skip {print}
+        ' "$parentClaude" > "$parentClaude.tmp" && $DRY_RUN_CMD mv "$parentClaude.tmp" "$parentClaude"
+      else
+        $DRY_RUN_CMD printf '%s\n' "$block" >> "$parentClaude"
+      fi
+
+      # ---- Per-project wiring for tomfordweb repos opened standalone
+      # OUTSIDE ~/code/tomfordweb (e.g. a separate top-level checkout) — the
+      # blanket parent CLAUDE.md above already covers everything nested
+      # under ~/code/tomfordweb, so this only needs to reach the rest.
+      # No repo names are hardcoded: scan for real git repo roots (a `.git`
+      # DIRECTORY — submodules mount as a `.git` FILE, so this filter
+      # already skips them) whose origin remote is under the tomfordweb org.
+        $DRY_RUN_CMD find "${home}/code" \
+          -path "${home}/code/tomfordweb" -prune -o \
+          -name node_modules -prune -o \
+          -name .git -type d -print 2>/dev/null | while read -r gitdir; do
+          repo="$(dirname "$gitdir")"
+          remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
+          case "$remote" in
+            *github.com*tomfordweb/*|*github.com:tomfordweb/*)
+              rel="$(realpath --relative-to="$repo" "${wikiRules}")"
+              $DRY_RUN_CMD ln -sfn "$rel" "$repo/CLAUDE.tomfordweb.md"
+              if [ -f "$repo/CLAUDE.md" ] && ! grep -qF '@CLAUDE.tomfordweb.md' "$repo/CLAUDE.md"; then
+                $DRY_RUN_CMD sed -i '0,/^#/{/^#/a\
+@CLAUDE.tomfordweb.md
+                }' "$repo/CLAUDE.md"
+              fi
+              ;;
+          esac
+        done
       fi
     fi
   '';
