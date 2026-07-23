@@ -1,0 +1,64 @@
+# caveman overlay manifest
+#
+# Records the local deltas we carry ON TOP of the pinned upstream submodule
+# (vendor/caveman). "Not a fork": every delta is explicit and classified. See
+# README.md for the resync workflow.
+#
+# HISTORY: originally pinned at 655b7d9 (v1.8.2), which PREDATED the merge of our
+# opencode plugin fix. Bumped to v1.9.1 — upstream now carries that fix verbatim,
+# so NO upstream PR is needed (the opencode-API rewrite landed upstream before we
+# adopted it; we were simply pinned stale). The overlay collapsed accordingly.
+#
+# pinned_sha MUST match `git -C vendor/caveman rev-parse HEAD`.
+pinned_sha: "0d95a81d35a9f2d123a5e9430d1cfc43d55f1bb0"   # v1.9.1
+upstream: "https://github.com/JuliusBrussee/caveman"
+upstream_pr: "n/a — opencode plugin fix already merged upstream (v1.9.x); no PR"
+
+# After ops-y2w, EVERY caveman asset is a symlink into vendor/caveman EXCEPT the
+# two entries below. Sync upstream = `git -C vendor/caveman checkout <newtag>` +
+# update pinned_sha; the symlinks pick up the new content automatically.
+#   class:
+#     local-integration-REQUIRED - opencode/codex reject the upstream form; a local
+#       adaptation is functionally necessary (verified by opencode config validation)
+deltas:
+  - live_path: caveman-overlay/AGENTS.md
+    upstream_path: AGENTS.md
+    class: local-integration-REQUIRED
+    consumed_by: [opencode, codex, claude]
+    reason: >-
+      THE single shared always-on caveman ruleset. Upstream's AGENTS.md is four
+      `@./skills/*/SKILL.md` lines — Claude Code @import syntax that opencode/codex
+      do NOT resolve (they load AGENTS.md as raw instruction text), so verbatim
+      would inject dead import lines and caveman's base ruleset would never load.
+      ~15 stable lines; each tool's wiring symlinks its instruction slot here.
+
+  - live_path: opencode/agents/cavecrew-{builder,investigator,reviewer}.md
+    upstream_path: agents/cavecrew-*.md
+    class: local-integration-REQUIRED
+    consumed_by: [opencode]
+    reason: >-
+      Upstream frontmatter uses Claude-style `tools: [Read, Grep, Bash]` (array).
+      opencode REQUIRES tools to be an object or absent and REJECTS THE WHOLE CONFIG
+      otherwise ("Expected object | undefined, got [...] tools" — verified on
+      opencode 1.17.13). Local copies drop the `tools:` line so agents inherit
+      default tools; `model: haiku` is accepted by opencode as-is.
+
+# IDENTICAL to the pinned submodule (v1.9.1) — no local delta. ops-y2w sources
+# these directly from vendor/caveman instead of keeping a copy in opencode.tomfordweb.
+# (plugin.js, caveman-help, caveman-commit, caveman-compress converged to upstream
+# once we bumped off the stale v1.8.2 pin.)
+identical_to_upstream:
+  - { live: opencode/plugins/caveman/plugin.js,   upstream: src/plugins/opencode/plugin.js }
+  - { live: opencode/plugins/caveman/package.json, upstream: src/plugins/opencode/package.json }
+  - { live: opencode/skills/cavecrew,            upstream: skills/cavecrew }
+  - { live: opencode/skills/caveman-commit,      upstream: skills/caveman-commit }
+  - { live: opencode/skills/caveman-compress,    upstream: skills/caveman-compress }
+  - { live: opencode/skills/caveman-help,        upstream: skills/caveman-help }
+  - { live: opencode/skills/caveman-review,      upstream: skills/caveman-review }
+  - { live: opencode/skills/caveman-stats,       upstream: skills/caveman-stats }
+  - { live: opencode/commands/caveman-commit.md, upstream: src/plugins/opencode/commands/caveman-commit.md }
+  - { live: opencode/commands/caveman-compress.md, upstream: src/plugins/opencode/commands/caveman-compress.md }
+  - { live: opencode/commands/caveman-help.md,   upstream: src/plugins/opencode/commands/caveman-help.md }
+  - { live: opencode/commands/caveman.md,        upstream: src/plugins/opencode/commands/caveman.md }
+  - { live: opencode/commands/caveman-review.md, upstream: src/plugins/opencode/commands/caveman-review.md }
+  - { live: opencode/commands/caveman-stats.md,  upstream: src/plugins/opencode/commands/caveman-stats.md }

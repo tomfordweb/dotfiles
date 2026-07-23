@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# claude-git-guard — PreToolUse(Bash) hook.
+#
+# Blocks destructive / irreversible git operations unless an explicit override
+# is present. Exit 2 + stderr blocks the tool and feeds the reason back to Claude.
+#
+# Blocked:
+#   - push to a protected branch (main/master), incl. refspec forms (:main, HEAD:main)
+#   - force push        (--force / -f / --force-with-lease)
+#   - git reset --hard
+#   - git filter-branch
+#   - git commit --amend
+#
+# NOT blocked: plain `git rebase` — rebase is the preferred integration workflow
+# here, is local + reflog-recoverable, and the genuinely dangerous part (publishing
+# rewritten history) is still gated at the force-push check above.
+#
+# Override (explicit go gate): set the env var inline on the command, e.g.
+#   CLAUDE_ALLOW_GIT_REWRITE=1 git push origin main
+# An inline `VAR=val cmd` prefix is a valid shell command, so it runs as-is once
+# allowed — no command rewriting required. The guard also honors the var if it is
+# already exported in the environment.
+set -euo pipefail
+
+payload="$(cat)"
+
+# Extract .tool_input.command (python3 is always present on this machine).
+command="$(printf '%s' "$payload" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("")
+    sys.exit(0)
+print((d.get("tool_input") or {}).get("command", "") or "")
+')"
+
+# Nothing to inspect → allow.
+[ -z "$command" ] && exit 0
+
+# Explicit override: env already set, or the inline token is on the command line.
+if [ "${CLAUDE_ALLOW_GIT_REWRITE:-}" = "1" ]; then exit 0; fi
+if printf '%s' "$command" | grep -Eq 'CLAUDE_ALLOW_GIT_REWRITE=1'; then exit 0; fi
+
+block() {
+  echo "claude-git-guard: BLOCKED — $1" >&2
+  echo "Override (only when truly intended): prefix the command with CLAUDE_ALLOW_GIT_REWRITE=1" >&2
+  exit 2
+}
+
+# beads-chore exception: a push to main/master is allowed without prompting when
+# EVERY path that differs from the protected branch tip lives under .beads/ (the
+# passive issues.jsonl export). Any non-beads file riding along → still blocked.
+# Scoped to ordinary pushes only — force push never reaches here.
+repo="${CLAUDE_PROJECT_DIR:-.}"
+beads_only_push() {
+  local base changed
+  base="$(git -C "$repo" rev-parse --verify --quiet origin/main 2>/dev/null \
+       || git -C "$repo" rev-parse --verify --quiet origin/master 2>/dev/null \
+       || git -C "$repo" rev-parse --verify --quiet main 2>/dev/null \
+       || git -C "$repo" rev-parse --verify --quiet master 2>/dev/null)" || return 1
+  [ -n "$base" ] || return 1
+  changed="$(git -C "$repo" diff --name-only "$base"..HEAD 2>/dev/null)" || return 1
+  [ -n "$changed" ] || return 1               # nothing differs → no special case
+  local nonbeads
+  nonbeads="$(printf '%s\n' "$changed" | grep -v '^\.beads/' || true)"
+  [ -z "$nonbeads" ]                          # true only when every path is .beads/*
+}
+
+# Only inspect git invocations.
+printf '%s' "$command" | grep -Eq '(^|[;&|[:space:]])git([[:space:]]|$)' || exit 0
+
+# --- push to a protected branch ---
+if printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bpush\b'; then
+  # Force push always blocks first — the beads exception never applies to it.
+  if printf '%s' "$command" | grep -Eq '(--force\b|--force-with-lease\b|[[:space:]]-f\b)'; then
+    block "force push"
+  fi
+  # Protected-branch push. Signal = the CURRENT branch (a bare `git push` targets
+  # it) plus explicit colon-refspec forms. Do NOT match a bare "main"/"master"
+  # substring — that false-positives on commit messages / compound commands that
+  # merely mention the word (e.g. `git commit -m "... push to main ..."; git push`).
+  # Gap: an explicit `git push origin main` FROM a non-main branch is not caught
+  # (rare, deliberate) — force-push and on-branch pushes are.
+  cur="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+  if [ "$cur" = "main" ] || [ "$cur" = "master" ] \
+     || printf '%s' "$command" | grep -Eq '(:(main|master)\b|HEAD:(main|master)\b)'; then
+    beads_only_push && exit 0   # beads-only chore push to main → allowed
+    block "push to protected branch (main/master)"
+  fi
+fi
+
+# --- history rewrite / destructive resets ---
+printf '%s' "$command" | grep -Eq 'git[[:space:]].*\breset\b.*--hard\b'   && block "git reset --hard"
+printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bfilter-branch\b'     && block "git filter-branch"
+printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bcommit\b.*--amend\b' && block "git commit --amend"
+
+exit 0
