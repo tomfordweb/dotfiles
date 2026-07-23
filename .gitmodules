@@ -7,3 +7,6 @@
 [submodule "docs"]
 	path = docs
 	url = git@github.com:tomfordweb/wiki.git
+[submodule "ai-tools/vendor/caveman"]
+	path = ai-tools/vendor/caveman
+	url = https://github.com/JuliusBrussee/caveman.git

@@ -1,0 +1,1 @@
+../../vendor/caveman/src/plugins/opencode/commands/caveman-commit.md
