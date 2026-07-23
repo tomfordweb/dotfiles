@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"/home/tom/code/tomfordweb/ops/claude.tomfordweb/hooks/claude-git-guard\"",
+            "command": "bash \"/home/tom/code/tomfordweb/dotfiles/ai-tools/hooks/claude-git-guard\"",
             "timeout": 5
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/home/tom/code/tomfordweb/ops/vendor/caveman/src/hooks/caveman-activate.js\"",
+            "command": "node \"/home/tom/code/tomfordweb/dotfiles/ai-tools/vendor/caveman/src/hooks/caveman-activate.js\"",
             "timeout": 5,
             "statusMessage": "Loading caveman mode..."
           }
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/home/tom/code/tomfordweb/ops/vendor/caveman/src/hooks/caveman-mode-tracker.js\"",
+            "command": "node \"/home/tom/code/tomfordweb/dotfiles/ai-tools/vendor/caveman/src/hooks/caveman-mode-tracker.js\"",
             "timeout": 5,
             "statusMessage": "Tracking caveman mode..."
           }
@@ -89,7 +89,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash \"/home/tom/code/tomfordweb/ops/vendor/caveman/src/hooks/caveman-statusline.sh\""
+    "command": "bash \"/home/tom/code/tomfordweb/dotfiles/ai-tools/vendor/caveman/src/hooks/caveman-statusline.sh\""
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
