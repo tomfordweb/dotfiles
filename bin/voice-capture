@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Append one agent prompt to the private voice corpus. Runs as a hook.
+
+Wired to Claude Code's UserPromptSubmit hook, codex's user_prompt_submit hook and
+the opencode voice-capture plugin. Reads the hook payload (JSON) or raw text on
+stdin. Hard requirements, in order of importance:
+
+  1. NEVER break the prompt. Any internal failure exits 0, silently.
+  2. Fast: append-only, no network, no model calls.
+  3. Scrub before write. Anything that smells like a secret goes to rejects.jsonl
+     (gitignored) instead of the corpus.
+
+Backfill and profiling live in voice-corpus / voice-profile; this only appends.
+"""
+import hashlib
+import json
+import os
+import re
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+VOICE_DIR = os.path.join(HOME, "code/tomfordweb/dotfiles/docs/ai/voice")
+CORPUS = os.path.join(VOICE_DIR, "corpus.jsonl")
+REJECTS = os.path.join(VOICE_DIR, "rejects.jsonl")
+PENDING = os.path.join(
+    os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")),
+    "tomfordweb", "voice-pending",
+)
+REBUILD_EVERY = 25
+
+# Harness-injected or otherwise non-Tom turns. The expensive lesson from the
+# first backfill: a `type: user` entry is NOT the same as "Tom typed this" —
+# task notifications, tool results, hook context and (worst) subagent prompts
+# written BY an agent all arrive as user turns. Anything that survives here
+# should be something a human typed at a prompt.
+NOISE = (
+    "<system-reminder", "<command-name>", "<local-command",
+    "[Request interrupted", "Caveat: The messages below",
+    "<user-prompt-submit-hook>", "This session is being continued",
+    "<task-notification>", "<tool-use-id>", "<output-file>",
+    "hook additional context", "Contents of /", "<function_results>",
+    "You are ", "Your task is", "(read-only):",
+    "<bash-stdout>", "<bash-stderr>", "<bash-input>",
+    "❯", "[sudo] password",  # pasted terminal sessions
+)
+
+# Prompts a human types are short. Longer than this is a paste or a generated
+# brief, not voice.
+MAX_WORDS = 250
+
+SECRET = re.compile(
+    r"""(op://|
+         sk-[A-Za-z0-9]{16,}|
+         gh[pousr]_[A-Za-z0-9]{20,}|
+         glpat-[A-Za-z0-9_\-]{16,}|
+         AKIA[0-9A-Z]{12,}|
+         -----BEGIN[ A-Z]*PRIVATE\ KEY|
+         \b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b|
+         \b(?:password|passwd|secret|api[_-]?key|token)\s*[=:]\s*\S+)""",
+    re.VERBOSE | re.IGNORECASE,
+)
+
+
+def prose_only(text):
+    """Drop pasted code/logs/structured docs; keep what Tom actually composed."""
+    text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)
+    lines = []
+    structured = 0
+    for line in text.splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if s.startswith(("$ ", "> ", "#!", "at ", "|", "+", "-  ")):
+            continue
+        if s.startswith("#") or s.startswith("==") or re.match(r"^\d+\.\s", s):
+            structured += 1
+            continue
+        if re.match(r"^\s*(File \"|Traceback|\w+Error:|\s{4,}\S)", line):
+            continue
+        lines.append(s)
+    # A document, not a prompt: headings/numbered steps dominate.
+    if structured >= 3:
+        return ""
+    out = "\n".join(lines).strip()
+    return "" if len(out.split()) > MAX_WORDS else out
+
+
+def read_stdin():
+    raw = sys.stdin.read()
+    if not raw.strip():
+        return "", {}
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        return raw, {}
+    if not isinstance(payload, dict):
+        return raw, {}
+    for key in ("prompt", "user_prompt", "text", "message", "input"):
+        val = payload.get(key)
+        if isinstance(val, str) and val.strip():
+            return val, payload
+    return "", payload
+
+
+def main():
+    text, payload = read_stdin()
+    if not text.strip():
+        return
+    if any(marker in text for marker in NOISE):
+        return
+
+    text = prose_only(text)
+    if len(text) < 3:
+        return
+
+    record = {
+        "ts": int(time.time()),
+        "source": os.environ.get("VOICE_CAPTURE_SOURCE", "claude"),
+        "project": os.path.basename(payload.get("cwd") or os.getcwd()),
+        "hash": hashlib.sha256(text.encode()).hexdigest()[:16],
+        "text": text,
+    }
+
+    os.makedirs(VOICE_DIR, exist_ok=True)
+    target = REJECTS if SECRET.search(text) else CORPUS
+    with open(target, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+    if target is REJECTS:
+        return
+
+    # Debounced profile rebuild: count captures, kick a detached rebuild at the
+    # threshold. Never runs inline — a keystroke must not wait on profiling.
+    os.makedirs(os.path.dirname(PENDING), exist_ok=True)
+    try:
+        n = int(open(PENDING).read().strip() or 0)
+    except Exception:
+        n = 0
+    n += 1
+    if n >= REBUILD_EVERY:
+        open(PENDING, "w").write("0")
+        if os.fork() == 0:
+            os.setsid()
+            devnull = os.open(os.devnull, os.O_RDWR)
+            for fd in (0, 1, 2):
+                os.dup2(devnull, fd)
+            os.execvp("voice-profile", ["voice-profile", "--incremental"])
+    else:
+        open(PENDING, "w").write(str(n))
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass  # capture must never break a prompt
+    sys.exit(0)

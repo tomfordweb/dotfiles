@@ -81,6 +81,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/home/tom/code/tomfordweb/dotfiles/bin/voice-capture",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "workmux set-window-status working"
           }
         ]
@@ -96,11 +105,11 @@
   },
   "effortLevel": "medium",
   "voice": {
-    "enabled": true,
+    "enabled": false,
     "mode": "hold"
   },
   "skipWorkflowUsageWarning": true,
   "theme": "dark",
   "switchModelsOnFlag": false,
-  "voiceEnabled": true
+  "voiceEnabled": false
 }

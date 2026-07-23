@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""Backfill the private voice corpus from local agent transcripts.
+
+Sources (all local, all read-only):
+  ~/.claude/projects/**/*.jsonl   Claude Code sessions
+  ~/.codex/history.jsonl          codex prompt history
+  ~/.local/share/opencode/opencode.db   opencode (sqlite)
+
+Live capture is handled by the voice-capture hook; this exists to seed the corpus
+from existing history and to reconcile anything the hooks miss. Dedupes against
+what is already there by content hash, so running it repeatedly is safe.
+
+  voice-corpus            incremental (skips files unchanged since last run)
+  voice-corpus --rebuild  ignore state, re-scan everything
+"""
+import glob
+import json
+import os
+import sqlite3
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from importlib.machinery import SourceFileLoader
+
+_capture = SourceFileLoader(
+    "voice_capture", os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice-capture")
+).load_module()
+
+HOME = os.path.expanduser("~")
+VOICE_DIR = os.path.join(HOME, "code/tomfordweb/dotfiles/docs/ai/voice")
+CORPUS = os.path.join(VOICE_DIR, "corpus.jsonl")
+REJECTS = os.path.join(VOICE_DIR, "rejects.jsonl")
+STATE = os.path.join(
+    os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")),
+    "tomfordweb", "voice-corpus.state",
+)
+
+
+def load_state(rebuild):
+    if rebuild or not os.path.exists(STATE):
+        return {}
+    try:
+        return json.load(open(STATE))
+    except Exception:
+        return {}
+
+
+def existing_hashes():
+    seen = set()
+    for path in (CORPUS, REJECTS):
+        if not os.path.exists(path):
+            continue
+        for line in open(path, encoding="utf-8"):
+            try:
+                seen.add(json.loads(line)["hash"])
+            except Exception:
+                continue
+    return seen
+
+
+def emit(records, seen, out, rejected):
+    """Scrub, dedupe, and split into corpus vs rejects."""
+    kept = 0
+    for ts, source, project, text in records:
+        text = _capture.prose_only(text or "")
+        if len(text) < 3 or any(m in text for m in _capture.NOISE):
+            continue
+        h = _capture.hashlib.sha256(text.encode()).hexdigest()[:16]
+        if h in seen:
+            continue
+        seen.add(h)
+        rec = {"ts": int(ts), "source": source, "project": project,
+               "hash": h, "text": text}
+        (rejected if _capture.SECRET.search(text) else out).append(rec)
+        kept += 1
+    return kept
+
+
+def scan_claude(state, out, rejected, seen):
+    files = glob.glob(os.path.join(HOME, ".claude/projects/**/*.jsonl"), recursive=True)
+    total = 0
+    for path in files:
+        mtime = os.path.getmtime(path)
+        if state.get(path, 0) >= mtime:
+            continue
+        project = os.path.basename(os.path.dirname(path)).split("-")[-1]
+        records = []
+        try:
+            for line in open(path, encoding="utf-8", errors="replace"):
+                try:
+                    d = json.loads(line)
+                except Exception:
+                    continue
+                if d.get("type") != "user":
+                    continue
+                # isSidechain marks subagent conversations: those "user" turns
+                # are prompts an AGENT wrote, not Tom. Including them poisons
+                # the profile with the model's own register. Same for meta
+                # entries and tool results.
+                if d.get("isSidechain") or d.get("isMeta") or d.get("toolUseResult"):
+                    continue
+                content = (d.get("message") or {}).get("content")
+                if isinstance(content, list) and any(
+                    isinstance(c, dict) and c.get("type") == "tool_result" for c in content
+                ):
+                    continue
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    text = " ".join(
+                        c.get("text", "") for c in content
+                        if isinstance(c, dict) and c.get("type") == "text"
+                    )
+                else:
+                    continue
+                ts = d.get("timestamp") or 0
+                if isinstance(ts, str):
+                    try:
+                        from datetime import datetime
+                        ts = int(datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp())
+                    except Exception:
+                        ts = 0
+                records.append((ts, "claude", project, text))
+        except Exception:
+            continue
+        total += emit(records, seen, out, rejected)
+        state[path] = mtime
+    return total
+
+
+def scan_codex(state, out, rejected, seen):
+    path = os.path.join(HOME, ".codex/history.jsonl")
+    if not os.path.exists(path):
+        return 0
+    mtime = os.path.getmtime(path)
+    if state.get(path, 0) >= mtime:
+        return 0
+    records = []
+    for line in open(path, encoding="utf-8", errors="replace"):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        records.append((d.get("ts", 0), "codex", "", d.get("text", "")))
+    state[path] = mtime
+    return emit(records, seen, out, rejected)
+
+
+def scan_opencode(state, out, rejected, seen):
+    db = os.path.join(HOME, ".local/share/opencode/opencode.db")
+    if not os.path.exists(db):
+        return 0
+    mtime = os.path.getmtime(db)
+    if state.get(db, 0) >= mtime:
+        return 0
+    records = []
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        cols = {r[1] for r in con.execute("PRAGMA table_info(session_input)")}
+        text_col = "text" if "text" in cols else ("input" if "input" in cols else None)
+        if text_col:
+            ts_col = "created_at" if "created_at" in cols else None
+            q = f"SELECT {text_col}{', ' + ts_col if ts_col else ''} FROM session_input"
+            for row in con.execute(q):
+                text = row[0]
+                ts = row[1] if len(row) > 1 and row[1] else 0
+                if isinstance(ts, str):
+                    ts = 0
+                records.append((int(ts or 0) // (1000 if ts and ts > 1e12 else 1),
+                                "opencode", "", text))
+        con.close()
+    except Exception:
+        return 0
+    state[db] = mtime
+    return emit(records, seen, out, rejected)
+
+
+def main():
+    rebuild = "--rebuild" in sys.argv
+    state = load_state(rebuild)
+    seen = set() if rebuild else existing_hashes()
+    out, rejected = [], []
+
+    n = 0
+    n += scan_claude(state, out, rejected, seen)
+    n += scan_codex(state, out, rejected, seen)
+    n += scan_opencode(state, out, rejected, seen)
+
+    os.makedirs(VOICE_DIR, exist_ok=True)
+    mode = "w" if rebuild else "a"
+    if rebuild:
+        out.sort(key=lambda r: r["ts"])
+    for path, recs in ((CORPUS, out), (REJECTS, rejected)):
+        if not recs and mode == "a":
+            continue
+        with open(path, mode, encoding="utf-8") as fh:
+            for rec in recs:
+                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    json.dump(state, open(STATE, "w"))
+    print(f"corpus: +{len(out)} turns (+{len(rejected)} rejected, {n} scanned)")
+
+
+if __name__ == "__main__":
+    main()

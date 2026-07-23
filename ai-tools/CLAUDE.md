@@ -1,5 +1,12 @@
 # Global CLAUDE.md (system-level, all projects)
 
+Shared rules that opencode and codex get too (shell hygiene, validation/landing, architecture
+defaults, ports, prose) live in one file, imported here so there is a single source:
+
+@/home/tom/code/tomfordweb/dotfiles/ai-tools/AGENTS.shared.md
+
+Everything below is Claude-specific or Claude-first.
+
 ## Git — merging approved PRs/MRs
 
 Agents MAY merge any PR/MR that is **approved**. Approval is the gate — once a
