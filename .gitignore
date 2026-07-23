@@ -56,3 +56,12 @@
 /config/create-next-app-nodejs/
 /config/nextjs-nodejs/
 /config/systemd/
+
+# Voice corpus lives in the PRIVATE wiki submodule (docs/), never here.
+# Belt-and-braces so a stray copy cannot be committed to the public repo.
+ai/voice/
+voice/corpus.jsonl
+voice/rejects.jsonl
+
+# py_compile artifacts from the bin/ python scripts
+bin/__pycache__/

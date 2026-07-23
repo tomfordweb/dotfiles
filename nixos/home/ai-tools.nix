@@ -98,6 +98,7 @@ let
       "./plugins/caveman/plugin.js"
       "./plugins/claude-compat.ts"
       "./plugins/workmux-status.ts"
+      "./plugins/voice-capture.ts"
     ];
   });
 in
@@ -114,7 +115,68 @@ in
 
   programs.zsh.initContent = lib.mkAfter ''
     export PLAYWRIGHT_CHROMIUM_EXECUTABLE="$(echo "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux64/chrome)"
+
+    # Pinned/vendored AI tooling staleness. The banner is CACHE-ONLY (no network,
+    # no git) so it costs nothing at login; the refresh that populates that cache
+    # is detached and rate-limited to once a day. AI_TOOLS_CHECK=0 disables both.
+    if [[ -o interactive ]] && [ "''${AI_TOOLS_CHECK:-1}" != "0" ]; then
+      ai-tools-check 2>/dev/null
+      (ai-tools-check --refresh >/dev/null 2>&1 &) 2>/dev/null
+    fi
   '';
+
+  # ------------------------------------------------------------------
+  # Voice/preference profile — fully automatic, nothing to run by hand.
+  # Live capture happens in the per-tool hooks (claude settings.json, codex
+  # hooks.json, opencode voice-capture plugin); this timer backfills anything
+  # the hooks missed, rebuilds the derived profiles, and lands them in the
+  # PRIVATE wiki submodule. First run does the full historical backfill.
+  # ------------------------------------------------------------------
+  systemd.user.services.voice-profile = {
+    Unit.Description = "Rebuild writing-voice + preference profiles from agent transcripts";
+    Service = {
+      Type = "oneshot";
+      Nice = 10;
+      Environment = [ "PATH=${lib.makeBinPath [ pkgs.git pkgs.python3 pkgs.coreutils ]}:${dotfiles}/bin" ];
+      # VOICE_PROFILE_ROLE=capture-only on hosts without a local model: they
+      # still collect turns, but consume profiles that arrive via the submodule.
+      ExecStart = pkgs.writeShellScript "voice-profile-run" ''
+        set -uo pipefail
+        cd "${dotfiles}" || exit 0
+        voice-corpus || exit 0
+        [ "''${VOICE_PROFILE_ROLE:-full}" = "capture-only" ] && exit 0
+        voice-profile || exit 0
+
+        # Auth to land the data: commit + push ONLY the voice files, ONLY inside
+        # the private wiki submodule. This is a deliberate, narrow carve-out from
+        # the standing "no push without explicit approval" rule (same shape as
+        # the beads-chore exception) — any other changed path aborts the push.
+        [ "''${VOICE_CORPUS_AUTOPUSH:-1}" = "1" ] || exit 0
+        cd "${dotfiles}/docs" || exit 0
+        git add -- ai/voice ai/writing-voice-observed.md ai/preferences-observed.md 2>/dev/null
+        git diff --cached --quiet && exit 0
+        if [ -n "$(git diff --cached --name-only | grep -v '^ai/\(voice/\|writing-voice-observed\|preferences-observed\)' || true)" ]; then
+          echo "refusing: staged changes outside ai/voice" >&2
+          git reset >/dev/null 2>&1
+          exit 1
+        fi
+        git commit -q -m "chore(voice): refresh corpus + derived profiles" || exit 0
+        git push -q || echo "voice profile: push failed (left committed locally)" >&2
+      '';
+    };
+  };
+
+  systemd.user.timers.voice-profile = {
+    Unit.Description = "Daily writing-voice profile refresh";
+    Timer = {
+      OnCalendar = "daily";
+      # First boot after install: run the historical backfill without waiting a day.
+      OnStartupSec = "10m";
+      Persistent = true;
+      RandomizedDelaySec = "30m";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 
   home.activation.tomfordwebAiWiring = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     aiTools="${aiTools}"
@@ -136,9 +198,50 @@ in
       $DRY_RUN_CMD ln -sfn "$aiTools/settings.json" "$claude/settings.json"
       $DRY_RUN_CMD ln -sfn "$aiTools/CLAUDE.md" "$claude/CLAUDE.md"
 
-      # ---- codex: caveman always-on global instructions
+      # ---- codex: skills + always-on global instructions.
+      # codex reads $CODEX_HOME/skills, so the same skill set Claude gets is
+      # symlinked in (opencode gets them through its own skills/ dir, which is
+      # already a symlink to $aiTools/opencode/skills).
       if [ -d "$HOME/.codex" ]; then
-        $DRY_RUN_CMD ln -sfn "$aiTools/caveman-overlay/AGENTS.md" "$HOME/.codex/AGENTS.md"
+        $DRY_RUN_CMD mkdir -p "$HOME/.codex/skills"
+        for d in "$aiTools"/skills/*/ "$aiTools"/vendor/caveman/skills/*/; do
+          [ -e "$d" ] || continue
+          $DRY_RUN_CMD ln -sfn "''${d%/}" "$HOME/.codex/skills/$(basename "$d")"
+        done
+      fi
+
+      # ---- Shared always-on ruleset for opencode + codex.
+      # Claude gets AGENTS.shared.md via an @import at the top of CLAUDE.md, but
+      # opencode and codex load their instruction file as RAW TEXT and do not
+      # resolve @imports (same reason caveman-overlay/AGENTS.md exists at all).
+      # So their slot is a RENDERED concatenation, not a symlink: caveman rules
+      # first, then the shared rules. Edits to either source therefore need a
+      # `nixos-rebuild switch` to take effect for those two tools — unlike the
+      # live symlinks everywhere else in this module.
+      renderShared() {
+        cat "$aiTools/caveman-overlay/AGENTS.md" "$aiTools/AGENTS.shared.md" > "$1.tmp" \
+          && mv "$1.tmp" "$1"
+      }
+      if [ -d "$HOME/.codex" ]; then
+        [ -L "$HOME/.codex/AGENTS.md" ] && $DRY_RUN_CMD rm -f "$HOME/.codex/AGENTS.md"
+        $DRY_RUN_CMD renderShared "$HOME/.codex/AGENTS.md"
+
+        # codex: voice capture on every prompt (claude gets this through
+        # settings.json, opencode through its plugin). Idempotent — only added
+        # when absent. codex re-trusts changed hooks on next launch.
+        if [ -f "$HOME/.codex/hooks.json" ] && ! grep -q voice-capture "$HOME/.codex/hooks.json"; then
+          $DRY_RUN_CMD ${pkgs.python3}/bin/python3 - "$HOME/.codex/hooks.json" <<'PYEOF'
+import json, sys
+p = sys.argv[1]
+d = json.load(open(p))
+hooks = d.setdefault("hooks", {}).setdefault("UserPromptSubmit", [])
+hooks.append({"hooks": [{
+    "command": "VOICE_CAPTURE_SOURCE=codex ${dotfiles}/bin/voice-capture",
+    "type": "command",
+}]})
+json.dump(d, open(p, "w"), indent=2)
+PYEOF
+        fi
       fi
 
       # ---- Shared MCP servers — one-time npm install of the pinned deps
@@ -162,13 +265,16 @@ in
 
       # ---- opencode: static assets + rendered opencode.jsonc
       $DRY_RUN_CMD mkdir -p "${opencodeLive}"
-      for entry in plugins skills agents commands AGENTS.md; do
+      for entry in plugins skills agents commands; do
         target="${opencodeLive}/$entry"
         if [ -e "$target" ] && [ ! -L "$target" ]; then
           $DRY_RUN_CMD rm -rf "$target"
         fi
         $DRY_RUN_CMD ln -sfn "$aiTools/opencode/$entry" "$target"
       done
+      # AGENTS.md is rendered (see renderShared above), not symlinked.
+      [ -L "${opencodeLive}/AGENTS.md" ] && $DRY_RUN_CMD rm -f "${opencodeLive}/AGENTS.md"
+      $DRY_RUN_CMD renderShared "${opencodeLive}/AGENTS.md"
       $DRY_RUN_CMD cp "$aiTools/opencode/package.json" "${opencodeLive}/package.json"
       $DRY_RUN_CMD cp "$aiTools/opencode/package-lock.json" "${opencodeLive}/package-lock.json"
       if [ ! -d "${opencodeLive}/node_modules" ]; then

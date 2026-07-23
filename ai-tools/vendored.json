@@ -1,0 +1,40 @@
+{
+  "$comment": "Registry of pinned/vendored AI tooling. bin/ai-tools-check compares each entry against upstream (cached, background); bin/ai-tools-update performs the bump plus its bookkeeping. Adding a tracked tool should be one entry here, not new code.",
+  "items": [
+    {
+      "name": "caveman",
+      "kind": "git-submodule",
+      "path": "ai-tools/vendor/caveman",
+      "upstream": "https://github.com/JuliusBrussee/caveman",
+      "pinRecordedIn": "ai-tools/caveman-overlay/MANIFEST.yml",
+      "note": "Bumping = git -C vendor/caveman checkout <tag> + update pinned_sha in MANIFEST.yml. Re-check the two local deltas listed there survive."
+    },
+    {
+      "name": "humanizer",
+      "kind": "github-skill",
+      "path": "ai-tools/skills/humanizer/SKILL.md",
+      "upstream": "blader/humanizer",
+      "pinRecordedIn": "ai-tools/skills-lock.json",
+      "note": "Vendored verbatim, MIT. Bump = re-fetch SKILL.md, refresh skillVersion + vendoredSha256."
+    },
+    {
+      "name": "@playwright/mcp",
+      "kind": "npm",
+      "pinRecordedIn": "nixos/home/ai-tools.nix",
+      "coupledTo": "pkgs.playwright-driver",
+      "note": "COUPLED: this version resolves a playwright-core expecting a specific chromium rev, and nixpkgs' playwright-driver must ship that same rev. Bump both together or screenshots break."
+    },
+    {
+      "name": "@upstash/context7-mcp",
+      "kind": "npm",
+      "pinRecordedIn": "nixos/home/ai-tools.nix"
+    },
+    {
+      "name": "voice-corpus",
+      "kind": "local-data",
+      "path": "docs/ai/voice/corpus.jsonl",
+      "staleAfterDays": 3,
+      "note": "Maintained by the voice-profile timer; staleness here means the timer stopped firing."
+    }
+  ]
+}
