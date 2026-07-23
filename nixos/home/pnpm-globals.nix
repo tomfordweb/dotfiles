@@ -38,10 +38,10 @@ let
     { spec = "@openai/codex";             name = "@openai/codex";             bin = "codex";     latest = true; }
     { spec = "prettier";                  name = "prettier";                  bin = "prettier";  latest = true; }
     { spec = "@fsouza/prettierd";         name = "@fsouza/prettierd";         bin = "prettierd"; latest = true; }
-    # fresh installs need sidemux's prepare-script fix pushed to GitHub
-    # (branch dashboard-fixes); on minerva it's already a link: install to
-    # the local checkout, so it updates by rebuilding the checkout.
-    { spec = "tomfordweb/sidemux";        name = "sidemux";                   bin = "sidemux";   latest = false; }
+    # published to npm since 0.1.1 — floats like the other fast-moving CLIs
+    # above. Inside the sidemux checkout itself, flake.nix + .envrc shadow
+    # this with a local-build `sidemux` on PATH (see sidemux/flake.nix).
+    { spec = "sidemux";                   name = "sidemux";                   bin = "sidemux";   latest = true; }
   ];
   pnpmHome = "${config.home.homeDirectory}/.local/share/pnpm";
   pnpmEnv = ''
