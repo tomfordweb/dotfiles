@@ -33,8 +33,20 @@
     "custom/docker-status",
     "clock",
     "tray",
+    "custom/rice-mode",
     "custom/control-center"
   ],
+  // rice (cycling wallpapers + glass) <-> pro (static image, flat, no blur).
+  // bin/rice-mode restarts waybar on toggle, so the module only needs to run
+  // once at startup; RTMIN+8 is there for out-of-band `rice-mode set` calls.
+  "custom/rice-mode": {
+    "format": "{}",
+    "exec": "rice-mode waybar",
+    "return-type": "json",
+    "interval": "once",
+    "signal": 8,
+    "on-click": "rice-mode toggle"
+  },
   "custom/control-center": {
     "format": "󰕮",
     "tooltip": false,

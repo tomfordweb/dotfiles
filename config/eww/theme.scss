@@ -127,3 +127,53 @@
     color: theme.$text;
   }
 }
+
+// ── pro (presentation) mode ───────────────────────────────────────────
+// eww.yuck adds the `flat` class from the rice-mode poll, so these apply
+// live — no eww restart on toggle. Opaque, no glow, muted accent.
+.cc.flat {
+  background-color: theme.$mantle;
+  border-color: theme.$surface1;
+  box-shadow: none;
+
+  .cc-card,
+  .cc-toggle {
+    background-color: theme.$mantle2;
+  }
+
+  .cc-toggle.on {
+    background-image: none;
+    background-color: theme.$sapphire;
+    box-shadow: none;
+    color: theme.$base;
+  }
+
+  .cc-slider {
+    trough highlight {
+      background-image: none;
+      background-color: theme.$sapphire;
+    }
+
+    slider {
+      background-color: theme.$sapphire;
+    }
+  }
+
+  .cc-media {
+    color: theme.$subtext0;
+  }
+}
+
+.cal-ghost.flat .cal {
+  color: rgba(theme.$text, 0.28);
+
+  &.header,
+  &.highlight {
+    color: rgba(theme.$subtext0, 0.5);
+  }
+
+  &:selected {
+    background-image: none;
+    background-color: theme.$sapphire;
+  }
+}

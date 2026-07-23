@@ -70,6 +70,28 @@ This runs `sass --watch` targeting:
 
 Shared variables live in `rice/rice.scss` (imported with `-I ./rice`). Never edit the `.css` files directly — they are generated output.
 
+## Rice vs Pro mode
+
+`bin/rice-mode` switches the desktop between two looks. Default (and the
+assumed-correct state) is **rice**: shuffling wallpapers every 300s, glass
+blur, neon accents. **pro** is for screen sharing: one pinned static image,
+flat opaque waybar/eww, blur + shadows + window transparency off.
+
+```bash
+rice-mode set-image ~/Pictures/desk.jpg   # one-time, per machine
+rice-mode toggle                          # or SUPER+SHIFT+P, or the waybar chip
+rice-mode get                             # rice|pro
+```
+
+State lives in `$XDG_STATE_HOME/rice/mode`; the static image is a machine-local
+symlink at `$XDG_CONFIG_HOME/rice/static-wallpaper` (never in the repo).
+Moving parts: `config/waybar/theme-pro.scss` → `style-pro.css` (waybar is
+restarted with `-s` on toggle), the `flat` class eww picks up from its
+`rice-mode` poll, `hyprctl keyword` decoration overrides, and
+`hyprwallpapers_loop` skipping its tick while mode = pro. The rice-side
+`hyprctl keyword` values in `rice-mode` mirror `decoration{}` in
+`hyprland.conf` — change both together.
+
 ## Hyprland
 
 `config/hypr/hyprland.conf` sources a hostname-specific config at startup:

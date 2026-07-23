@@ -30,8 +30,8 @@ window#waybar.hidden {
 
 .modules-center,
 .modules-right {
-  background: rgba(20, 20, 32, 0.72);
-  border: 1px solid rgba(203, 166, 247, 0.22);
+  background: #181825;
+  border: 1px solid #45475a;
   border-radius: 21px;
   padding: 0 6px;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
@@ -66,7 +66,7 @@ window#waybar.hidden {
   padding: 0 10px;
   margin: 4px 2px;
   border-radius: 13px;
-  background: rgba(49, 50, 68, 0.5);
+  background: #29293a;
 }
 
 #clock {
@@ -102,7 +102,7 @@ window#waybar.hidden {
 }
 #workspaces button.active {
   background: linear-gradient(to right, #29293a 0, #29293a 26px, #cba6f7 26px);
-  box-shadow: 0 0 10px rgba(203, 166, 247, 0.5);
+  box-shadow: 0 0 10px transparent;
 }
 #workspaces button.active label {
   color: #11111b;
@@ -239,4 +239,36 @@ window#waybar.hidden {
 }
 #privacy-item.audio-out {
   color: #89b4fa;
+}
+
+.modules-center,
+.modules-right {
+  box-shadow: none;
+}
+
+#clock {
+  background-image: none;
+  background-color: #45475a;
+  color: #cdd6f4;
+}
+
+#workspaces button:hover, #workspaces button.active, #workspaces button.urgent {
+  box-shadow: none;
+}
+#workspaces button.active {
+  background: linear-gradient(to right, #29293a 0, #29293a 26px, #74c7ec 26px);
+}
+
+#cpu,
+#memory,
+#network,
+#bluetooth,
+#pulseaudio,
+#temperature,
+#custom-nvidia-smi {
+  color: #a6adc8;
+}
+
+#custom-rice-mode {
+  color: #74c7ec;
 }
