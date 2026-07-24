@@ -29,6 +29,47 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
 - When the repo has an issue tracker, link the PR/MR back on the issue.
 - Create worktrees with `workmux`, not hand-rolled `git worktree add`.
 
+## Issue tracking — beads (`bd`)
+
+When a repo has a `.beads/` directory, beads is the task tracker. Use it for **all** task
+tracking and persistent notes — never the harness's built-in todo tools, never a markdown
+TODO list, never a scratch file.
+
+```bash
+bd prime                       # workflow context (session start, after a compaction)
+bd ready                       # work with no open blockers
+bd show <id>                   # detail, dependencies
+bd create --title=… --description=… --type=task|bug|feature --priority=0..4
+bd update <id> --claim         # claim before you start
+bd close <id> --reason="…"     # close on finish; takes several ids at once
+bd remember "…" / bd memories <kw>   # persistent knowledge across sessions
+```
+
+Add `--json` to anything you are going to parse. `bd edit` opens `$EDITOR` and will hang an
+agent — use `bd update --title/--description/--notes` instead.
+
+**Sync is Dolt, not the JSONL.** The issues live in a local Dolt database and travel over
+`refs/dolt/data` on the git remote: `bd dolt pull` when you start, `bd dolt push` before you
+finish. `.beads/issues.jsonl` is a passive export for viewers and backup — importing it is
+upsert-only, so it can carry a new issue but never a close or a delete. Treating it as the
+sync channel is what produces rebase conflicts and issues that rise from the dead.
+
+Two things every beads repo should have; check and fix them once rather than fighting the
+symptoms:
+
+- A Dolt remote. `git ls-remote origin 'refs/dolt/*'` must return something. If it is empty:
+  `bd dolt remote add origin <git origin url> && bd dolt push`.
+- `.beads/issues.jsonl merge=ours` in `.gitattributes` (with `merge.ours.driver = true` in the
+  git config), so git stops three-way-merging a generated file.
+
+**Worktrees need no beads setup.** `bd` discovers the parent repo's `.beads/` through git's
+common dir. Never run `bd init` in a worktree and never symlink or copy `.beads` into one; a
+worktree with its own database is the documented failure mode. The `.beads/*.jsonl` files
+visible inside a worktree are just the git-tracked export — leave them.
+
+If `bd` warns about multiple binaries in `PATH`, that is a real problem, not noise: two
+versions will disagree about the schema. Resolve it before continuing.
+
 ## Architecture defaults
 
 - **Shared libraries stay app-agnostic.** No per-site IDs, domains, API keys, analytics tags,
