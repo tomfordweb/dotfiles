@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+# Staleness banner for pinned/vendored AI tooling (caveman submodule, humanizer
+# skill, MCP npm pins, voice corpus). Registry: ai-tools/vendored.json.
+#
+#   ai-tools-check              cache-only, prints one line if anything is stale.
+#                               No network, no git, safe to call from a shell rc.
+#   ai-tools-check --refresh    hits the network, rewrites the cache. Rate-limited
+#                               to once per REFRESH_INTERVAL_H; --force overrides.
+#   ai-tools-check --json       dump the raw cache.
+#
+# Disable entirely with AI_TOOLS_CHECK=0.
+set -uo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/code/tomfordweb/dotfiles}"
+REGISTRY="$DOTFILES/ai-tools/vendored.json"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/tomfordweb"
+CACHE="$CACHE_DIR/ai-tools-check.json"
+REFRESH_INTERVAL_H=24
+
+[ "${AI_TOOLS_CHECK:-1}" = "0" ] && exit 0
+
+now() { date +%s; }
+
+# ---------------------------------------------------------------- banner mode
+banner() {
+  [ -r "$CACHE" ] || exit 0
+  python3 - "$CACHE" <<'PY'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+stale = [i for i in data.get("items", []) if i.get("stale")]
+if not stale:
+    sys.exit(0)
+parts = []
+for i in stale:
+    cur, new = i.get("current"), i.get("latest")
+    # A version delta is the headline; detail is the fallback (and the only
+    # thing to say for entries flagged stale for a non-version reason, e.g.
+    # bd shadowed by a second binary while the pin itself is current).
+    if cur and new and cur.lstrip("v") != new.lstrip("v"):
+        parts.append(f"{i['name']} {cur}→{new}")
+    else:
+        parts.append(f"{i['name']} {i.get('detail') or 'stale'}")
+print("⟳ ai-tools: " + " · ".join(parts) + "  — run `ai-tools-update`")
+PY
+}
+
+# --------------------------------------------------------------- refresh mode
+refresh() {
+  mkdir -p "$CACHE_DIR"
+  if [ "${1:-}" != "--force" ] && [ -r "$CACHE" ]; then
+    local age_h=$(( ( $(now) - $(stat -c %Y "$CACHE") ) / 3600 ))
+    [ "$age_h" -lt "$REFRESH_INTERVAL_H" ] && exit 0
+  fi
+
+  # caveman: pinned sha in MANIFEST.yml vs upstream's newest tag
+  local cav_pin cav_tag
+  cav_pin=$(git -C "$DOTFILES/ai-tools/vendor/caveman" describe --tags --always 2>/dev/null)
+  cav_tag=$(git ls-remote --tags --refs --sort='-v:refname' \
+            https://github.com/JuliusBrussee/caveman 2>/dev/null \
+            | head -1 | sed 's|.*/||')
+
+  # humanizer: vendored skillVersion vs upstream frontmatter
+  local hum_cur hum_new
+  hum_cur=$(python3 -c "import json;print(json.load(open('$DOTFILES/ai-tools/skills-lock.json'))['skills']['humanizer']['skillVersion'])" 2>/dev/null)
+  hum_new=$(curl -fsSL --max-time 10 \
+            https://raw.githubusercontent.com/blader/humanizer/main/SKILL.md 2>/dev/null \
+            | sed -n 's/^[[:space:]]*version:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p' | head -1)
+
+  # npm pins declared in the home-manager module
+  local pw_cur pw_new c7_cur c7_new
+  pw_cur=$(sed -n 's/.*"@playwright\/mcp" = "\([^"]*\)".*/\1/p' "$DOTFILES/nixos/home/ai-tools.nix" | head -1)
+  c7_cur=$(sed -n 's/.*"@upstash\/context7-mcp" = "\([^"]*\)".*/\1/p' "$DOTFILES/nixos/home/ai-tools.nix" | head -1)
+  pw_new=$(npm view @playwright/mcp version 2>/dev/null)
+  c7_new=$(npm view @upstash/context7-mcp version 2>/dev/null)
+
+  # bd: version pinned in the overlay vs newest upstream release. Reads the
+  # pin from the nix file rather than running `bd version`, so the banner
+  # reports what this repo DECLARES even when a stray binary shadows it.
+  local bd_cur bd_new bd_detail=""
+  bd_cur=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
+           "$DOTFILES/nixos/pkgs/beads.nix" 2>/dev/null | head -1)
+  bd_new=$(curl -fsSL --max-time 10 \
+           https://api.github.com/repos/gastownhall/beads/releases/latest 2>/dev/null \
+           | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+  bd_new="${bd_new#v}"
+  # A second bd on $PATH means two schema versions can fight over the DB —
+  # worth shouting about regardless of whether the pin itself is current.
+  if [ "$(command -v -a bd 2>/dev/null | wc -l)" -gt 1 ]; then
+    bd_detail="multiple bd binaries on PATH"
+  fi
+
+  # voice corpus freshness (local, no network)
+  local corpus="$DOTFILES/docs/ai/voice/corpus.jsonl" corpus_age=""
+  [ -r "$corpus" ] && corpus_age=$(( ( $(now) - $(stat -c %Y "$corpus") ) / 86400 ))
+
+  CAV_PIN="$cav_pin" CAV_TAG="$cav_tag" HUM_CUR="$hum_cur" HUM_NEW="$hum_new" \
+  PW_CUR="$pw_cur" PW_NEW="$pw_new" C7_CUR="$c7_cur" C7_NEW="$c7_new" \
+  BD_CUR="$bd_cur" BD_NEW="$bd_new" BD_DETAIL="$bd_detail" \
+  CORPUS_AGE="$corpus_age" TS="$(now)" \
+  python3 - "$CACHE" <<'PY'
+import json, os, sys
+
+def item(name, cur, new, detail=None):
+    stale = bool(cur and new and cur.lstrip("v") != new.lstrip("v"))
+    return {"name": name, "current": cur or None, "latest": new or None,
+            "stale": stale, "detail": detail}
+
+items = [
+    item("caveman",  os.environ["CAV_PIN"], os.environ["CAV_TAG"]),
+    item("humanizer", os.environ["HUM_CUR"], os.environ["HUM_NEW"]),
+    item("@playwright/mcp", os.environ["PW_CUR"], os.environ["PW_NEW"],
+         "coupled to nixpkgs playwright-driver chromium rev"),
+    item("@upstash/context7-mcp", os.environ["C7_CUR"], os.environ["C7_NEW"]),
+]
+bd = item("bd", os.environ["BD_CUR"], os.environ["BD_NEW"], os.environ.get("BD_DETAIL") or None)
+if bd["detail"]:
+    bd["stale"] = True          # shadowed binary is a problem even when the pin is current
+items.append(bd)
+age = os.environ.get("CORPUS_AGE")
+if age:
+    n = int(age)
+    items.append({"name": "voice corpus", "current": None, "latest": None,
+                  "stale": n > 3, "detail": f"{n}d stale (timer not firing?)"})
+json.dump({"checked": int(os.environ["TS"]), "items": items},
+          open(sys.argv[1], "w"), indent=2)
+PY
+}
+
+case "${1:-}" in
+  --refresh) refresh "${2:-}" ;;
+  --json)    cat "$CACHE" 2>/dev/null ;;
+  "")        banner ;;
+  *)         echo "usage: ai-tools-check [--refresh [--force]|--json]" >&2; exit 2 ;;
+esac

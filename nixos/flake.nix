@@ -43,6 +43,18 @@
     let
       system = "x86_64-linux";
 
+      # Package overrides applied to every host. Keep these few and
+      # justified — each one is a package nixpkgs no longer gets to update
+      # for us. See the file for why beads is pinned here.
+      overlays = [
+        (final: prev: {
+          # beads = prev.beads (the nixpkgs one), NOT final.beads — the
+          # override takes the un-overridden package as its base, and
+          # resolving it through `final` would recurse forever.
+          beads = final.callPackage ./pkgs/beads.nix { beads = prev.beads; };
+        })
+      ];
+
       # A helper that builds a nixosSystem. Anything you'd want to vary
       # per host goes into `extraModules` (system-level) /
       # `homeModules` (home-manager, appended to the shared dev core).
@@ -65,8 +77,11 @@
               home-manager.users.tom.imports = [ ./home ] ++ homeModules;
             }
 
-            # Per-host hostname
-            { networking.hostName = hostName; }
+            # Per-host hostname + shared package overrides
+            {
+              networking.hostName = hostName;
+              nixpkgs.overlays = overlays;
+            }
           ] ++ extraModules;
         };
     in
