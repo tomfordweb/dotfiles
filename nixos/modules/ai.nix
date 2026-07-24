@@ -29,6 +29,8 @@
   # (large recompile).
   environment.systemPackages = with pkgs; [
     beads
+    # bubblewrap provides bwrap for cocdex sandboxing.
+    bubblewrap
     llama-cpp
   ];
 }
