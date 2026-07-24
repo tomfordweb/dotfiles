@@ -112,7 +112,25 @@ let
     "bd delete" "bd rename" "bd init" "bd dolt push"
     "graphify install" "graphify uninstall"
     "workmux rm" "workmux merge"
+    # Node installs execute arbitrary lifecycle scripts (preinstall/postinstall)
+    # off the network, so they are a supply-chain step, not a read. Same reason
+    # `pnpm rebuild`/`approve-builds` and the one-off runners (dlx/npx/bunx) are
+    # here: each one can run a package's own code the first time it is fetched.
+    # Short aliases are listed alongside the long forms because these match on
+    # literal argv tokens: `pnpm i` is not covered by a `pnpm install` rule.
+    "pnpm install" "pnpm i" "pnpm add" "pnpm update" "pnpm up" "pnpm dlx"
+    "pnpm rebuild" "pnpm approve-builds"
+    "npm install" "npm i" "npm ci" "npm update" "npm rebuild" "npx"
+    "yarn install" "yarn add" "yarn upgrade" "yarn dlx"
+    "bun install" "bun i" "bun add" "bun x" "bunx"
   ];
+
+  # Note: sidemux is an MCP server, not a CLI — driving it means calling
+  # `mcp__sidemux__<tool>`, which neither dialect rendered here can express
+  # (codex's execpolicy covers exec only, opencode's permission.bash matches
+  # command strings). Its allow/ask split therefore lives only in
+  # ai-tools/settings.json: run/read/wait/status/list_panes/send_keys allowed,
+  # kill/close_all ask.
 
   # opencode: { "bd ready *": "allow", … }. Wildcard match, last matching rule
   # wins — and nix serialises attrsets alphabetically, which is exactly the

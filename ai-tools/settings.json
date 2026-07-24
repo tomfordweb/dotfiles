@@ -188,7 +188,13 @@
       "Bash(glab issue list:*)",
       "Bash(glab ci status:*)",
       "Bash(wtport:*)",
-      "Bash(ai-tools-check:*)"
+      "Bash(ai-tools-check:*)",
+      "mcp__sidemux__run",
+      "mcp__sidemux__read",
+      "mcp__sidemux__wait",
+      "mcp__sidemux__status",
+      "mcp__sidemux__list_panes",
+      "mcp__sidemux__send_keys"
     ],
     "ask": [
       "Bash(bd delete:*)",
@@ -198,7 +204,32 @@
       "Bash(graphify install:*)",
       "Bash(graphify uninstall:*)",
       "Bash(workmux rm:*)",
-      "Bash(workmux merge:*)"
+      "Bash(workmux merge:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm i:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm update:*)",
+      "Bash(pnpm up:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm update:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(npx:*)",
+      "Bash(yarn install:*)",
+      "Bash(yarn add:*)",
+      "Bash(yarn upgrade:*)",
+      "Bash(yarn dlx:*)",
+      "Bash(bun install:*)",
+      "Bash(bun i:*)",
+      "Bash(bun add:*)",
+      "Bash(bun x:*)",
+      "Bash(bunx:*)",
+      "mcp__sidemux__kill",
+      "mcp__sidemux__close_all"
     ]
   },
   "statusLine": {
