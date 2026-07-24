@@ -57,10 +57,26 @@ in
 
   # XDG desktop portals: needed for screenshots, screen sharing,
   # file pickers, etc. hyprland-portal handles Hyprland-specific bits.
+  # ScreenCast is pinned to the hyprland impl explicitly: relying on the
+  # package-shipped hyprland-portals.conf works today, but a routing flip to
+  # the gtk impl silently breaks screen sharing with no error anywhere.
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config.common = {
+      default = [ "hyprland" "gtk" ];
+      "org.freedesktop.impl.portal.ScreenCast" = [ "hyprland" ];
+      "org.freedesktop.impl.portal.Screenshot" = [ "hyprland" ];
+    };
   };
+
+  # Chromium/Electron under Wayland (dotfiles-38r). Without this they run on
+  # XWayland, where Chromium cannot enumerate Wayland outputs/windows — Google
+  # Meet's "Present now" then offers no sources or shares a black frame, with
+  # nothing logged. Firefox was unaffected because MOZ_ENABLE_WAYLAND=1 is
+  # already set. Session variables are applied at LOGIN, so a rebuild alone
+  # does not fix a running session — log out and back in.
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
   # Fonts. Nerd Fonts give you icons for waybar, etc.
   fonts.packages = with pkgs; [

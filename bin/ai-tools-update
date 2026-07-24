@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Bump a pinned/vendored AI tool AND its bookkeeping. Never automatic — the pins
+# are deliberate (see ai-tools/vendored.json for why each one exists).
+#
+#   ai-tools-update              show what is stale and what each bump entails
+#   ai-tools-update humanizer    re-vendor the skill + refresh skills-lock.json
+#   ai-tools-update caveman      checkout newest upstream tag + update pinned_sha
+#
+# MCP npm pins are deliberately NOT scripted: @playwright/mcp must move together
+# with nixpkgs' playwright-driver chromium rev, which is a judgement call.
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/code/tomfordweb/dotfiles}"
+
+usage() {
+  ai-tools-check --refresh --force 2>/dev/null || true
+  echo "Stale:"
+  ai-tools-check || echo "  (nothing stale)"
+  cat <<'EOF'
+
+Bump one:
+  ai-tools-update humanizer   re-fetch SKILL.md from blader/humanizer, update
+                              skills-lock.json (version + sha256). Review the
+                              diff: the vendored copy is loaded by every agent.
+  ai-tools-update caveman     checkout the newest upstream tag in the submodule
+                              and update pinned_sha in caveman-overlay/MANIFEST.yml.
+                              Then verify the two local deltas listed there still
+                              apply — opencode rejects upstream's agent frontmatter.
+
+By hand (deliberately):
+  bd                          bump version + src hash + vendorHash in
+                              nixos/pkgs/beads.nix, then nixos-rebuild switch.
+                              Read the release notes first — beads ships schema
+                              migrations in minor versions, and every machine
+                              sharing a Dolt remote has to move together.
+                              If the banner says "multiple bd binaries on PATH",
+                              that is a stray hand-install shadowing the pin:
+                              rm -f ~/.local/bin/bd
+  @playwright/mcp             bump in nixos/home/ai-tools.nix TOGETHER with
+                              pkgs.playwright-driver, then nixos-rebuild switch.
+  @upstash/context7-mcp       bump in nixos/home/ai-tools.nix, then rebuild.
+EOF
+}
+
+update_humanizer() {
+  local tmp lock ver sha
+  tmp=$(mktemp)
+  curl -fsSL --max-time 20 \
+    https://raw.githubusercontent.com/blader/humanizer/main/SKILL.md -o "$tmp"
+  ver=$(sed -n 's/^[[:space:]]*version:[[:space:]]*"\?\([^"]*\)"\?[[:space:]]*$/\1/p' "$tmp" | head -1)
+  [ -n "$ver" ] || { echo "no version in fetched SKILL.md — aborting" >&2; exit 1; }
+  install -Dm644 "$tmp" "$DOTFILES/ai-tools/skills/humanizer/SKILL.md"
+  rm -f "$tmp"
+  sha=$(sha256sum "$DOTFILES/ai-tools/skills/humanizer/SKILL.md" | cut -d' ' -f1)
+  lock="$DOTFILES/ai-tools/skills-lock.json"
+  VER="$ver" SHA="$sha" python3 - "$lock" <<'PY'
+import json, os, sys
+p = sys.argv[1]
+d = json.load(open(p))
+h = d["skills"]["humanizer"]
+h["skillVersion"] = os.environ["VER"]
+h["vendoredSha256"] = os.environ["SHA"]
+json.dump(d, open(p, "w"), indent=2)
+open(p, "a").write("\n")
+PY
+  echo "humanizer -> $ver"
+  git -C "$DOTFILES" --no-pager diff --stat ai-tools/skills/humanizer ai-tools/skills-lock.json
+  echo "Review the diff before committing; every agent loads this file."
+}
+
+update_caveman() {
+  local sub="$DOTFILES/ai-tools/vendor/caveman" tag sha
+  git -C "$sub" fetch --tags --quiet
+  tag=$(git -C "$sub" tag --sort='-v:refname' | head -1)
+  git -C "$sub" checkout --quiet "$tag"
+  sha=$(git -C "$sub" rev-parse HEAD)
+  sed -i "s|^pinned_sha: .*|pinned_sha: \"$sha\"   # $tag|" \
+    "$DOTFILES/ai-tools/caveman-overlay/MANIFEST.yml"
+  echo "caveman -> $tag ($sha)"
+  echo "Now verify the deltas in caveman-overlay/MANIFEST.yml still hold, then rebuild."
+}
+
+case "${1:-}" in
+  humanizer) update_humanizer ;;
+  caveman)   update_caveman ;;
+  ""|--help) usage ;;
+  *)         echo "unknown item: $1" >&2; usage; exit 2 ;;
+esac

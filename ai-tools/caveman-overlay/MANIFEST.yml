@@ -30,7 +30,14 @@ deltas:
       `@./skills/*/SKILL.md` lines — Claude Code @import syntax that opencode/codex
       do NOT resolve (they load AGENTS.md as raw instruction text), so verbatim
       would inject dead import lines and caveman's base ruleset would never load.
-      ~15 stable lines; each tool's wiring symlinks its instruction slot here.
+      ~15 stable lines. LOCAL ADDITION on top of that: the Boundaries line also
+      exempts PROSE DELIVERABLES (humanized text, cover letters, blog/site copy,
+      editorial content, release notes, docs) — upstream only exempts code and
+      commits, so without this a humanize request comes back compressed, which
+      defeats the humanizer skill. Keep this line across resyncs.
+      Consumption changed with the shared-rules work: opencode/codex no longer
+      symlink this file directly, their AGENTS.md is a RENDERED concatenation of
+      this file + ai-tools/AGENTS.shared.md (see nixos/home/ai-tools.nix).
 
   - live_path: opencode/agents/cavecrew-{builder,investigator,reviewer}.md
     upstream_path: agents/cavecrew-*.md

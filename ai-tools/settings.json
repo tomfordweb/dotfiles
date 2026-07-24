@@ -54,6 +54,16 @@
             "statusMessage": "Loading caveman mode..."
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime --hook-json",
+            "timeout": 10,
+            "statusMessage": "Loading beads context..."
+          }
+        ]
       }
     ],
     "Stop": [
@@ -81,10 +91,145 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/home/tom/code/tomfordweb/dotfiles/bin/voice-capture",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "workmux set-window-status working"
           }
         ]
       }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(bd prime:*)",
+      "Bash(bd ready:*)",
+      "Bash(bd list:*)",
+      "Bash(bd show:*)",
+      "Bash(bd search:*)",
+      "Bash(bd query:*)",
+      "Bash(bd count:*)",
+      "Bash(bd blocked:*)",
+      "Bash(bd stats:*)",
+      "Bash(bd status:*)",
+      "Bash(bd info:*)",
+      "Bash(bd context:*)",
+      "Bash(bd version:*)",
+      "Bash(bd graph:*)",
+      "Bash(bd diff:*)",
+      "Bash(bd history:*)",
+      "Bash(bd children:*)",
+      "Bash(bd comments:*)",
+      "Bash(bd epic:*)",
+      "Bash(bd stale:*)",
+      "Bash(bd orphans:*)",
+      "Bash(bd lint:*)",
+      "Bash(bd preflight:*)",
+      "Bash(bd types:*)",
+      "Bash(bd statuses:*)",
+      "Bash(bd memories:*)",
+      "Bash(bd recall:*)",
+      "Bash(bd config get:*)",
+      "Bash(bd config list:*)",
+      "Bash(bd config show:*)",
+      "Bash(bd worktree list:*)",
+      "Bash(bd worktree info:*)",
+      "Bash(bd dolt show:*)",
+      "Bash(bd dolt status:*)",
+      "Bash(bd dolt remote list:*)",
+      "Bash(bd dolt pull:*)",
+      "Bash(bd create:*)",
+      "Bash(bd update:*)",
+      "Bash(bd close:*)",
+      "Bash(bd reopen:*)",
+      "Bash(bd note:*)",
+      "Bash(bd comment:*)",
+      "Bash(bd label:*)",
+      "Bash(bd tag:*)",
+      "Bash(bd priority:*)",
+      "Bash(bd assign:*)",
+      "Bash(bd dep:*)",
+      "Bash(bd defer:*)",
+      "Bash(bd undefer:*)",
+      "Bash(bd todo:*)",
+      "Bash(bd q:*)",
+      "Bash(bd remember:*)",
+      "Bash(bd export:*)",
+      "Bash(graphify path:*)",
+      "Bash(graphify explain:*)",
+      "Bash(graphify diagnose:*)",
+      "Bash(workmux ls:*)",
+      "Bash(workmux list:*)",
+      "Bash(workmux status:*)",
+      "Bash(workmux path:*)",
+      "Bash(workmux capture:*)",
+      "Bash(workmux docs:*)",
+      "Bash(workmux changelog:*)",
+      "Bash(workmux config reference:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(glab mr view:*)",
+      "Bash(glab mr list:*)",
+      "Bash(glab mr diff:*)",
+      "Bash(glab issue view:*)",
+      "Bash(glab issue list:*)",
+      "Bash(glab ci status:*)",
+      "Bash(wtport:*)",
+      "Bash(ai-tools-check:*)",
+      "mcp__sidemux__run",
+      "mcp__sidemux__read",
+      "mcp__sidemux__wait",
+      "mcp__sidemux__status",
+      "mcp__sidemux__list_panes",
+      "mcp__sidemux__send_keys"
+    ],
+    "ask": [
+      "Bash(bd delete:*)",
+      "Bash(bd rename:*)",
+      "Bash(bd init:*)",
+      "Bash(bd dolt push:*)",
+      "Bash(graphify install:*)",
+      "Bash(graphify uninstall:*)",
+      "Bash(workmux rm:*)",
+      "Bash(workmux merge:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm i:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm update:*)",
+      "Bash(pnpm up:*)",
+      "Bash(pnpm dlx:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npm ci:*)",
+      "Bash(npm update:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(npx:*)",
+      "Bash(yarn install:*)",
+      "Bash(yarn add:*)",
+      "Bash(yarn upgrade:*)",
+      "Bash(yarn dlx:*)",
+      "Bash(bun install:*)",
+      "Bash(bun i:*)",
+      "Bash(bun add:*)",
+      "Bash(bun x:*)",
+      "Bash(bunx:*)",
+      "mcp__sidemux__kill",
+      "mcp__sidemux__close_all"
     ]
   },
   "statusLine": {

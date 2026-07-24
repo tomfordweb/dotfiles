@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "skills": {
+    "humanizer": {
+      "source": "blader/humanizer",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "skillVersion": "2.8.2",
+      "vendoredPath": "skills/humanizer/SKILL.md",
+      "computedHash": "44201a7ac488b5147fde0a8a63aeb1ffd1501f384d525fd3c482f9599c4903f4",
+      "vendoredSha256": "243aecdafecb5e11c2d45e2e088b7876e3f6eee34aa50c53f624d8468039afa8"
+    }
+  }
+}

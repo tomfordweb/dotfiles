@@ -6,3 +6,13 @@
 [user]
 	name = Tom Ford
 	email = tomfordweb@gmail.com
+
+# "ours" merge driver — keep the local side, no conflict. Referenced by
+# .gitattributes for beads' .beads/issues.jsonl, which is a machine-generated
+# export, NOT the source of truth (that's the Dolt DB, synced over
+# refs/dolt/data). Three-way merging a regenerated file only ever produces
+# noise, so git is told to stop trying; beads' post-merge hook rewrites the
+# export from the database afterwards.
+[merge "ours"]
+	name = keep our side (for generated files)
+	driver = true
