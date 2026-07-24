@@ -35,10 +35,14 @@ if not stale:
     sys.exit(0)
 parts = []
 for i in stale:
-    if i.get("current") and i.get("latest"):
-        parts.append(f"{i['name']} {i['current']}→{i['latest']}")
+    cur, new = i.get("current"), i.get("latest")
+    # A version delta is the headline; detail is the fallback (and the only
+    # thing to say for entries flagged stale for a non-version reason, e.g.
+    # bd shadowed by a second binary while the pin itself is current).
+    if cur and new and cur.lstrip("v") != new.lstrip("v"):
+        parts.append(f"{i['name']} {cur}→{new}")
     else:
-        parts.append(f"{i['name']} {i.get('detail','stale')}")
+        parts.append(f"{i['name']} {i.get('detail') or 'stale'}")
 print("⟳ ai-tools: " + " · ".join(parts) + "  — run `ai-tools-update`")
 PY
 }
@@ -72,12 +76,29 @@ refresh() {
   pw_new=$(npm view @playwright/mcp version 2>/dev/null)
   c7_new=$(npm view @upstash/context7-mcp version 2>/dev/null)
 
+  # bd: version pinned in the overlay vs newest upstream release. Reads the
+  # pin from the nix file rather than running `bd version`, so the banner
+  # reports what this repo DECLARES even when a stray binary shadows it.
+  local bd_cur bd_new bd_detail=""
+  bd_cur=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' \
+           "$DOTFILES/nixos/pkgs/beads.nix" 2>/dev/null | head -1)
+  bd_new=$(curl -fsSL --max-time 10 \
+           https://api.github.com/repos/gastownhall/beads/releases/latest 2>/dev/null \
+           | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+  bd_new="${bd_new#v}"
+  # A second bd on $PATH means two schema versions can fight over the DB —
+  # worth shouting about regardless of whether the pin itself is current.
+  if [ "$(command -v -a bd 2>/dev/null | wc -l)" -gt 1 ]; then
+    bd_detail="multiple bd binaries on PATH"
+  fi
+
   # voice corpus freshness (local, no network)
   local corpus="$DOTFILES/docs/ai/voice/corpus.jsonl" corpus_age=""
   [ -r "$corpus" ] && corpus_age=$(( ( $(now) - $(stat -c %Y "$corpus") ) / 86400 ))
 
   CAV_PIN="$cav_pin" CAV_TAG="$cav_tag" HUM_CUR="$hum_cur" HUM_NEW="$hum_new" \
   PW_CUR="$pw_cur" PW_NEW="$pw_new" C7_CUR="$c7_cur" C7_NEW="$c7_new" \
+  BD_CUR="$bd_cur" BD_NEW="$bd_new" BD_DETAIL="$bd_detail" \
   CORPUS_AGE="$corpus_age" TS="$(now)" \
   python3 - "$CACHE" <<'PY'
 import json, os, sys
@@ -94,6 +115,10 @@ items = [
          "coupled to nixpkgs playwright-driver chromium rev"),
     item("@upstash/context7-mcp", os.environ["C7_CUR"], os.environ["C7_NEW"]),
 ]
+bd = item("bd", os.environ["BD_CUR"], os.environ["BD_NEW"], os.environ.get("BD_DETAIL") or None)
+if bd["detail"]:
+    bd["stale"] = True          # shadowed binary is a problem even when the pin is current
+items.append(bd)
 age = os.environ.get("CORPUS_AGE")
 if age:
     n = int(age)
