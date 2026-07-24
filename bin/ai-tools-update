@@ -28,6 +28,14 @@ Bump one:
                               apply — opencode rejects upstream's agent frontmatter.
 
 By hand (deliberately):
+  bd                          bump version + src hash + vendorHash in
+                              nixos/pkgs/beads.nix, then nixos-rebuild switch.
+                              Read the release notes first — beads ships schema
+                              migrations in minor versions, and every machine
+                              sharing a Dolt remote has to move together.
+                              If the banner says "multiple bd binaries on PATH",
+                              that is a stray hand-install shadowing the pin:
+                              rm -f ~/.local/bin/bd
   @playwright/mcp             bump in nixos/home/ai-tools.nix TOGETHER with
                               pkgs.playwright-driver, then nixos-rebuild switch.
   @upstash/context7-mcp       bump in nixos/home/ai-tools.nix, then rebuild.

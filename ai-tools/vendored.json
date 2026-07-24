@@ -30,6 +30,13 @@
       "pinRecordedIn": "nixos/home/ai-tools.nix"
     },
     {
+      "name": "bd",
+      "kind": "github-release",
+      "upstream": "gastownhall/beads",
+      "pinRecordedIn": "nixos/pkgs/beads.nix",
+      "note": "Pinned AHEAD of nixpkgs on purpose — bd is the issue tracker every agent session uses, and two bd versions disagreeing about the DB schema is a real failure mode. Bump = new version + src hash + vendorHash in nixos/pkgs/beads.nix, then nixos-rebuild switch. Read the upstream release notes first; schema migrations ship in minor versions."
+    },
+    {
       "name": "voice-corpus",
       "kind": "local-data",
       "path": "docs/ai/voice/corpus.jsonl",
