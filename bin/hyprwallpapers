@@ -3,8 +3,100 @@
 # Given a directory of jpg or png images... updates all monitors with a
 # random image from the dir via awww (ex-swww; codeberg.org/LGFae/awww)
 # with a soft grow transition.
+#
+# PINS — a monitor can opt out of the shuffle and hold one static image:
+#
+#   hyprwallpapers pin HDMI-A-3 ~/Pictures/tall.jpg
+#   hyprwallpapers pins
+#   hyprwallpapers unpin HDMI-A-3
+#
+# A pin is a symlink at $XDG_CONFIG_HOME/rice/pin-<monitor>, machine-local
+# and never in the repo — same convention as rice-mode's static-wallpaper.
+# Pinned monitors are skipped by the shuffle; unpinned ones keep rotating,
+# so the gifs carry on everywhere else.
+#
+# The pin is re-applied only when the monitor isn't already showing it
+# (checked via `awww query`), so the loop doesn't replay a transition on a
+# static image every tick.
+#
+# NOTE: rice-mode's "pro" mode deliberately pins ONE image across ALL
+# outputs and will override these per-monitor pins for the duration. They
+# come back on the next shuffle after switching back to rice.
 
 WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/Documents/Wallpaper-Bank}"
+PIN_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/rice"
+
+pin_path() { echo "$PIN_DIR/pin-$1"; }
+
+# Resolve a monitor's pinned image, if any. Prints nothing when unpinned or
+# when the pin dangles (image deleted/moved) — a dangling pin must not wedge
+# the monitor on a blank wallpaper, so it falls back to the shuffle.
+pinned_image() {
+  local link
+  link="$(pin_path "$1")"
+  [ -L "$link" ] || return 1
+  local target
+  target="$(readlink -f "$link")" || return 1
+  [ -f "$target" ] || return 1
+  echo "$target"
+}
+
+# Every image currently pinned to some monitor, one absolute path per line.
+# The shuffle subtracts these from its candidate pool so a pinned image never
+# also turns up on an unpinned monitor — e.g. a tall portrait wallpaper pinned
+# to the rotated panel would otherwise show hard-cropped on the landscape
+# Dells. Pin something and it leaves the rotation; unpin it and it returns.
+pinned_targets() {
+  local link target
+  shopt -s nullglob
+  for link in "$PIN_DIR"/pin-*; do
+    target="$(readlink -f "$link")" || continue
+    [ -f "$target" ] && echo "$target"
+  done
+}
+
+current_image() {
+  awww query 2>/dev/null |
+    awk -F'currently displaying: image: ' -v mon="$1" \
+      'index($0, mon ":") && NF > 1 { print $2; exit }'
+}
+
+case "${1:-}" in
+  pin)
+    [ -n "${2:-}" ] && [ -n "${3:-}" ] || {
+      echo "usage: hyprwallpapers pin <monitor> <image>" >&2
+      exit 1
+    }
+    [ -f "$3" ] || { echo "no such image: $3" >&2; exit 1; }
+    mkdir -p "$PIN_DIR"
+    ln -sfn "$(readlink -f "$3")" "$(pin_path "$2")"
+    echo "$2 pinned -> $(readlink -f "$3")"
+    # Apply immediately rather than waiting for the next loop tick.
+    awww img --outputs "$2" "$(readlink -f "$3")" \
+      --resize crop --transition-type fade --transition-duration 0.6
+    exit 0
+    ;;
+  unpin)
+    [ -n "${2:-}" ] || { echo "usage: hyprwallpapers unpin <monitor>" >&2; exit 1; }
+    rm -f "$(pin_path "$2")"
+    echo "$2 unpinned — rejoins the shuffle"
+    exit 0
+    ;;
+  pins)
+    shopt -s nullglob
+    found=0
+    for link in "$PIN_DIR"/pin-*; do
+      found=1
+      printf '%s -> %s\n' "${link##*/pin-}" "$(readlink -f "$link")"
+    done
+    [ "$found" = 1 ] || echo "no pins"
+    exit 0
+    ;;
+  -h | --help | help)
+    sed -n '3,25p' "$0" | sed 's/^# \?//'
+    exit 0
+    ;;
+esac
 
 # awww-daemon may still be starting at login; wait briefly.
 for _ in $(seq 1 20); do
@@ -12,8 +104,24 @@ for _ in $(seq 1 20); do
   sleep 0.25
 done
 
+PINNED="$(pinned_targets)"
+
 while IFS= read -r monitor; do
-  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" \) ! -iname "*.preview.*" | shuf -n 1)
+  if PIN="$(pinned_image "$monitor")"; then
+    # Already showing it? Leave it alone — no transition replay every tick.
+    [ "$(current_image "$monitor")" = "$PIN" ] && continue
+    awww img --outputs "$monitor" "$PIN" \
+      --resize crop --transition-type fade --transition-duration 0.6
+    continue
+  fi
+
+  # Skip the filter entirely when nothing is pinned. `grep -vxF ""` happens to
+  # be harmless (-x means the empty pattern matches only empty lines, so every
+  # real path survives), but drop the -x and an empty pattern matches every
+  # line as a substring and silently empties the pool. Not worth relying on.
+  WALLPAPER=$(find "${WALLPAPER_DIR?WALLPAPER_DIR missing}" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.gif" \) ! -iname "*.preview.*" |
+    { if [ -n "$PINNED" ]; then grep -vxF "$PINNED"; else cat; fi; } | shuf -n 1)
+  [ -n "$WALLPAPER" ] || continue
   awww img --outputs "$monitor" "$WALLPAPER" \
     --transition-type grow --transition-fps 60 --transition-duration 1.2
 done < <(hyprctl monitors -j | jq -r '.[] | .name')
