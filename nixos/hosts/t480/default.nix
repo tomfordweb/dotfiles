@@ -13,6 +13,7 @@
     ../../modules/luks.nix      # cryptroot tuning; device UUID in hardware.nix
     ../../modules/laptop.nix    # brightnessctl, upower, power-profiles-daemon
     ../../modules/root-snapshots.nix # hourly btrbk snapshots of @ + @home
+    ../../modules/scanner.nix   # CanoScan 9000F Mark II (SANE pixma) + xsane
 
     # Fingerprint driver for the Synaptics 06cb:009a sensor (see below).
     inputs.nixos-06cb-009a-fingerprint-sensor.nixosModules."06cb-009a-fingerprint-sensor"
