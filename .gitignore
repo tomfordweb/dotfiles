@@ -67,3 +67,4 @@ voice/rejects.jsonl
 
 # py_compile artifacts from the bin/ python scripts
 bin/__pycache__/
+/.playwright-mcp
