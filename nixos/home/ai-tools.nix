@@ -27,6 +27,18 @@ let
   mcpHome = "${home}/.local/share/tomfordweb-mcp";
   xdgConfigHome = "${home}/.config";
   opencodeLive = "${xdgConfigHome}/opencode";
+  claudeSettings = builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json);
+
+  # Claude's Bash permission entries are canonical. Strip its Bash(...:*)
+  # wrapper and reuse the commands for OpenCode and Codex so policies cannot
+  # drift when settings.json changes. MCP entries are handled separately below.
+  commandFromClaudePermission = permission:
+    let
+      matched = builtins.match "Bash\\((.*):\\*\\)" permission;
+    in
+    if matched == null then null else builtins.head matched;
+  commandsFromClaudePermissions = permissions:
+    builtins.filter (command: command != null) (map commandFromClaudePermission permissions);
 
   # Mirrors the old ops `ai_mcp_servers` registry. npm-backed servers launch
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
@@ -67,9 +79,9 @@ let
 
   # ------------------------------------------------------------------
   # CLI tooling the agents lean on constantly (beads, graphify, workmux,
-  # forge CLIs). Declared ONCE here and rendered into each tool's own
-  # permission dialect below, so "bd ready stopped prompting in Claude but
-  # still prompts in opencode" can't happen.
+  # forge CLIs). Declared once in Claude's settings.json and rendered into
+  # each tool's own permission dialect below, so "bd ready stopped prompting
+  # in Claude but still prompts in Codex" can't happen.
   #
   #   allowedCommands — safe to run unattended. Reads, plus the beads
   #     mutations the agent workflow is made of (create/update/close): being
@@ -78,52 +90,11 @@ let
   #     explicitly because a plain prefix like "bd" would otherwise swallow
   #     `bd delete`.
   #
-  # Claude Code reads its own copy from ai-tools/settings.json (its schema is
-  # "Bash(cmd:*)" strings and that file is hand-maintained); keep the three
-  # in sync when editing.
+  # Claude Code reads ai-tools/settings.json directly. Non-Bash entries such as
+  # MCP tools are ignored here and mapped through their own policy declarations.
   # ------------------------------------------------------------------
-  allowedCommands = [
-    # beads — reads
-    "bd prime" "bd ready" "bd list" "bd show" "bd search" "bd query" "bd count"
-    "bd blocked" "bd stats" "bd status" "bd info" "bd context" "bd version"
-    "bd graph" "bd diff" "bd history" "bd children" "bd comments" "bd epic"
-    "bd stale" "bd orphans" "bd lint" "bd preflight" "bd types" "bd statuses"
-    "bd memories" "bd recall" "bd config get" "bd config list" "bd config show"
-    "bd worktree list" "bd worktree info"
-    "bd dolt show" "bd dolt status" "bd dolt remote list" "bd dolt pull"
-    # beads — the routine workflow mutations
-    "bd create" "bd update" "bd close" "bd reopen" "bd note" "bd comment"
-    "bd label" "bd tag" "bd priority" "bd assign" "bd dep" "bd defer"
-    "bd undefer" "bd todo" "bd q" "bd remember" "bd export"
-    # graphify — query the knowledge graph, never mutate installs
-    "graphify path" "graphify explain" "graphify diagnose"
-    # workmux — inspect only; add/rm/merge stay interactive
-    "workmux ls" "workmux list" "workmux status" "workmux path"
-    "workmux capture" "workmux docs" "workmux changelog"
-    # forge CLIs — read paths
-    "gh pr view" "gh pr list" "gh pr diff" "gh pr checks"
-    "gh issue view" "gh issue list" "gh run view" "gh run list" "gh repo view"
-    "glab mr view" "glab mr list" "glab mr diff"
-    "glab issue view" "glab issue list" "glab ci status"
-    # local helpers
-    "wtport" "ai-tools-check"
-  ];
-  askCommands = [
-    "bd delete" "bd rename" "bd init" "bd dolt push"
-    "graphify install" "graphify uninstall"
-    "workmux rm" "workmux merge"
-    # Node installs execute arbitrary lifecycle scripts (preinstall/postinstall)
-    # off the network, so they are a supply-chain step, not a read. Same reason
-    # `pnpm rebuild`/`approve-builds` and the one-off runners (dlx/npx/bunx) are
-    # here: each one can run a package's own code the first time it is fetched.
-    # Short aliases are listed alongside the long forms because these match on
-    # literal argv tokens: `pnpm i` is not covered by a `pnpm install` rule.
-    "pnpm install" "pnpm i" "pnpm add" "pnpm update" "pnpm up" "pnpm dlx"
-    "pnpm rebuild" "pnpm approve-builds"
-    "npm install" "npm i" "npm ci" "npm update" "npm rebuild" "npx"
-    "yarn install" "yarn add" "yarn upgrade" "yarn dlx"
-    "bun install" "bun i" "bun add" "bun x" "bunx"
-  ];
+  allowedCommands = commandsFromClaudePermissions claudeSettings.permissions.allow;
+  askCommands = commandsFromClaudePermissions claudeSettings.permissions.ask;
 
   # Note: sidemux is an MCP server, not a CLI — driving it means calling
   # `mcp__sidemux__<tool>`, which neither dialect rendered here can express
