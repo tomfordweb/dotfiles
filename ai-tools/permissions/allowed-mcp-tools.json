@@ -1,0 +1,8 @@
+[
+  { "server": "sidemux", "tool": "run" },
+  { "server": "sidemux", "tool": "read" },
+  { "server": "sidemux", "tool": "wait" },
+  { "server": "sidemux", "tool": "status" },
+  { "server": "sidemux", "tool": "list_panes" },
+  { "server": "sidemux", "tool": "send_keys" }
+]
