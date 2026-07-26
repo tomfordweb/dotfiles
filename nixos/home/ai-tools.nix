@@ -27,18 +27,23 @@ let
   mcpHome = "${home}/.local/share/tomfordweb-mcp";
   xdgConfigHome = "${home}/.config";
   opencodeLive = "${xdgConfigHome}/opencode";
-  claudeSettings = builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json);
-
-  # Claude's Bash permission entries are canonical. Strip its Bash(...:*)
-  # wrapper and reuse the commands for OpenCode and Codex so policies cannot
-  # drift when settings.json changes. MCP entries are handled separately below.
-  commandFromClaudePermission = permission:
-    let
-      matched = builtins.match "Bash\\((.*):\\*\\)" permission;
-    in
-    if matched == null then null else builtins.head matched;
-  commandsFromClaudePermissions = permissions:
-    builtins.filter (command: command != null) (map commandFromClaudePermission permissions);
+  permissionsDir = ../../ai-tools/permissions;
+  readPermissionList = name:
+    builtins.fromJSON (builtins.readFile (permissionsDir + "/${name}.json"));
+  allowedCommands = readPermissionList "allowed-commands";
+  askCommands = readPermissionList "ask-commands";
+  allowedMcpTools = readPermissionList "allowed-mcp-tools";
+  askMcpTools = readPermissionList "ask-mcp-tools";
+  claudeMcpToolName = tool: "mcp__${tool.server}__${tool.tool}";
+  claudeSettings = (builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json)) // {
+    permissions = {
+      allow = (map (command: "Bash(${command}:*)") allowedCommands)
+        ++ (map claudeMcpToolName allowedMcpTools);
+      ask = (map (command: "Bash(${command}:*)") askCommands)
+        ++ (map claudeMcpToolName askMcpTools);
+    };
+  };
+  claudeSettingsFile = pkgs.writeText "claude-settings.json" (builtins.toJSON claudeSettings);
 
   # Mirrors the old ops `ai_mcp_servers` registry. npm-backed servers launch
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
@@ -79,9 +84,8 @@ let
 
   # ------------------------------------------------------------------
   # CLI tooling the agents lean on constantly (beads, graphify, workmux,
-  # forge CLIs). Declared once in Claude's settings.json and rendered into
-  # each tool's own permission dialect below, so "bd ready stopped prompting
-  # in Claude but still prompts in Codex" can't happen.
+  # forge CLIs). Versioned JSON manifests are rendered into each tool's own
+  # permission dialect below, so policy changes cannot drift between agents.
   #
   #   allowedCommands — safe to run unattended. Reads, plus the beads
   #     mutations the agent workflow is made of (create/update/close): being
@@ -90,18 +94,17 @@ let
   #     explicitly because a plain prefix like "bd" would otherwise swallow
   #     `bd delete`.
   #
-  # Claude Code reads ai-tools/settings.json directly. Non-Bash entries such as
-  # MCP tools are ignored here and mapped through their own policy declarations.
+  # Node installs execute arbitrary lifecycle scripts. Keep package installs,
+  # rebuilds, and one-off runners in ask-commands.json rather than auto-allowing
+  # code fetched from the network.
   # ------------------------------------------------------------------
-  allowedCommands = commandsFromClaudePermissions claudeSettings.permissions.allow;
-  askCommands = commandsFromClaudePermissions claudeSettings.permissions.ask;
-
-  # Note: sidemux is an MCP server, not a CLI — driving it means calling
-  # `mcp__sidemux__<tool>`, which neither dialect rendered here can express
-  # (codex's execpolicy covers exec only, opencode's permission.bash matches
-  # command strings). Its allow/ask split therefore lives only in
-  # ai-tools/settings.json: run/read/wait/status/list_panes/send_keys allowed,
-  # kill/close_all ask.
+  opencodeMcpPermissions = lib.listToAttrs (
+    (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "allow") allowedMcpTools)
+    ++ (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "ask") askMcpTools)
+  );
+  codexMcpToolModes =
+    (map (tool: tool // { mode = "approve"; }) allowedMcpTools)
+    ++ (map (tool: tool // { mode = "prompt"; }) askMcpTools);
 
   # opencode: { "bd ready *": "allow", … }. Wildcard match, last matching rule
   # wins — and nix serialises attrsets alphabetically, which is exactly the
@@ -164,9 +167,9 @@ let
       options.baseURL = "http://${ollamaHost}/v1";
       models = opencodeModels;
     };
-    # No "*" catch-all: unlisted commands keep opencode's own default rather
-    # than being forced to "ask" by our config.
-    permission.bash = opencodePermissions;
+    # No "*" catch-all: unlisted commands and MCP tools keep OpenCode's own
+    # default rather than being forced to "ask" by our config.
+    permission = { bash = opencodePermissions; } // opencodeMcpPermissions;
     plugin = [
       "./plugins/caveman/plugin.js"
       "./plugins/claude-compat.ts"
@@ -271,7 +274,9 @@ in
         [ -e "$a" ] || continue
         $DRY_RUN_CMD ln -sfn "$a" "$claude/agents/$(basename "$a")"
       done
-      $DRY_RUN_CMD ln -sfn "$aiTools/settings.json" "$claude/settings.json"
+      # settings.json is the tracked base; command and MCP permissions come from
+      # ai-tools/permissions/*.json and are rendered into this generated file.
+      $DRY_RUN_CMD ln -sfn "${claudeSettingsFile}" "$claude/settings.json"
       $DRY_RUN_CMD ln -sfn "$aiTools/CLAUDE.md" "$claude/CLAUDE.md"
 
       # ---- codex: skills + always-on global instructions.
@@ -343,6 +348,34 @@ PYEOF
       $DRY_RUN_CMD claude mcp add --scope user "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "-e ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
       if [ -d "$HOME/.codex" ]; then
         $DRY_RUN_CMD codex mcp add "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--env ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
+
+        # Codex keeps MCP approval modes in config.toml. Generate only these
+        # per-tool sections and leave project trust and unrelated settings alone.
+        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 - "$HOME/.codex/config.toml" <<'PYEOF'
+import re
+import sys
+
+path = sys.argv[1]
+try:
+    text = open(path).read()
+except FileNotFoundError:
+    raise SystemExit(0)
+
+def set_mode(server, tool, mode):
+    global text
+    header = f"[mcp_servers.{server}.tools.{tool}]"
+    section = re.compile(r"(?ms)^" + re.escape(header) + r"\n.*?(?=^\[|\Z)")
+    replacement = f'{header}\napproval_mode = "{mode}"\n\n'
+    if section.search(text):
+        text = section.sub(replacement, text, count=1)
+    else:
+        text = text.rstrip() + "\n\n" + replacement
+
+for entry in ${builtins.toJSON codexMcpToolModes}:
+    set_mode(entry["server"], entry["tool"], entry["mode"])
+
+open(path, "w").write(text)
+PYEOF
       fi
 
       # ---- opencode: static assets + rendered opencode.jsonc
