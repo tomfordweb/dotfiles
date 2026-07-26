@@ -1,3 +1,0 @@
-[     520ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://github.com/tomfordweb/dotfiles/blob/23f13ccb750333bac229e3c60e6f301cc52a4f93/nixos/home/ai-tools.nix:0
-[    1042ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://github.com/tomfordweb/dotfiles/deferred-metadata/23f13ccb750333bac229e3c60e6f301cc52a4f93/nixos/home/ai-tools.nix:0
-[    1047ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://github.com/tomfordweb/dotfiles/latest-commit/23f13ccb750333bac229e3c60e6f301cc52a4f93/nixos/home/ai-tools.nix:0
