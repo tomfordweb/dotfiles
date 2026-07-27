@@ -56,9 +56,20 @@ GitLab MRs (`glab mr merge`), including merges into a protected default branch.
 
 Managed by home-manager (`dotfiles/nixos/home/ai-tools.nix`): the browser comes
 from nixpkgs' `pkgs.playwright-driver.browsers` (an immutable `/nix/store` path,
-not a mutable `~/.cache/ms-playwright` install), and `PLAYWRIGHT_CHROMIUM_EXECUTABLE`
-is exported at shell login by globbing the versioned `chromium-<rev>` dir under it
-— so MCP configs reference the env var, never a hand-chased version-suffixed path.
+not a mutable `~/.cache/ms-playwright` install), and the activation script
+resolves the versioned `chromium-<rev>` dir once and bakes the real path into
+the user-scope registration (`claude mcp add --scope user`). The
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` shell export exists for humans and ad-hoc
+scripts, not for MCP configs.
+
+**Never re-declare playwright in a project `.mcp.json`.** A project-scope server
+shadows the home-manager one, and neither Claude Code nor codex expands
+`{env:VAR}` inside an args array — the placeholder is passed through literally,
+so Node tries to spawn a command named `{env:PLAYWRIGHT_CHROMIUM_EXECUTABLE}`
+and every browser call dies with `Failed to launch` / `spawn … ENOENT`. If a
+repo needs its own MCP entries, list only the ones home-manager does not already
+provide (an `angular-cli` server, say) and let playwright/context7/sidemux come
+from the user scope. Fixed in andromeda 2026-07-27.
 
 playwright (and context7) are launched `node`-direct (NOT `npx`, which costs
 ~2s/launch) from a shared pinned install home-manager maintains — no per-tool
