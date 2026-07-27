@@ -69,7 +69,7 @@ so Node tries to spawn a command named `{env:PLAYWRIGHT_CHROMIUM_EXECUTABLE}`
 and every browser call dies with `Failed to launch` / `spawn … ENOENT`. If a
 repo needs its own MCP entries, list only the ones home-manager does not already
 provide (an `angular-cli` server, say) and let playwright/context7/sidemux come
-from the user scope. Fixed in andromeda 2026-07-27.
+from the user scope.
 
 playwright (and context7) are launched `node`-direct (NOT `npx`, which costs
 ~2s/launch) from a shared pinned install home-manager maintains — no per-tool
