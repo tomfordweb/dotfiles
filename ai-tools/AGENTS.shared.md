@@ -92,6 +92,32 @@ versions will disagree about the schema. Resolve it before continuing.
 - In a worktree, use the `/dev` skill (`wtport` hashes the path to a stable port) instead of a
   framework default like 5173/4200/3000 — and never kill a port that is not this worktree's.
 
+## Provisioning credentials through a browser session
+
+Applies when you are driving a browser to create or retrieve a credential on someone's behalf —
+issuing an API key, generating a client secret, reading a connection string out of a hosting
+console. Ordinary browsing is not the concern; a page that is about to hand you a live secret is.
+
+Redacting what is *visible* is not enough on those pages. Consoles routinely keep the full value
+somewhere the eye never goes — an attribute behind a copy button, a data property, a hidden
+input, a JSON blob in page state — so enumerating elements to find a control captures the secret
+without ever "reading" it. Assume the page has at least one such hiding place you have not
+thought of.
+
+- **Never dump attributes or full page state there** — no `aria-label`/`title`/`value` listings,
+  no `innerHTML`, no whole-page accessibility snapshot. Locate controls by role and position, and
+  return booleans or counts rather than element text.
+- **Route the secret around yourself, not through yourself:** use the page's own copy control,
+  then have the human paste it into the password manager. A value that never enters the
+  transcript cannot leak from it later.
+- Identifiers meant to be public — client IDs, publishable keys, account emails — are fine to
+  state. The rule is about anything that authenticates.
+- **If a secret does land in the transcript, say so immediately and rotate it.** Both halves
+  matter: a leak you don't mention is a leak the human can't fix, and a rotation that skips the
+  old secret's deletion leaves it live.
+- Same care in the other direction: don't type credentials into a page on someone's behalf, and
+  don't ask for a password to do it. Hand the human the tab.
+
 ## Prose and editorial content
 
 - Run any hand- or LLM-authored prose through the `humanizer` skill before it ships: site copy,
