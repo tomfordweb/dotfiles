@@ -92,6 +92,35 @@ versions will disagree about the schema. Resolve it before continuing.
 - In a worktree, use the `/dev` skill (`wtport` hashes the path to a stable port) instead of a
   framework default like 5173/4200/3000 — and never kill a port that is not this worktree's.
 
+## Secrets in browser automation
+
+An agent driving a browser (playwright MCP, claude-in-chrome, anything else) will sooner or
+later land on a page that displays a credential: an API key right after creation, an OAuth
+client secret, a DB password in a hosting console. Redacting the visible text is not enough —
+consoles hide the full value in attributes:
+
+```
+<button aria-label="Copy to clipboard: GOCSPX-…">   ← Google Cloud OAuth client secret
+```
+
+So an agent that enumerates buttons by `aria-label` to find a control pulls the secret into
+its transcript without ever "reading" it. That happened on 2026-07-27 (Google OAuth client for
+bevvi); the secret had to be rotated.
+
+- **Never dump `aria-label`, `title`, `value`, `innerHTML` or a full accessibility snapshot on
+  a page showing a credential.** Drive controls by role and position instead, and return
+  booleans or counts, not element text.
+- **Route the secret around yourself, not through yourself:** click the console's own copy
+  button, then have the human paste it into 1Password. The value never needs to enter the
+  transcript, and a value that never entered cannot leak later.
+- Client IDs, publishable keys and account emails are fine to state — they ship in page source
+  anyway. The rule is about anything that authenticates.
+- **If a secret does land in the transcript, say so immediately and rotate it.** Both halves
+  matter: a leak you don't mention is a leak the human can't fix, and a rotation that skips the
+  old secret's deletion leaves it live.
+- Same care in the other direction: don't type credentials into a page on someone's behalf, and
+  don't ask for a password to do it. Hand the human the tab.
+
 ## Prose and editorial content
 
 - Run any hand- or LLM-authored prose through the `humanizer` skill before it ships: site copy,
