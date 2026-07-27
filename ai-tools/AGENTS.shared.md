@@ -92,29 +92,26 @@ versions will disagree about the schema. Resolve it before continuing.
 - In a worktree, use the `/dev` skill (`wtport` hashes the path to a stable port) instead of a
   framework default like 5173/4200/3000 — and never kill a port that is not this worktree's.
 
-## Secrets in browser automation
+## Provisioning credentials through a browser session
 
-An agent driving a browser (playwright MCP, claude-in-chrome, anything else) will sooner or
-later land on a page that displays a credential: an API key right after creation, an OAuth
-client secret, a DB password in a hosting console. Redacting the visible text is not enough —
-consoles hide the full value in attributes:
+Applies when you are driving a browser to create or retrieve a credential on someone's behalf —
+issuing an API key, generating a client secret, reading a connection string out of a hosting
+console. Ordinary browsing is not the concern; a page that is about to hand you a live secret is.
 
-```
-<button aria-label="Copy to clipboard: GOCSPX-…">   ← Google Cloud OAuth client secret
-```
+Redacting what is *visible* is not enough on those pages. Consoles routinely keep the full value
+somewhere the eye never goes — an attribute behind a copy button, a data property, a hidden
+input, a JSON blob in page state — so enumerating elements to find a control captures the secret
+without ever "reading" it. Assume the page has at least one such hiding place you have not
+thought of.
 
-So an agent that enumerates buttons by `aria-label` to find a control pulls the secret into
-its transcript without ever "reading" it. That happened on 2026-07-27 (Google OAuth client for
-bevvi); the secret had to be rotated.
-
-- **Never dump `aria-label`, `title`, `value`, `innerHTML` or a full accessibility snapshot on
-  a page showing a credential.** Drive controls by role and position instead, and return
-  booleans or counts, not element text.
-- **Route the secret around yourself, not through yourself:** click the console's own copy
-  button, then have the human paste it into 1Password. The value never needs to enter the
-  transcript, and a value that never entered cannot leak later.
-- Client IDs, publishable keys and account emails are fine to state — they ship in page source
-  anyway. The rule is about anything that authenticates.
+- **Never dump attributes or full page state there** — no `aria-label`/`title`/`value` listings,
+  no `innerHTML`, no whole-page accessibility snapshot. Locate controls by role and position, and
+  return booleans or counts rather than element text.
+- **Route the secret around yourself, not through yourself:** use the page's own copy control,
+  then have the human paste it into the password manager. A value that never enters the
+  transcript cannot leak from it later.
+- Identifiers meant to be public — client IDs, publishable keys, account emails — are fine to
+  state. The rule is about anything that authenticates.
 - **If a secret does land in the transcript, say so immediately and rotate it.** Both halves
   matter: a leak you don't mention is a leak the human can't fix, and a rotation that skips the
   old secret's deletion leaves it live.
