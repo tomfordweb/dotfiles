@@ -86,7 +86,8 @@ Config: project `.workmux.yaml` overrides global `~/.config/workmux/config.yaml`
 
 ### Worktree lifecycle
 ```bash
-workmux add <branch>            # new worktree + tmux window + agent
+workmux add --background --no-pane-cmds <branch> # agent-created default: no window/pane
+workmux add <branch>            # live worktree + tmux window + agent
 workmux add -A -p "fix X"       # -A auto-names branch from prompt via LLM
 workmux add --pr 123            # check out a PR into a worktree
 workmux add --base main feat-x  # branch from an explicit base
@@ -98,6 +99,7 @@ workmux rm <name>               # remove worktree+window+branch, NO merge
 workmux resurrect               # restore windows after tmux/computer crash
 ```
 - `add` runs `post_create` hooks (e.g. `pnpm install`) and file ops (`copy`/`symlink`) from `.workmux.yaml`. Skip with `-H` / `-F` / `-C`.
+- Agents should use `--background --no-pane-cmds` by default. Omit only when the user explicitly wants a live agent window.
 - `merge` defaults to `main_branch` from config; `--into` overrides. `--squash`, `--rebase`, `-k`/`--keep` available.
 
 ### Agent orchestration (parallel Claude agents across worktrees)
@@ -108,7 +110,7 @@ workmux wait <names>... --status done # block until agents reach status (--any =
 workmux run <name> -- <cmd>          # run a command in a worktree's window
 workmux capture <name>               # capture terminal output from an agent
 workmux dashboard                    # TUI of all active agents
-workmux sidebar                      # toggle live agent-status sidebar in tmux
+workmux sidebar                      # user-run only: toggle live agent-status sidebar in tmux
 ```
 Cross-project handles use `project:handle` syntax in `send`/`wait`/`status`.
 

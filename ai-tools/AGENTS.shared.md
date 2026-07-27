@@ -27,7 +27,9 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
 - Report failures. Do not route around a failing gate, mark it flaky, or narrow its scope to get
   green.
 - When the repo has an issue tracker, link the PR/MR back on the issue.
-- Create worktrees with `workmux`, not hand-rolled `git worktree add`.
+- Create worktrees with `workmux`, not hand-rolled `git worktree add`. Agent-created
+  sessions should default to `workmux add --background --no-pane-cmds --base <base> <branch>`
+  so worktree setup runs without opening panes or starting empty agent windows.
 
 ## Issue tracking — beads (`bd`)
 

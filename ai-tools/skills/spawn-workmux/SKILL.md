@@ -1,6 +1,6 @@
 ---
 name: spawn-workmux
-description: Spawn parallel workmux worktrees for a project — one per logical feature area — each starting Claude in plan mode. Reads plan.md for the worktree list, writes per-worktree prompt files, creates worktrees in background, starts each agent in /plan mode, and opens a GitLab MR for each branch. Trigger when user says "spawn worktrees", "set up parallel agents", "delegate to worktrees", "start all worktrees", or invokes /spawn-workmux.
+description: Spawn parallel workmux worktrees for a project — one per logical feature area — without opening panes or starting empty agent sessions. Reads plan.md for the worktree list, writes per-worktree prompt files, creates worktrees in background with no pane commands, and opens a GitLab MR for each branch. Trigger when user says "spawn worktrees", "set up parallel agents", "delegate to worktrees", "start all worktrees", or invokes /spawn-workmux.
 disable-model-invocation: true
 allowed-tools: Bash, Write, Read
 ---
@@ -8,8 +8,8 @@ allowed-tools: Bash, Write, Read
 # spawn-workmux
 
 Dispatch a project across parallel workmux worktrees. Each worktree gets an
-isolated branch, a detailed prompt file, Claude started in `/plan` mode, and a
-GitLab MR opened automatically.
+isolated branch, a detailed prompt file for later use, no live Claude pane by
+default, and a GitLab MR opened automatically.
 
 $ARGUMENTS
 
@@ -17,7 +17,8 @@ $ARGUMENTS
 
 **HARD RULE:** Do NOT explore, read, grep, or search the codebase beyond reading
 `plan.md`. Do NOT implement anything. Your only job: write prompt files, run
-`workmux add`, and open MRs. Worktree agents do all the work.
+`workmux add --background --no-pane-cmds`, and open MRs. Worktree agents do all
+the work when explicitly started later.
 
 ---
 
@@ -120,13 +121,14 @@ git remote get-url origin
 ## Step 4 — Create all worktrees (in parallel, after all files written)
 
 ```bash
-workmux add feat/nx-workspace -b -P /tmp/tmp.abc123.md
-workmux add feat/ui-layout-lib -b -P /tmp/tmp.def456.md
+workmux add feat/nx-workspace --background --no-pane-cmds -P /tmp/tmp.abc123.md
+workmux add feat/ui-layout-lib --background --no-pane-cmds -P /tmp/tmp.def456.md
 # etc.
 ```
 
 Flags:
-- `-b` — background, don't switch to the new window
+- `--background` — run in background; don't switch to the new window
+- `--no-pane-cmds` — do not run pane startup commands or create an empty agent session
 - `-P <file>` — inject prompt file as Claude's first message (triggers `/plan`)
 - `-o` — add this flag if the worktree already exists (idempotent)
 
@@ -144,21 +146,19 @@ workmux list
 Report to user:
 - Which worktrees were created (branch → tmux window)
 - Which GitLab MRs were opened (URL for each)
-- Each agent is in `/plan` mode — switch to its window to review and approve its plan
+- No agent pane was started. Use the saved prompt file when explicitly starting an agent later.
 - Tip: `workmux dashboard` to monitor all agents at once
 
 ---
 
-## Plan mode behaviour in each worktree
+## Later agent startup
 
-Each spawned Claude will:
-1. Enter plan mode (triggered by `/plan` at top of prompt)
-2. Read the prompt file and referenced plan.md
-3. Write a plan file and present it in that window
-4. **Wait for user approval** in that tmux window
-5. Implement autonomously on approval, then commit
+Because `--no-pane-cmds` is mandatory for agent-created sessions, no Claude
+session starts during `workmux add`. If the user explicitly asks to start the
+agent later, open the worktree/window and send the saved prompt file then.
 
-User must visit each window to approve. Use `workmux status` to track progress.
+Use `workmux status` to track worktrees that already have active agents. Do not
+run `workmux sidebar` unless the user explicitly asks for the sidebar.
 
 ---
 
