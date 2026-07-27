@@ -30,6 +30,9 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
 - Create worktrees with `workmux`, not hand-rolled `git worktree add`. Agent-created
   sessions should default to `workmux add --background --no-pane-cmds --base <base> <branch>`
   so worktree setup runs without opening panes or starting empty agent windows.
+- When sidemux is available, run heavy commands through the sidemux MCP `run` tool instead of
+  invoking `sidemux` from the shell. Shell `sidemux`/`workmux sidebar` commands are user-control
+  commands, not the default path for agent validation.
 
 ## Issue tracking — beads (`bd`)
 
