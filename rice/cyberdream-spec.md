@@ -86,8 +86,6 @@ mauve, critical → red).
   `control-center` (volume/brightness sliders, wifi/bt/lock toggles,
   now-playing, power row). `$mainMod C` or bar chip toggles.
 - **ghostty / tmux** — same palette via generated theme files.
-
-## Follow-ups
-
-- neotom (nvim submodule): adopt `cyberdream.nvim` upstream colorscheme
-  (beads `dotfiles-qzs.14`).
+- **nvim** — `cyberdream.nvim` in the neotom submodule, with its fourteen
+  palette keys overridden by the values above (`lua/plugins/theme.lua`).
+  Not generated from `palette.json`: edit both together.
