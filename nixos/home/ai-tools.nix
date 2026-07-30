@@ -68,7 +68,7 @@ let
       # playwright-core that expects a specific chromium rev, and the nixpkgs
       # playwright-driver must ship that SAME rev. Bump the two together.
       "@playwright/mcp" = "0.0.77";
-      "@upstash/context7-mcp" = "3.2.2";
+      "@upstash/context7-mcp" = "3.2.5";
     };
   });
 
@@ -331,10 +331,18 @@ PYEOF
         fi
       fi
 
-      # ---- Shared MCP servers — one-time npm install of the pinned deps
-      if [ ! -d "${mcpHome}/node_modules" ]; then
+      # ---- Shared MCP servers — install the pinned deps, and REinstall whenever
+      # the pin set changes. The guard is the rendered package.json's store path
+      # recorded in a stamp file, not just "does node_modules exist": with the
+      # latter, bumping a version here rewrote package.json and then never ran
+      # npm install again, so the server kept running the old version on every
+      # host that had already installed once.
+      mcpStamp="${mcpHome}/.nix-pins"
+      if [ ! -d "${mcpHome}/node_modules" ] \
+         || [ "$(cat "$mcpStamp" 2>/dev/null)" != "${mcpPackageJson}" ]; then
         $DRY_RUN_CMD ${pkgs.nodejs_22}/bin/npm install \
           --prefix "${mcpHome}" --no-audit --no-fund --omit=dev
+        $DRY_RUN_CMD sh -c 'printf %s "$1" > "$2"' _ "${mcpPackageJson}" "$mcpStamp"
       fi
 
       # ---- Register MCP servers with claude + codex (idempotent — both
