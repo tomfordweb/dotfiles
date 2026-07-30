@@ -11,6 +11,15 @@
 #   - git filter-branch
 #   - git commit --amend
 #
+# Scope: the repo the COMMAND is about, not the session's. Resolution order is
+# `git -C <dir>`, a leading `cd <dir>`, the hook payload's cwd, then
+# CLAUDE_PROJECT_DIR. Judging every command against the session repo meant a
+# feature-branch push in another checkout was refused whenever the session repo
+# happened to sit on main.
+#
+# Matching ignores quoted text, so prose that merely mentions these operations
+# (a bd description, a commit message) is not treated as an invocation.
+#
 # NOT blocked: plain `git rebase` — rebase is the preferred integration workflow
 # here, is local + reflog-recoverable, and the genuinely dangerous part (publishing
 # rewritten history) is still gated at the force-push check above.
@@ -24,16 +33,30 @@ set -euo pipefail
 
 payload="$(cat)"
 
-# Extract .tool_input.command (python3 is always present on this machine).
-command="$(printf '%s' "$payload" | python3 -c '
-import json, sys
+# Extract, on three lines: the command with quoted text stripped, the raw
+# command, and the session cwd. (python3 is always present on this machine.)
+#
+# Quoted text is stripped for matching because the guard greps for words like
+# "push" and "--force": a `bd create --description="... force push ..."` is
+# prose, not a git invocation, and used to be refused as one. Anything that
+# actually runs git puts those tokens OUTSIDE quotes.
+parsed="$(printf '%s' "$payload" | python3 -c '
+import json, re, sys
 try:
     d = json.load(sys.stdin)
 except Exception:
-    print("")
+    print("\n\n")
     sys.exit(0)
-print((d.get("tool_input") or {}).get("command", "") or "")
+raw = (d.get("tool_input") or {}).get("command", "") or ""
+stripped = re.sub(r"\x27[^\x27]*\x27|\"(?:[^\"\\\\]|\\\\.)*\"", " ", raw)
+print(stripped.replace("\n", " "))
+print(raw.replace("\n", " "))
+print(d.get("cwd") or "")
 ')"
+
+command="$(printf '%s' "$parsed" | sed -n 1p)"      # quote-stripped, for matching
+raw_command="$(printf '%s' "$parsed" | sed -n 2p)"  # verbatim, for path extraction
+payload_cwd="$(printf '%s' "$parsed" | sed -n 3p)"
 
 # Nothing to inspect → allow.
 [ -z "$command" ] && exit 0
@@ -52,7 +75,30 @@ block() {
 # EVERY path that differs from the protected branch tip lives under .beads/ (the
 # passive issues.jsonl export). Any non-beads file riding along → still blocked.
 # Scoped to ordinary pushes only — force push never reaches here.
-repo="${CLAUDE_PROJECT_DIR:-.}"
+# Which checkout is this command actually about? CLAUDE_PROJECT_DIR is the
+# session's repo, which is the WRONG answer whenever the command cds elsewhere:
+# with the session repo sitting on main, every feature-branch push in another
+# checkout used to be refused as a protected-branch push. Prefer, in order: an
+# explicit `git -C <dir>`, a leading `cd <dir>`, the payload's cwd, the session
+# repo. Extracted from the raw command — these paths may legitimately be quoted.
+resolve_repo() {
+  local dir
+  dir="$(printf '%s' "$raw_command" \
+    | grep -oE 'git[[:space:]]+-C[[:space:]]+("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:];&|]+)' \
+    | head -1 | sed -E 's/^git[[:space:]]+-C[[:space:]]+//; s/^["'"'"']//; s/["'"'"']$//')"
+  if [ -z "$dir" ]; then
+    dir="$(printf '%s' "$raw_command" \
+      | grep -oE '(^|[;&|][[:space:]]*)cd[[:space:]]+("[^"]+"|'"'"'[^'"'"']+'"'"'|[^[:space:];&|]+)' \
+      | head -1 | sed -E 's/.*cd[[:space:]]+//; s/^["'"'"']//; s/["'"'"']$//')"
+  fi
+  [ -z "$dir" ] && dir="$payload_cwd"
+  [ -z "$dir" ] && dir="${CLAUDE_PROJECT_DIR:-.}"
+  # ~ is not expanded inside the extracted token.
+  case "$dir" in "~"*) dir="$HOME${dir#\~}" ;; esac
+  [ -d "$dir" ] || dir="${CLAUDE_PROJECT_DIR:-.}"
+  printf '%s' "$dir"
+}
+repo="$(resolve_repo)"
 beads_only_push() {
   local base changed
   base="$(git -C "$repo" rev-parse --verify --quiet origin/main 2>/dev/null \
