@@ -306,7 +306,7 @@ home-manager refuses to clobber real files:
 
 ```bash
 cd /home/tom/.config
-for d in hypr ghostty gh glab-cli git tmux nvim lazygit waybar wofi starship.toml workmux thefuck; do
+for d in hypr ghostty gh glab-cli git tmux nvim lazygit waybar wofi mako eww starship.toml workmux thefuck; do
   [ -e "$d" ] && [ ! -L "$d" ] && mv "$d" "$d.pre-nixos"
 done
 # (merge anything you care about — e.g. gh.pre-nixos/hosts.yml auth — back by hand)

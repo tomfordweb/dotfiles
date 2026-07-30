@@ -18,7 +18,8 @@ pidfile="$dir/$(printf '%s' "$PWD" | sha1sum | cut -c1-16).pids"
 
 # JS dev servers: give each worktree a stable, unique port unless one was set.
 if [ -z "${PORT:-}" ] && [ -f package.json ]; then
-  export PORT="$(wtport)"
+  PORT="$(wtport)"
+  export PORT
 fi
 
 # setsid puts the command in a new session + process group; its PID is the

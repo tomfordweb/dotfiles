@@ -41,5 +41,11 @@ exec "$BIN" -m "$MODEL" --step 0 --length 10000 --keep 0 -vth 0.5 -t 6 ${WHISPER
       # Skip a phrase identical to the one just emitted (VAD re-transcription).
       [ "$phrase" = "$last" ] && continue
       last="$phrase"
-      command -v wtype >/dev/null 2>&1 && wtype -- "$phrase " 2>/dev/null || printf '%s ' "$phrase" | wl-copy
+      # if/else, not A && B || C: with the latter a wtype that exists but
+      # fails also lands the phrase on the clipboard, clobbering it.
+      if command -v wtype >/dev/null 2>&1; then
+        wtype -- "$phrase " 2>/dev/null
+      else
+        printf '%s ' "$phrase" | wl-copy
+      fi
     done; }
