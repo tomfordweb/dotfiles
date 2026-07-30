@@ -42,6 +42,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|mcp__playwright__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/home/tom/code/tomfordweb/dotfiles/ai-tools/hooks/claude-secret-shape-guard\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionStart": [
