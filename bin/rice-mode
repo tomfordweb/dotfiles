@@ -98,7 +98,8 @@ apply_eww() {
 }
 
 apply() {
-  local mode="$(get_mode)"
+  local mode
+  mode="$(get_mode)"
   apply_wallpaper "$mode"
   apply_hypr "$mode"
   apply_eww

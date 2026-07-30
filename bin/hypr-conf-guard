@@ -26,6 +26,8 @@ git -C "$repo" checkout -- "$conf" || exit 1
 # hyprctl needs the instance signature; systemd units don't inherit it,
 # so fall back to the most recent instance dir.
 if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+  # shellcheck disable=SC2012  # instance sigs are hex names; newest-first is
+  # the whole point and find has no ordering without sort plumbing.
   HYPRLAND_INSTANCE_SIGNATURE="$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr" 2>/dev/null | head -n 1)"
   export HYPRLAND_INSTANCE_SIGNATURE
 fi
