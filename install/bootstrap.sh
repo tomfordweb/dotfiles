@@ -22,9 +22,17 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 MINIMAL="tmux ghostty nvim lazygit gh git starship.toml workmux glab-cli thefuck"
 # Wayland/Hyprland desktop extras — Linux ricing hosts only.
 DESKTOP="hypr waybar wofi mako eww"
+# Single files linked individually, because the app also writes state into
+# the same dir and that state must stay in real ~/.config, not the repo.
+# Desktop-only (PipeWire/WirePlumber), so skipped by --minimal.
+DESKTOP_FILES="wireplumber/wireplumber.conf.d/50-yeti-orb.conf"
 
 entries="$MINIMAL $DESKTOP"
-[ "${1:-}" = "--minimal" ] && entries="$MINIMAL"
+files="$DESKTOP_FILES"
+if [ "${1:-}" = "--minimal" ]; then
+  entries="$MINIMAL"
+  files=""
+fi
 
 mkdir -p "$HOME/.config"
 
@@ -39,6 +47,22 @@ for entry in $entries; do
     echo "SKIP  $target exists and is not a symlink — move it aside and re-run"
     continue
   fi
+  ln -sfn "$src" "$target"
+  echo "LINK  $target -> $src"
+done
+
+for entry in $files; do
+  src="$REPO/config/$entry"
+  target="$HOME/.config/$entry"
+  if [ ! -e "$src" ]; then
+    echo "SKIP  $entry (missing in repo)"
+    continue
+  fi
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    echo "SKIP  $target exists and is not a symlink — move it aside and re-run"
+    continue
+  fi
+  mkdir -p "$(dirname "$target")"
   ln -sfn "$src" "$target"
   echo "LINK  $target -> $src"
 done
