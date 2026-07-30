@@ -52,6 +52,19 @@ GitLab MRs (`glab mr merge`), including merges into a protected default branch.
 - Inspect real current state first; make scoped, reversible changes.
 - State the blast radius before any firewall / DB / migration edit.
 
+## Secret-shape guard
+
+`ai-tools/hooks/claude-secret-shape-guard` runs PostToolUse on Bash, Read and
+every playwright MCP tool. It matches credential shapes (Google OAuth secrets,
+`sk-`/`gh*_`/`glpat-`/`AKIA`/Slack/npm tokens, private-key blocks) in the tool
+result and, on a hit, tells you to surface the leak to the human and rotate.
+
+It is a smoke alarm, not a filter — by the time it fires the value is already in
+the transcript. The rule in AGENTS.shared.md (drive credential pages by role and
+position, never dump attributes or page state) is still the thing that prevents
+the leak. If it fires on an example or a public identifier, say so in one line
+and continue.
+
 ## Playwright MCP — browser setup & troubleshooting
 
 Managed by home-manager (`dotfiles/nixos/home/ai-tools.nix`): the browser comes
