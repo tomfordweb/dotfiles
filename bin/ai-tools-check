@@ -12,7 +12,6 @@
 set -uo pipefail
 
 DOTFILES="${DOTFILES:-$HOME/code/tomfordweb/dotfiles}"
-REGISTRY="$DOTFILES/ai-tools/vendored.json"
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/tomfordweb"
 CACHE="$CACHE_DIR/ai-tools-check.json"
 REFRESH_INTERVAL_H=24

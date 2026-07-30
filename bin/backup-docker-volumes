@@ -44,10 +44,9 @@ echo "Destination: $DEST"
 
 # Stop running containers so datadirs (MySQL etc.) are copied consistently.
 # We are about to reinstall, so there is no need to restart them afterward.
-RUNNING="$(docker ps -q)"
-if [ -n "$RUNNING" ]; then
+if [ -n "$(docker ps -q)" ]; then
   echo "Stopping running containers for a consistent copy..."
-  docker stop $RUNNING >/dev/null
+  docker ps -q | xargs -r docker stop >/dev/null
 fi
 
 for v in "${VOLS[@]}"; do
