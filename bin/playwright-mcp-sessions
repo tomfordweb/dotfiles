@@ -4,8 +4,14 @@
 #
 #   playwright-mcp-sessions export     write profile cookies -> storage-state.json
 #   playwright-mcp-sessions show       what is in the state file right now
-#   playwright-mcp-sessions token      print the extension token (for the
-#                                      extension's options page)
+#   playwright-mcp-sessions token set  paste the token the extension shows you
+#   playwright-mcp-sessions token      print the stored token
+#
+# The extension issues the token and displays it in its own page, with a rotate
+# button. We are the side that has to match it, so `token set` reads the value
+# from a prompt rather than an argument: an argument would land in shell history
+# and in the process list. Rotating in the extension means running `token set`
+# again and reconnecting the MCP server.
 #
 # Why this exists: the agent-facing server runs --isolated, which takes no
 # profile lock and so allows any number of agents at once. Isolated contexts do
@@ -74,7 +80,22 @@ cmd_login() {
 }
 
 cmd_token() {
-  [ -s "$TOKEN_FILE" ] || die "no token at $TOKEN_FILE (run a home-manager switch first)"
+  if [ "${1:-}" = "set" ]; then
+    # -s so the value never appears on screen, and read-from-prompt so it never
+    # appears in shell history or in ps output.
+    local value
+    printf 'Paste the token from the Playwright extension page: ' >&2
+    read -rs value
+    printf '\n' >&2
+    [ -n "$value" ] || die "empty token, nothing written"
+    ( umask 077; printf %s "$value" > "$TOKEN_FILE" ) || die "could not write $TOKEN_FILE"
+    echo "stored in $TOKEN_FILE"
+    echo "Now re-register so the server picks it up:"
+    echo "  home-manager switch   (or nixos-rebuild switch)"
+    echo "then reconnect the playwright-personal MCP server."
+    return
+  fi
+  [ -s "$TOKEN_FILE" ] || die "no token stored yet: run 'playwright-mcp-sessions token set'"
   cat "$TOKEN_FILE"
 }
 

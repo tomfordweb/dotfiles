@@ -439,14 +439,13 @@ PYEOF
           '{"cookies":[],"origins":[]}' "${agentStorageState}"
       fi
 
-      # Generated once and reused. Regenerating it on every rebuild would mean
-      # re-pasting into the extension options page every time, so this is
-      # create-if-absent. 0600 because it is what lets a caller skip the
-      # browser's own connect prompt.
-      if [ ! -s "${extensionTokenFile}" ]; then
-        $DRY_RUN_CMD sh -c 'umask 077; ${pkgs.openssl}/bin/openssl rand -hex 24 > "$1"' _ \
-          "${extensionTokenFile}"
-      fi
+      # The EXTENSION issues this token and displays it (with a rotate button);
+      # we are the side that has to match. So this is never generated here, only
+      # read. Create the file empty at 0600 and let
+      # `playwright-mcp-sessions token set` fill it, so the value is pasted
+      # straight into a private file rather than passing through a shell
+      # history, a nix expression, or a world-readable /nix/store path.
+      $DRY_RUN_CMD sh -c 'umask 077; [ -f "$1" ] || : > "$1"' _ "${extensionTokenFile}"
       EXTENSION_TOKEN=$(cat "${extensionTokenFile}" 2>/dev/null || echo "")
 
       # ---- Register MCP servers with claude + codex.
