@@ -53,20 +53,50 @@ let
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
   # sidemux is PATH-resolved so the sidemux repo's own flake+direnv shim can
   # shadow it with a local build without any config change here.
-  # One profile for every checkout. Without --user-data-dir, playwright-core
-  # derives the profile path from the CLIENT'S CWD
-  # (createUserDataDir in playwright-core: `mcp-<channel>-<sha256(cwd)[0:7]>`),
-  # so every repo — and every git worktree of the same repo — gets its own
-  # empty browser. That is why a login done in one worktree was gone in the
-  # next; it had left 46 profile dirs under ~/.cache/ms-playwright-mcp.
-  agentBrowserProfile = "${home}/.local/state/playwright-mcp/profile";
+  # Three browser servers, one job each. The split exists because two things we
+  # want are mutually exclusive in one server: a saved login, and more than one
+  # agent at a time.
+  #
+  # Left alone, playwright-core derives the profile path from the CLIENT'S CWD
+  # (createUserDataDir: `mcp-<channel>-<sha256(cwd)[0:7]>`), so every repo and
+  # every git worktree gets its own empty browser and no login ever survives a
+  # context switch. It had left 46 profile dirs under ~/.cache/ms-playwright-mcp.
+  # But pinning one --user-data-dir instead is worse for this machine, because
+  # createPersistentBrowser takes a lock on the profile:
+  #
+  #     if (await isProfileLocked5Times(userDataDir))
+  #       throw new Error(`Browser is already in use for ${userDataDir} ...`)
+  #
+  # It retries for five seconds and throws, and never consults the shared
+  # browser registry (only createRemoteBrowser does). With several agents
+  # working at once, the second one to reach for a browser simply fails.
+  playwrightStateDir = "${home}/.local/state/playwright-mcp";
+  agentBrowserProfile = "${playwrightStateDir}/profile";
+  agentStorageState = "${playwrightStateDir}/storage-state.json";
+  extensionTokenFile = "${playwrightStateDir}/extension-token";
 
   npmServers = [
     {
+      # The one agents use. --isolated keeps the profile in memory, so it takes
+      # no lock and any number of agents run concurrently; --storage-state seeds
+      # each of them with the cookies exported from the login profile below.
+      # Isolated contexts do not write back, so a login performed here dies with
+      # the agent. That is the trade: parallelism, and session refresh becomes a
+      # deliberate act rather than something that accumulates unnoticed.
       name = "playwright";
       entry = "@playwright/mcp/cli.js";
       # $CHROME resolved by the activation script below (chromium-<rev> is
       # not knowable at eval time, only after the store path is realized).
+      args = [ "--executable-path" "$CHROME" "--isolated" "--storage-state" agentStorageState ];
+    }
+    {
+      # Where you sign in. Persistent profile, so logins stick and write back on
+      # their own. Single instance by design: it holds the lock described above,
+      # which is fine because only one person is ever typing a password into it.
+      # `playwright-mcp-sessions export` turns this profile into the JSON the
+      # isolated server reads.
+      name = "playwright-login";
+      entry = "@playwright/mcp/cli.js";
       args = [ "--executable-path" "$CHROME" "--user-data-dir" agentBrowserProfile ];
     }
     {
@@ -79,9 +109,30 @@ let
       # --extension, not --cdp-endpoint: chromium 136+ ignores
       # --remote-debugging-port when --user-data-dir is the default profile,
       # so a debug port cannot reach ~/.config/chromium at all.
+      #
+      # --executable-path is REQUIRED here, and not for the reason it reads.
+      # Extension mode maps a channel name to the profile it expects the
+      # extension in (playwright-core chromiumChannels.ts), and that map knows
+      # only chrome*/msedge* — plain chromium is absent, so it falls back to
+      # `chrome` and looks in ~/.config/google-chrome, which on this machine is
+      # a leftover directory with no browser behind it. createExtensionBrowser
+      # skips that check entirely when an executable path is given, and the
+      # relay then uses the binary to open its connect.html handshake tab in
+      # the chromium that is already running. Same package as gui-apps.nix, so
+      # this is the very browser holding the sessions.
+      #
+      # The token pre-authorizes the handshake so the extension stops asking you
+      # to click Connect for every session. It is read from the environment only
+      # (no CLI flag) and the relay appends it to the connect URL when set:
+      #   const token = process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN;
+      #   if (token) url.searchParams.set("token", token);
+      # $EXTENSION_TOKEN is generated once by the activation script and kept in
+      # a 0600 file, so it is not baked into a world-readable /nix/store path.
+      # The same value goes in the extension's options page.
       name = "playwright-personal";
       entry = "@playwright/mcp/cli.js";
-      args = [ "--extension" ];
+      args = [ "--extension" "--executable-path" "${pkgs.chromium}/bin/chromium" ];
+      env = [ "PLAYWRIGHT_MCP_EXTENSION_TOKEN=$EXTENSION_TOKEN" ];
     }
     { name = "context7"; entry = "@upstash/context7-mcp/dist/index.js"; args = [ ]; }
   ];
@@ -379,18 +430,42 @@ PYEOF
 
       $DRY_RUN_CMD mkdir -p "${agentBrowserProfile}"
 
+      # --storage-state points at a file the isolated server READS at startup.
+      # Seed an empty one so a fresh machine, or a machine where you have not
+      # signed into anything yet, still starts a browser instead of erroring on
+      # a missing path. Never overwrite: this file is the sessions.
+      if [ ! -f "${agentStorageState}" ]; then
+        $DRY_RUN_CMD sh -c 'printf %s "$1" > "$2"' _ \
+          '{"cookies":[],"origins":[]}' "${agentStorageState}"
+      fi
+
+      # Generated once and reused. Regenerating it on every rebuild would mean
+      # re-pasting into the extension options page every time, so this is
+      # create-if-absent. 0600 because it is what lets a caller skip the
+      # browser's own connect prompt.
+      if [ ! -s "${extensionTokenFile}" ]; then
+        $DRY_RUN_CMD sh -c 'umask 077; ${pkgs.openssl}/bin/openssl rand -hex 24 > "$1"' _ \
+          "${extensionTokenFile}"
+      fi
+      EXTENSION_TOKEN=$(cat "${extensionTokenFile}" 2>/dev/null || echo "")
+
       # ---- Register MCP servers with claude + codex.
       # REMOVE THEN ADD, always. Neither CLI has a --force/--replace, and both
       # no-op when the name already exists — so an `add` alone silently keeps
       # whatever args were registered first, and any change made here (a new
       # flag, a new store path for $CHROME) never reaches a host that has
       # registered once. Remove is tolerated failing on first install.
-      ${lib.concatMapStrings (s: ''
+      ${lib.concatMapStrings (s:
+        let
+          env = s.env or [ ];
+          claudeEnv = lib.concatMapStrings (e: " -e ${e}") env;
+          codexEnv = lib.concatMapStrings (e: " --env ${e}") env;
+        in ''
         $DRY_RUN_CMD claude mcp remove --scope user "${s.name}" >/dev/null 2>&1 || true
-        $DRY_RUN_CMD claude mcp add --scope user "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+        $DRY_RUN_CMD claude mcp add --scope user "${s.name}"${claudeEnv} -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
         if [ -d "$HOME/.codex" ]; then
           $DRY_RUN_CMD codex mcp remove "${s.name}" >/dev/null 2>&1 || true
-          $DRY_RUN_CMD codex mcp add "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+          $DRY_RUN_CMD codex mcp add "${s.name}"${codexEnv} -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
         fi
       '') npmServers}
       $DRY_RUN_CMD claude mcp remove --scope user "${sidemux.name}" >/dev/null 2>&1 || true
