@@ -34,7 +34,11 @@ let
   askCommands = readPermissionList "ask-commands";
   allowedMcpTools = readPermissionList "allowed-mcp-tools";
   askMcpTools = readPermissionList "ask-mcp-tools";
-  claudeMcpToolName = tool: "mcp__${tool.server}__${tool.tool}";
+  # `"tool": "*"` gates a WHOLE server. Claude spells that as the bare
+  # `mcp__<server>` (no tool suffix, no glob); a literal `mcp__server__*`
+  # matches nothing and would silently grant the server instead of gating it.
+  claudeMcpToolName = tool:
+    if tool.tool == "*" then "mcp__${tool.server}" else "mcp__${tool.server}__${tool.tool}";
   claudeSettings = (builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json)) // {
     permissions = {
       allow = (map (command: "Bash(${command}:*)") allowedCommands)
@@ -49,13 +53,35 @@ let
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
   # sidemux is PATH-resolved so the sidemux repo's own flake+direnv shim can
   # shadow it with a local build without any config change here.
+  # One profile for every checkout. Without --user-data-dir, playwright-core
+  # derives the profile path from the CLIENT'S CWD
+  # (createUserDataDir in playwright-core: `mcp-<channel>-<sha256(cwd)[0:7]>`),
+  # so every repo — and every git worktree of the same repo — gets its own
+  # empty browser. That is why a login done in one worktree was gone in the
+  # next; it had left 46 profile dirs under ~/.cache/ms-playwright-mcp.
+  agentBrowserProfile = "${home}/.local/state/playwright-mcp/profile";
+
   npmServers = [
     {
       name = "playwright";
       entry = "@playwright/mcp/cli.js";
       # $CHROME resolved by the activation script below (chromium-<rev> is
       # not knowable at eval time, only after the store path is realized).
-      args = [ "--executable-path" "$CHROME" ];
+      args = [ "--executable-path" "$CHROME" "--user-data-dir" agentBrowserProfile ];
+    }
+    {
+      # Deliberate second registration, not a duplicate: this one drives the
+      # chromium window already open on the desktop, with its real logged-in
+      # sessions, via the Playwright MCP browser extension. Separate name so
+      # reaching those sessions is an explicit choice (mcp__playwright-personal__*)
+      # rather than something the default browser tool does by surprise.
+      #
+      # --extension, not --cdp-endpoint: chromium 136+ ignores
+      # --remote-debugging-port when --user-data-dir is the default profile,
+      # so a debug port cannot reach ~/.config/chromium at all.
+      name = "playwright-personal";
+      entry = "@playwright/mcp/cli.js";
+      args = [ "--extension" ];
     }
     { name = "context7"; entry = "@upstash/context7-mcp/dist/index.js"; args = [ ]; }
   ];
@@ -102,9 +128,15 @@ let
     (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "allow") allowedMcpTools)
     ++ (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "ask") askMcpTools)
   );
+  # codex addresses one concrete tool per section ([mcp_servers.X.tools.Y]) and
+  # has no server-wide form, so whole-server `"tool": "*"` entries are dropped
+  # here rather than emitted as a section named `*`. Those servers fall back to
+  # codex's global approval policy, which prompts — the same outcome, reached by
+  # a different route. opencode needs no such filter: its matcher is a glob, so
+  # `playwright-personal_*` gates the server directly.
   codexMcpToolModes =
-    (map (tool: tool // { mode = "approve"; }) allowedMcpTools)
-    ++ (map (tool: tool // { mode = "prompt"; }) askMcpTools);
+    (map (tool: tool // { mode = "approve"; }) (lib.filter (t: t.tool != "*") allowedMcpTools))
+    ++ (map (tool: tool // { mode = "prompt"; }) (lib.filter (t: t.tool != "*") askMcpTools));
 
   # opencode: { "bd ready *": "allow", … }. Wildcard match, last matching rule
   # wins — and nix serialises attrsets alphabetically, which is exactly the
@@ -345,16 +377,26 @@ PYEOF
         $DRY_RUN_CMD sh -c 'printf %s "$1" > "$2"' _ "${mcpPackageJson}" "$mcpStamp"
       fi
 
-      # ---- Register MCP servers with claude + codex (idempotent — both
-      # CLIs no-op on "already exists"; tolerate nonzero exit either way)
+      $DRY_RUN_CMD mkdir -p "${agentBrowserProfile}"
+
+      # ---- Register MCP servers with claude + codex.
+      # REMOVE THEN ADD, always. Neither CLI has a --force/--replace, and both
+      # no-op when the name already exists — so an `add` alone silently keeps
+      # whatever args were registered first, and any change made here (a new
+      # flag, a new store path for $CHROME) never reaches a host that has
+      # registered once. Remove is tolerated failing on first install.
       ${lib.concatMapStrings (s: ''
+        $DRY_RUN_CMD claude mcp remove --scope user "${s.name}" >/dev/null 2>&1 || true
         $DRY_RUN_CMD claude mcp add --scope user "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
         if [ -d "$HOME/.codex" ]; then
+          $DRY_RUN_CMD codex mcp remove "${s.name}" >/dev/null 2>&1 || true
           $DRY_RUN_CMD codex mcp add "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
         fi
       '') npmServers}
+      $DRY_RUN_CMD claude mcp remove --scope user "${sidemux.name}" >/dev/null 2>&1 || true
       $DRY_RUN_CMD claude mcp add --scope user "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "-e ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
       if [ -d "$HOME/.codex" ]; then
+        $DRY_RUN_CMD codex mcp remove "${sidemux.name}" >/dev/null 2>&1 || true
         $DRY_RUN_CMD codex mcp add "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--env ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
 
         # Codex keeps MCP approval modes in config.toml. Generate only these
