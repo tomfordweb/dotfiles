@@ -1,4 +1,5 @@
 [
   { "server": "sidemux", "tool": "kill" },
-  { "server": "sidemux", "tool": "close_all" }
+  { "server": "sidemux", "tool": "close_all" },
+  { "server": "playwright-personal", "tool": "*" }
 ]
