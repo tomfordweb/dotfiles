@@ -34,7 +34,11 @@ let
   askCommands = readPermissionList "ask-commands";
   allowedMcpTools = readPermissionList "allowed-mcp-tools";
   askMcpTools = readPermissionList "ask-mcp-tools";
-  claudeMcpToolName = tool: "mcp__${tool.server}__${tool.tool}";
+  # `"tool": "*"` gates a WHOLE server. Claude spells that as the bare
+  # `mcp__<server>` (no tool suffix, no glob); a literal `mcp__server__*`
+  # matches nothing and would silently grant the server instead of gating it.
+  claudeMcpToolName = tool:
+    if tool.tool == "*" then "mcp__${tool.server}" else "mcp__${tool.server}__${tool.tool}";
   claudeSettings = (builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json)) // {
     permissions = {
       allow = (map (command: "Bash(${command}:*)") allowedCommands)
@@ -49,13 +53,91 @@ let
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
   # sidemux is PATH-resolved so the sidemux repo's own flake+direnv shim can
   # shadow it with a local build without any config change here.
+  # Two browser servers with opposite properties, which is the whole point:
+  # the agent one is disposable and parallel, the personal one carries the real
+  # sessions and admits one client at a time.
+  playwrightStateDir = "${home}/.local/state/playwright-mcp";
+  extensionTokenFile = "${playwrightStateDir}/extension-token";
+
+  # Retired server names. The registration loop below only touches names it
+  # currently knows about, so deleting an entry from npmServers would otherwise
+  # leave it registered with claude/codex forever, still spawning on every
+  # session. Same family of bug as the remove-then-add note further down: what
+  # the config no longer says has to be actively unsaid.
+  retiredServers = [ "playwright-login" ];
+
   npmServers = [
     {
+      # What agents get. --isolated keeps the profile in memory: no cookies, no
+      # disk, and crucially no profile lock, so any number of agents can hold
+      # one at once.
+      #
+      # The alternative is worse in both directions. Left alone, playwright-core
+      # derives a profile path from the CLIENT'S CWD (createUserDataDir:
+      # `mcp-<channel>-<sha256(cwd)[0:7]>`), which spreads a browser profile per
+      # repo AND per git worktree: that is where 46 dirs and 6.8G came from.
+      # Pinning a single --user-data-dir instead collapses those, but then
+      # createPersistentBrowser takes a lock on it:
+      #
+      #     if (await isProfileLocked5Times(userDataDir))
+      #       throw new Error(`Browser is already in use for ${userDataDir} ...`)
+      #
+      # It retries for five seconds, throws, and never consults the shared
+      # browser registry (only createRemoteBrowser does), so the second
+      # concurrent agent just fails. Isolated sidesteps both.
+      #
+      # Anything needing a real logged-in session goes to playwright-personal
+      # instead. Nothing here is worth persisting.
       name = "playwright";
       entry = "@playwright/mcp/cli.js";
       # $CHROME resolved by the activation script below (chromium-<rev> is
       # not knowable at eval time, only after the store path is realized).
-      args = [ "--executable-path" "$CHROME" ];
+      args = [ "--executable-path" "$CHROME" "--isolated" ];
+    }
+    {
+      # Deliberate second registration, not a duplicate: this one drives the
+      # chromium window already open on the desktop, with its real logged-in
+      # sessions, via the Playwright MCP browser extension. Separate name so
+      # reaching those sessions is an explicit choice (mcp__playwright-personal__*)
+      # rather than something the default browser tool does by surprise.
+      #
+      # STRICTLY ONE CLIENT AT A TIME, and it fails quietly. The extension keeps
+      # a single active connection, and connecting evicts the previous one
+      # rather than queueing or refusing:
+      #     this._disconnect("Another connection is requested");
+      # (_activeGroup / _activeClientName are singular throughout background.mjs).
+      # So a second agent does not get an error, it takes the browser, and the
+      # first agent's next call fails on a connection pulled out from under it.
+      # Parallel work belongs on the isolated server above. No flag changes this;
+      # it is the extension's model.
+      #
+      # --extension, not --cdp-endpoint: chromium 136+ ignores
+      # --remote-debugging-port when --user-data-dir is the default profile,
+      # so a debug port cannot reach ~/.config/chromium at all.
+      #
+      # --executable-path is REQUIRED here, and not for the reason it reads.
+      # Extension mode maps a channel name to the profile it expects the
+      # extension in (playwright-core chromiumChannels.ts), and that map knows
+      # only chrome*/msedge* — plain chromium is absent, so it falls back to
+      # `chrome` and looks in ~/.config/google-chrome, which on this machine is
+      # a leftover directory with no browser behind it. createExtensionBrowser
+      # skips that check entirely when an executable path is given, and the
+      # relay then uses the binary to open its connect.html handshake tab in
+      # the chromium that is already running. Same package as gui-apps.nix, so
+      # this is the very browser holding the sessions.
+      #
+      # The token pre-authorizes the handshake so the extension stops asking you
+      # to click Connect for every session. It is read from the environment only
+      # (no CLI flag) and the relay appends it to the connect URL when set:
+      #   const token = process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN;
+      #   if (token) url.searchParams.set("token", token);
+      # $EXTENSION_TOKEN is generated once by the activation script and kept in
+      # a 0600 file, so it is not baked into a world-readable /nix/store path.
+      # The same value goes in the extension's options page.
+      name = "playwright-personal";
+      entry = "@playwright/mcp/cli.js";
+      args = [ "--extension" "--executable-path" "${pkgs.chromium}/bin/chromium" ];
+      env = [ "PLAYWRIGHT_MCP_EXTENSION_TOKEN=$EXTENSION_TOKEN" ];
     }
     { name = "context7"; entry = "@upstash/context7-mcp/dist/index.js"; args = [ ]; }
   ];
@@ -102,9 +184,15 @@ let
     (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "allow") allowedMcpTools)
     ++ (map (tool: lib.nameValuePair "${tool.server}_${tool.tool}" "ask") askMcpTools)
   );
+  # codex addresses one concrete tool per section ([mcp_servers.X.tools.Y]) and
+  # has no server-wide form, so whole-server `"tool": "*"` entries are dropped
+  # here rather than emitted as a section named `*`. Those servers fall back to
+  # codex's global approval policy, which prompts — the same outcome, reached by
+  # a different route. opencode needs no such filter: its matcher is a glob, so
+  # `playwright-personal_*` gates the server directly.
   codexMcpToolModes =
-    (map (tool: tool // { mode = "approve"; }) allowedMcpTools)
-    ++ (map (tool: tool // { mode = "prompt"; }) askMcpTools);
+    (map (tool: tool // { mode = "approve"; }) (lib.filter (t: t.tool != "*") allowedMcpTools))
+    ++ (map (tool: tool // { mode = "prompt"; }) (lib.filter (t: t.tool != "*") askMcpTools));
 
   # opencode: { "bd ready *": "allow", … }. Wildcard match, last matching rule
   # wins — and nix serialises attrsets alphabetically, which is exactly the
@@ -345,16 +433,51 @@ PYEOF
         $DRY_RUN_CMD sh -c 'printf %s "$1" > "$2"' _ "${mcpPackageJson}" "$mcpStamp"
       fi
 
-      # ---- Register MCP servers with claude + codex (idempotent — both
-      # CLIs no-op on "already exists"; tolerate nonzero exit either way)
-      ${lib.concatMapStrings (s: ''
-        $DRY_RUN_CMD claude mcp add --scope user "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+      $DRY_RUN_CMD mkdir -p "${playwrightStateDir}"
+
+      # The EXTENSION issues this token and displays it (with a rotate button);
+      # we are the side that has to match. So this is never generated here, only
+      # read. Create the file empty at 0600 and let
+      # `playwright-mcp-token set` fill it, so the value is pasted straight into
+      # a private file rather than passing through a shell history, a nix
+      # expression, or a world-readable /nix/store path.
+      $DRY_RUN_CMD sh -c 'umask 077; [ -f "$1" ] || : > "$1"' _ "${extensionTokenFile}"
+      EXTENSION_TOKEN=$(cat "${extensionTokenFile}" 2>/dev/null || echo "")
+
+      # ---- Unregister servers this config used to define. Dropping an entry
+      # from npmServers does NOT unregister it: the loop below only names
+      # servers that still exist, so a retired one keeps its registration and
+      # keeps being spawned. Say it explicitly or it never leaves.
+      ${lib.concatMapStrings (name: ''
+        $DRY_RUN_CMD claude mcp remove --scope user "${name}" >/dev/null 2>&1 || true
         if [ -d "$HOME/.codex" ]; then
-          $DRY_RUN_CMD codex mcp add "${s.name}" -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+          $DRY_RUN_CMD codex mcp remove "${name}" >/dev/null 2>&1 || true
+        fi
+      '') retiredServers}
+
+      # ---- Register MCP servers with claude + codex.
+      # REMOVE THEN ADD, always. Neither CLI has a --force/--replace, and both
+      # no-op when the name already exists — so an `add` alone silently keeps
+      # whatever args were registered first, and any change made here (a new
+      # flag, a new store path for $CHROME) never reaches a host that has
+      # registered once. Remove is tolerated failing on first install.
+      ${lib.concatMapStrings (s:
+        let
+          env = s.env or [ ];
+          claudeEnv = lib.concatMapStrings (e: " -e ${e}") env;
+          codexEnv = lib.concatMapStrings (e: " --env ${e}") env;
+        in ''
+        $DRY_RUN_CMD claude mcp remove --scope user "${s.name}" >/dev/null 2>&1 || true
+        $DRY_RUN_CMD claude mcp add --scope user "${s.name}"${claudeEnv} -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
+        if [ -d "$HOME/.codex" ]; then
+          $DRY_RUN_CMD codex mcp remove "${s.name}" >/dev/null 2>&1 || true
+          $DRY_RUN_CMD codex mcp add "${s.name}"${codexEnv} -- node "${mcpHome}/node_modules/${s.entry}" ${lib.concatStringsSep " " s.args} || true
         fi
       '') npmServers}
+      $DRY_RUN_CMD claude mcp remove --scope user "${sidemux.name}" >/dev/null 2>&1 || true
       $DRY_RUN_CMD claude mcp add --scope user "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "-e ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
       if [ -d "$HOME/.codex" ]; then
+        $DRY_RUN_CMD codex mcp remove "${sidemux.name}" >/dev/null 2>&1 || true
         $DRY_RUN_CMD codex mcp add "${sidemux.name}" ${lib.concatStringsSep " " (lib.mapAttrsToList (k: v: "--env ${k}=${v}") sidemux.env)} -- ${sidemux.command} || true
 
         # Codex keeps MCP approval modes in config.toml. Generate only these
