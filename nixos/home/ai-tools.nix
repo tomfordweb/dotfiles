@@ -235,12 +235,25 @@ let
   opencodeJsonTemplate = pkgs.writeText "opencode.jsonc.tmpl" (builtins.toJSON {
     "$schema" = "https://opencode.ai/config.json";
     shell = "/bin/zsh";
+    # An npmServers entry may carry `env = [ "KEY=VALUE" ]`. claude and codex
+    # take those as flags (-e / --env); opencode wants an attrset under its own
+    # `environment` key, so translate rather than dropping them. Without this a
+    # server that needs an environment variable starts fine under opencode and
+    # then quietly misbehaves, which is worse than failing.
     mcp =
       (lib.listToAttrs (map
-        (s: lib.nameValuePair s.name {
+        (s: lib.nameValuePair s.name ({
           type = "local";
           command = [ "node" "${mcpHome}/node_modules/${s.entry}" ] ++ s.args;
-        })
+        } // lib.optionalAttrs ((s.env or [ ]) != [ ]) {
+          environment = lib.listToAttrs (map
+            (e:
+              let parts = lib.splitString "=" e;
+              in lib.nameValuePair
+                (builtins.head parts)
+                (lib.concatStringsSep "=" (builtins.tail parts)))
+            s.env);
+        }))
         npmServers))
       // {
         "${sidemux.name}" = {
