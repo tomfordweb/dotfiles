@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# The auth token for the playwright-personal MCP server, which drives the real
+# desktop browser through the Playwright extension.
+#
+#   playwright-mcp-token set    paste the token the extension shows you
+#   playwright-mcp-token        print the stored token
+#   playwright-mcp-token clear  forget it (back to clicking Connect each time)
+#
+# The extension issues this token and displays it in its own page, with a
+# rotate control. We are the side that has to match it, so `set` reads from a
+# prompt rather than an argument: an argument would land in shell history and
+# in the process list.
+#
+# Optional. Without a token the relay just omits it and the extension asks you
+# to approve each session by hand (it guards on `if (token)`), which is a
+# reasonable thing to keep given that server can reach every site you are
+# signed into.
+#
+# After set/clear, re-run a switch so the server re-registers with the new
+# value, then reconnect the MCP server in your agent.
+set -uo pipefail
+
+STATE_DIR="${PLAYWRIGHT_MCP_STATE_DIR:-$HOME/.local/state/playwright-mcp}"
+TOKEN_FILE="$STATE_DIR/extension-token"
+
+die() { echo "playwright-mcp-token: $*" >&2; exit 1; }
+
+case "${1:-}" in
+  set)
+    mkdir -p "$STATE_DIR" || die "could not create $STATE_DIR"
+    printf 'Paste the token from the Playwright extension page: ' >&2
+    read -rs value
+    printf '\n' >&2
+    [ -n "${value:-}" ] || die "empty token, nothing written"
+    ( umask 077; printf %s "$value" > "$TOKEN_FILE" ) || die "could not write $TOKEN_FILE"
+    echo "stored in $TOKEN_FILE"
+    echo "run a switch, then reconnect the playwright-personal MCP server"
+    ;;
+  clear)
+    ( umask 077; : > "$TOKEN_FILE" ) || die "could not clear $TOKEN_FILE"
+    echo "cleared; connections will prompt again after the next switch"
+    ;;
+  "")
+    [ -s "$TOKEN_FILE" ] || die "no token stored: run 'playwright-mcp-token set'"
+    cat "$TOKEN_FILE"
+    ;;
+  *)
+    sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+    exit 2
+    ;;
+esac
