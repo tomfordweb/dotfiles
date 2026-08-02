@@ -16,10 +16,12 @@
     ripgrep
     fd
     jq
+    yq
     bat
     fzf
     nix-index
     nix-search-cli
+    openssl 
 
     # Git ops
     lazygit
