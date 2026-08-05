@@ -18,6 +18,7 @@
     ./tmux.nix       # tmux + tpm bootstrap
     ./ai-tools.nix   # Claude/codex config symlinks + shared MCP servers (ex ops/local.ai.yml)
     ./pnpm-globals.nix # fast-moving CLIs (claude/opencode/codex, prettier…) as floating pnpm globals
+    ./uv-tools.nix   # Python CLIs with no nixpkgs attribute (graphify) as uv tools
   ];
 
   home.username = "tom";
