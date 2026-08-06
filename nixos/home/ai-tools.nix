@@ -189,7 +189,7 @@ let
   # here rather than emitted as a section named `*`. Those servers fall back to
   # codex's global approval policy, which prompts — the same outcome, reached by
   # a different route. opencode needs no such filter: its matcher is a glob, so
-  # `playwright-personal_*` gates the server directly.
+  # a `<server>_*` entry gates that whole server directly.
   codexMcpToolModes =
     (map (tool: tool // { mode = "approve"; }) (lib.filter (t: t.tool != "*") allowedMcpTools))
     ++ (map (tool: tool // { mode = "prompt"; }) (lib.filter (t: t.tool != "*") askMcpTools));

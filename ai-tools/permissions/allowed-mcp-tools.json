@@ -4,5 +4,6 @@
   { "server": "sidemux", "tool": "wait" },
   { "server": "sidemux", "tool": "status" },
   { "server": "sidemux", "tool": "list_panes" },
-  { "server": "sidemux", "tool": "send_keys" }
+  { "server": "sidemux", "tool": "send_keys" },
+  { "server": "sidemux", "tool": "kill" }
 ]
