@@ -28,8 +28,17 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
   green.
 - When the repo has an issue tracker, link the PR/MR back on the issue.
 - Create worktrees with `workmux`, not hand-rolled `git worktree add`. Agent-created
-  sessions should default to `workmux add --background --no-pane-cmds --base <base> <branch>`
+  sessions should default to
+  `workmux add --mode session --background --no-pane-cmds --base <base> <branch>`
   so worktree setup runs without opening panes or starting empty agent windows.
+  `--mode session` is the important one: in the default window mode every worktree
+  puts a window in the attached tmux session, so an agent working an epic leaves
+  tens of empty windows behind. Session mode parks each worktree in its own
+  detached session instead, and `workmux rm` tears that down with the worktree.
+  Do NOT try to get this from `workmux add --config <file>`: a `--config` file
+  replaces the project `.workmux.yaml` instead of layering on it, so the worktree
+  lands outside `worktree_dir` and skips the repo's `post_create` hooks and file
+  copy/symlink ops. Pass the flag.
 - When sidemux is available, run heavy commands through the sidemux MCP `run` tool instead of
   invoking `sidemux` from the shell. Shell `sidemux`/`workmux sidebar` commands are user-control
   commands, not the default path for agent validation.
@@ -128,6 +137,11 @@ thought of.
 - Run any hand- or LLM-authored prose through the `humanizer` skill before it ships: site copy,
   blog posts, release notes, outreach, free-text form answers, cover letters.
 - **No em/en dashes (`—` / `–`) in shipped prose.**
+- **No small muted explainer captions in UI.** No eyebrow labels above headings ("GET STARTED",
+  "DOCUMENTATION"), no hint lines under a chart ("hue = type · area = size"), no interaction
+  instructions ("drag to pan", "click a cell to select"). Real input labels stay; the rest goes —
+  captioning every element is an obvious AI tell. If something needs a caption to be understood,
+  fix the design instead.
 - Humanize the prose only — leave frontmatter, HTML/markup and headings untouched.
 - Voice sample: `~/code/tomfordweb/dotfiles/docs/ai/writing-voice.md` (curated register) plus
   `docs/ai/writing-voice-observed.md` (structure and vocabulary mined from real transcripts) unless
