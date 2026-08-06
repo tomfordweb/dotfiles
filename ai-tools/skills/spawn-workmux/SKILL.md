@@ -121,12 +121,15 @@ git remote get-url origin
 ## Step 4 — Create all worktrees (in parallel, after all files written)
 
 ```bash
-workmux add feat/nx-workspace --background --no-pane-cmds -P /tmp/tmp.abc123.md
-workmux add feat/ui-layout-lib --background --no-pane-cmds -P /tmp/tmp.def456.md
+workmux add feat/nx-workspace --mode session --background --no-pane-cmds -P /tmp/tmp.abc123.md
+workmux add feat/ui-layout-lib --mode session --background --no-pane-cmds -P /tmp/tmp.def456.md
 # etc.
 ```
 
 Flags:
+- `--mode session` — park the worktree in its own detached tmux session instead of
+  adding a window to the attached session. Without it, a multi-worktree epic leaves
+  tens of empty windows in the window bar. `workmux rm` removes the session too.
 - `--background` — run in background; don't switch to the new window
 - `--no-pane-cmds` — do not run pane startup commands or create an empty agent session
 - `-P <file>` — inject prompt file as Claude's first message (triggers `/plan`)
@@ -144,7 +147,7 @@ workmux list
 ```
 
 Report to user:
-- Which worktrees were created (branch → tmux window)
+- Which worktrees were created (branch, detached tmux session name)
 - Which GitLab MRs were opened (URL for each)
 - No agent pane was started. Use the saved prompt file when explicitly starting an agent later.
 - Tip: `workmux dashboard` to monitor all agents at once
