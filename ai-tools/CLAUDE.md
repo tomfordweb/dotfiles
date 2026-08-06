@@ -110,7 +110,7 @@ Config: project `.workmux.yaml` overrides global `~/.config/workmux/config.yaml`
 
 ### Worktree lifecycle
 ```bash
-workmux add --background --no-pane-cmds <branch> # agent-created default: no window/pane
+workmux add --mode session --background --no-pane-cmds <branch> # agent default: no window/pane
 workmux add <branch>            # live worktree + tmux window + agent
 workmux add -A -p "fix X"       # -A auto-names branch from prompt via LLM
 workmux add --pr 123            # check out a PR into a worktree
@@ -123,7 +123,8 @@ workmux rm <name>               # remove worktree+window+branch, NO merge
 workmux resurrect               # restore windows after tmux/computer crash
 ```
 - `add` runs `post_create` hooks (e.g. `pnpm install`) and file ops (`copy`/`symlink`) from `.workmux.yaml`. Skip with `-H` / `-F` / `-C`.
-- Agents should use `--background --no-pane-cmds` by default. Omit only when the user explicitly wants a live agent window.
+- Agents should use `--mode session --background --no-pane-cmds` by default. Omit only when the user explicitly wants a live agent window.
+- `--mode session` keeps agent-created worktrees out of the attached session's window bar (each gets its own detached session). Do not reach for `--config <file>` to set this: a `--config` file replaces the project `.workmux.yaml` instead of merging with it, so the worktree lands outside `worktree_dir` and skips `post_create` + file ops.
 - `merge` defaults to `main_branch` from config; `--into` overrides. `--squash`, `--rebase`, `-k`/`--keep` available.
 
 ### Agent orchestration (parallel Claude agents across worktrees)
