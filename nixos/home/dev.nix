@@ -22,6 +22,7 @@
     nix-index
     nix-search-cli
     openssl 
+    dig
 
     # Git ops
     lazygit

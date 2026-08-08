@@ -19,6 +19,7 @@ declare -A OUTPUTS=(
   [palette.scss.tmpl]="rice/_palette.scss"
   [hypr-colors.tmpl]="config/hypr/colors.conf"
   [tmux-theme.tmpl]="config/tmux/theme.conf"
+  [fzf-colors.tmpl]="config/tmux/fzf-colors.env"
   [ghostty-colors.tmpl]="config/ghostty/themes/cyberdream"
   [mako.tmpl]="config/mako/config"
 )
