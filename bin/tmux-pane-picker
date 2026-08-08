@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# fzf browser for every pane in every tmux session, meant to be run inside a
+# display-popup (C-a w — see config/tmux/tmux.conf).
+#
+#   enter       jump to the pane
+#   tab         mark / unmark (multi-select)
+#   ctrl-x      kill the marked panes (or the one under the cursor)
+#   ctrl-alt-x  kill the whole window under the cursor
+#   ctrl-s      type a line into the marked panes, then Enter
+#   alt-s       same, without the Enter
+#               (both open a centered box; past sends are listed to pick from,
+#                kept in $XDG_STATE_HOME/tmux-pane-picker/send-history)
+#   ctrl-h      toggle the hidden panes (workmux sidebars) back into the list
+#
+# Panes whose command matches $TMUX_PANE_PICKER_HIDE (an ERE, default the
+# workmux sidebar) are left out — they are chrome, not somewhere you navigate
+# to. Colors come from config/tmux/fzf-colors.env, GENERATED from
+# rice/palette.json by bin/rice-build. Subcommands (--list, --kill-pane, …)
+# exist so fzf's reload/execute bindings can call back into this same script.
+
+set -uo pipefail
+
+SELF="$(readlink -f "$0")"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/tmux"
+HIDE="${TMUX_PANE_PICKER_HIDE:-^workmux$}"
+SEND_HIST="${XDG_STATE_HOME:-$HOME/.local/state}/tmux-pane-picker/send-history"
+# Flipped by ctrl-h; per-invocation so two open pickers do not fight.
+STATE="${TMPDIR:-/tmp}/tmux-pane-picker.$$.showall"
+
+list() {
+    local cur showall=0
+    cur=$(tmux display-message -p '#S' 2>/dev/null)
+    [ -f "${PICKER_STATE:-$STATE}" ] && showall=1
+
+    tmux list-panes -a -F \
+        "#{session_name}:#{window_index}.#{pane_index}	#{session_name}	#{?pane_active,★,·}#{?window_zoomed_flag,, }	#{window_name}	#{pane_current_command}	#{pane_current_path}" \
+    | awk -F'\t' -v cur="$cur" -v home="$HOME" -v hide="$HIDE" -v showall="$showall" '
+        function fit(s, n) { return length(s) > n ? substr(s, 1, n - 1) "…" : s }
+        !showall && hide != "" && $5 ~ hide { next }
+        {
+            path = $6
+            if (index(path, home) == 1) path = "~" substr(path, length(home) + 1)
+            row = sprintf("%s\t%s %-14s %-22s %-12s %s", $1, $3, fit($1, 14), fit($4, 22), fit($5, 12), path)
+            if ($2 == cur) mine[++m] = row; else other[++o] = row
+        }
+        END {
+            for (i = 1; i <= m; i++) print mine[i]
+            for (i = 1; i <= o; i++) print other[i]
+        }'
+}
+
+# The pane this popup was launched from — never let it kill itself.
+own_pane() {
+    [ -n "${TMUX_PANE:-}" ] && printf '%s' "$TMUX_PANE"
+}
+
+pane_id_of() { tmux display-message -p -t "$1" '#{pane_id}' 2>/dev/null; }
+
+kill_panes() {
+    local own target id
+    own=$(own_pane)
+    for target in "$@"; do
+        [ -n "$target" ] || continue
+        id=$(pane_id_of "$target") || continue
+        [ "$id" = "$own" ] && continue
+        tmux kill-pane -t "$target" 2>/dev/null
+    done
+}
+
+kill_windows() {
+    local own target id
+    own=$(own_pane)
+    for target in "$@"; do
+        [ -n "$target" ] || continue
+        # skip the window holding this popup's own pane
+        id=$(tmux list-panes -t "${target%.*}" -F '#{pane_id}' 2>/dev/null | grep -Fx "$own")
+        [ -n "$id" ] && continue
+        tmux kill-window -t "${target%.*}" 2>/dev/null
+    done
+}
+
+# Bottom-anchored pane contents. capture-pane pads the pane out to its full
+# height, so the trailing blanks go first; then only the last screenful is
+# printed, because fzf's max preview scroll puts the final line at the TOP of
+# the window rather than the bottom. FZF_PREVIEW_LINES is exported by fzf.
+preview() {
+    tmux capture-pane -ep -t "$1" 2>/dev/null \
+    | awk '{ buf[NR] = $0; if ($0 ~ /[^[:space:]]/) last = NR }
+           END { for (i = 1; i <= last; i++) print buf[i] }' \
+    | tail -n "${FZF_PREVIEW_LINES:-40}"
+}
+
+# tmux allows one popup per client, so the send box cannot be a nested
+# display-popup (it silently no-ops). This is an fzf box floating in the
+# middle of the picker's own popup instead: type a line, or pick one back
+# out of the send history.
+send_prompt() {
+    local count=$1 label picked
+    label=" send to $count pane$([ "$count" = 1 ] || echo s) "
+    # shellcheck disable=SC2086
+    picked=$(
+        { [ -f "$SEND_HIST" ] && tac "$SEND_HIST"; } \
+        | fzf --print-query \
+            --border=rounded \
+            --border-label="$label" \
+            --border-label-pos=3 \
+            --margin=35%,22% \
+            --height=100% \
+            --info=hidden \
+            --no-scrollbar \
+            --prompt="› " \
+            --pointer="▶ " \
+            $FZF_TMUX_COLORS
+    ) || true
+    printf '%s' "$(printf '%s\n' "$picked" | grep -v '^$' | tail -1)"
+}
+
+remember_send() {
+    local line=$1
+    mkdir -p "$(dirname "$SEND_HIST")"
+    { [ -f "$SEND_HIST" ] && grep -vxF -- "$line" "$SEND_HIST"; printf '%s\n' "$line"; } \
+        | tail -50 > "$SEND_HIST.tmp" && mv -f "$SEND_HIST.tmp" "$SEND_HIST"
+}
+
+send_to_panes() {
+    local enter=$1; shift
+    local line target
+    line=$(send_prompt "$#")
+    [ -n "$line" ] || return 0
+    remember_send "$line"
+    for target in "$@"; do
+        [ -n "$target" ] || continue
+        if [ "$enter" = yes ]; then
+            tmux send-keys -t "$target" -- "$line" Enter 2>/dev/null
+        else
+            tmux send-keys -t "$target" -- "$line" 2>/dev/null
+        fi
+    done
+}
+
+FZF_TMUX_COLORS=""
+# shellcheck source=/dev/null
+[ -f "$CONF/fzf-colors.env" ] && . "$CONF/fzf-colors.env"
+
+case "${1:---pick}" in
+    --list)        list; exit 0 ;;
+    --preview)     shift; preview "$1"; exit 0 ;;
+    --kill-pane)   shift; kill_panes "$@"; exit 0 ;;
+    --kill-window) shift; kill_windows "$@"; exit 0 ;;
+    --send)        shift; send_to_panes yes "$@"; exit 0 ;;
+    --send-raw)    shift; send_to_panes no "$@"; exit 0 ;;
+    --toggle-hidden)
+        state="${PICKER_STATE:-$STATE}"
+        if [ -f "$state" ]; then rm -f "$state"; else : > "$state"; fi
+        exit 0 ;;
+    --pick)        ;;
+    *)             echo "usage: $(basename "$SELF") [--list|--kill-pane|--kill-window|--send|--send-raw|--toggle-hidden]" >&2; exit 2 ;;
+esac
+
+export PICKER_STATE="$STATE"
+trap 'rm -f "$STATE"' EXIT
+
+# shellcheck disable=SC2086
+SELECTED=$(
+    list | fzf \
+        --no-sort \
+        --reverse \
+        --multi \
+        --delimiter=$'\t' \
+        --with-nth=2.. \
+        --no-info \
+        --padding=0,1 \
+        --prompt="  " \
+        --pointer="▶ " \
+        --marker="✓ " \
+        --header=$'    target         window                 cmd          path' \
+        --header-first \
+        --footer=$'⏎ jump   ⇥ mark   ^s send+⏎   ⌥s send   ^x kill pane   ^⌥x kill window   ^h sidebars' \
+        --footer-border=line \
+        --preview "$SELF --preview {1}" \
+        --preview-window="right,55%,border-left" \
+        --bind "ctrl-x:execute-silent($SELF --kill-pane {+1})+reload($SELF --list)" \
+        --bind "ctrl-alt-x:execute-silent($SELF --kill-window {+1})+reload($SELF --list)" \
+        --bind "ctrl-s:execute($SELF --send {+1})+refresh-preview" \
+        --bind "alt-s:execute($SELF --send-raw {+1})+refresh-preview" \
+        --bind "ctrl-h:execute-silent($SELF --toggle-hidden)+reload($SELF --list)" \
+        $FZF_TMUX_COLORS
+)
+
+[ -z "$SELECTED" ] && exit 0
+
+TARGET=$(printf '%s' "$SELECTED" | head -1 | cut -f1)
+tmux switch-client -t "${TARGET%%:*}"
+tmux select-window -t "${TARGET%.*}"
+tmux select-pane -t "$TARGET"
