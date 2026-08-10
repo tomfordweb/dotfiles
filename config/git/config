@@ -16,3 +16,14 @@
 [merge "ours"]
 	name = keep our side (for generated files)
 	driver = true
+
+# AST-aware structured merge (mergiraf, installed via nixos/home/dev.nix).
+# Assigned per-extension in config/git/attributes; resolves structural
+# conflicts (imports, adjacent additions) that textual merge flags, and
+# falls back to ordinary conflict markers when it can't. A repo's own
+# .gitattributes (e.g. beads' merge=ours) still wins over the global
+# attributes file. Suspicious auto-resolution: `mergiraf report` on the
+# merge, or redo with `git checkout --conflict=merge <file>`.
+[merge "mergiraf"]
+	name = mergiraf structured merge
+	driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L

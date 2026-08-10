@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Stop hook: surface claimed (in_progress) beads work before the agent stops.
+# Nudges exactly once per stop attempt: on the retry stop_hook_active is set
+# and we pass, so this can never loop the agent. Silent when bd/repo/issues
+# are absent — it must not add noise to non-beads sessions.
+set -u
+input=$(cat 2>/dev/null || true)
+case "$input" in
+  *'"stop_hook_active":true'* | *'"stop_hook_active": true'*) exit 0 ;;
+esac
+command -v bd >/dev/null 2>&1 || exit 0
+git rev-parse --git-common-dir >/dev/null 2>&1 || exit 0
+open=$(bd list --status=in_progress 2>/dev/null | head -20) || exit 0
+case "$open" in
+  '' | *"Total: 0 issues"*) exit 0 ;;
+esac
+{
+  echo "in_progress beads issues remain:"
+  echo "$open"
+  echo "If any are codable now, continue working. Otherwise checkpoint each one (bd update <id> --notes with state + exact next action) or close it, then stop."
+} >&2
+exit 2

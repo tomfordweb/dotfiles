@@ -1,0 +1,19 @@
+# Global git attributes (XDG: git reads $XDG_CONFIG_HOME/git/attributes).
+# mergiraf = AST-aware merge driver defined in config/git/config; it falls
+# back to normal conflict markers when a file defeats it. Only extensions
+# mergiraf actually parses are listed.
+*.ts merge=mergiraf
+*.tsx merge=mergiraf
+*.js merge=mergiraf
+*.jsx merge=mergiraf
+*.mjs merge=mergiraf
+*.cjs merge=mergiraf
+*.json merge=mergiraf
+*.yaml merge=mergiraf
+*.yml merge=mergiraf
+*.html merge=mergiraf
+*.xml merge=mergiraf
+*.py merge=mergiraf
+*.go merge=mergiraf
+*.rs merge=mergiraf
+*.nix merge=mergiraf

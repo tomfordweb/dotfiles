@@ -44,6 +44,11 @@ GitLab MRs (`glab mr merge`), including merges into a protected default branch.
 - Prefer a repo's CLI (`gh`, `glab`, etc.) over a web UI for repo/issue/PR/MR
   operations — web-UI editing is more prone to mangling commits or losing state
   than a scripted CLI call.
+- **Delegate repo exploration to subagents; keep the main thread for edits.**
+  Any "understand the codebase / find the pattern / map the feature area" phase
+  goes to `cavecrew-investigator` (or Explore) so the main context receives a
+  summary instead of dozens of Read/Grep results. Main-thread Bash is for the
+  work itself, not for discovery sweeps.
 - Keep responses concise when there's an output-token budget in play; break long
   work into checkpoints rather than one giant reply.
 

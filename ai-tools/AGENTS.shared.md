@@ -133,6 +133,11 @@ visible inside a worktree are just the git-tracked export — leave them.
 If `bd` warns about multiple binaries in `PATH`, that is a real problem, not noise: two
 versions will disagree about the schema. Resolve it before continuing.
 
+**Memory hygiene.** Stale memories are not neutral — agents act on them. When a memory's
+work is finished (a resume-point after resuming, a migration after completion), update or
+`bd forget` it in the same session. When asked to do periodic hygiene: `bd stale`,
+`bd doctor --check=conventions`, and a sweep of `bd memories` for superseded entries.
+
 ## Architecture defaults
 
 - **Shared libraries stay app-agnostic.** No per-site IDs, domains, API keys, analytics tags,
@@ -192,6 +197,10 @@ thought of.
   afterward) and hand the human the tab.
 - When a service keeps coming up in the workflow, **suggest its official MCP server** (or
   CLI) once, so the capability becomes durable instead of re-automated per session.
+- **Default to building a `bin/` CLI over adding an MCP server.** MCP schemas cost
+  permanent context in every harness (and codex/opencode don't defer them); a CLI costs
+  nothing until invoked, is testable, and runs headless/in cron. Reserve MCP for
+  interactive, stateful tools (browser, tmux panes).
 
 ## Prose and editorial content
 

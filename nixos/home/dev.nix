@@ -30,6 +30,7 @@
     glab
     gitleaks
     beads
+    mergiraf # AST-aware merge driver; wired in config/git/config + attributes
 
     # Language toolchains
     (python3.withPackages (ps: with ps; [

@@ -84,6 +84,15 @@
             "command": "workmux set-window-status done"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"/home/tom/code/tomfordweb/dotfiles/ai-tools/hooks/claude-open-work-guard\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
