@@ -48,7 +48,9 @@ GitLab MRs (`glab mr merge`), including merges into a protected default branch.
   Any "understand the codebase / find the pattern / map the feature area" phase
   goes to `cavecrew-investigator` (or Explore) so the main context receives a
   summary instead of dozens of Read/Grep results. Main-thread Bash is for the
-  work itself, not for discovery sweeps.
+  work itself, not for discovery sweeps. When the repo has a `graphify-out/`
+  index, tell the investigator to query it first (graphify skill) — a pre-built
+  graph query beats a grep sweep on both tokens and accuracy.
 - Keep responses concise when there's an output-token budget in play; break long
   work into checkpoints rather than one giant reply.
 
