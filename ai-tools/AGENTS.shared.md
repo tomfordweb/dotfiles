@@ -17,6 +17,38 @@ ssh -o BatchMode=yes      scp -o BatchMode=yes      apt-get -y      HOMEBREW_NO_
 
 Same rule for anything else that can prompt: pass the flag that makes it fail instead of ask.
 
+More shell rules:
+
+- **Keep commands simple; split chains.** When a permission classifier blocks a compound
+  command (`a && b && c`), do not retry it verbatim — split it into single commands and run
+  them one at a time. Long `cd X && … && cd Y` chains are the usual culprit.
+- **Never pipe a heredoc into a sidemux pane** — panes mangle heredocs and the command
+  silently stalls. Write the file with the Write tool (or to `.scratch/`), then run it.
+
+## Scratch space, screenshots & checkpoints
+
+- **Scratch files are encouraged — but never in version control.** Working notes, temp
+  scripts, intermediate data, and every screenshot an agent takes go in `<repo>/.scratch/`
+  (globally gitignored via the dotfiles git config). Never commit them, never let them ride
+  into an MR. In a worktree, use that worktree's own `.scratch/` — it is deliberately NOT a
+  workmux-symlinked dir, so parallel agents can't collide and stale artifacts die with the
+  worktree.
+- **Checkpoint durable state into the issue tracker, not scratch.** After each completed
+  unit of work (an MR opened, a gate green, a migration run), write what landed + the exact
+  next action to the beads issue (`bd update <id> --notes`) BEFORE starting the next unit.
+  A usage-limit or context death then costs one `bd show`, not a re-exploration session.
+
+## Scope discipline — batch operations
+
+- **Every batch operation prints its targets first.** Before any operation with multiple
+  independent targets — rebasing/merging MRs, pruning branches or worktrees, bulk file
+  edits, mass closes — print the exact target list and the count, then proceed. No
+  waiting for confirmation; the printout is what lets the human interrupt a wrong scope
+  before it executes.
+- **Scope defaults to the current repo plus its own worktrees.** Never fan out across
+  other projects unless they are named explicitly — "all open MRs" means all in THIS
+  repo. If the request is ambiguous about scope, state the assumption in the printout.
+
 ## Validation and landing work
 
 - **The gate runs ONCE, at push time — not after every edit.** If the repo enforces its gate
@@ -33,6 +65,12 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
   A green run against a stale base proves nothing.
 - Report failures. Do not route around a failing gate, mark it flaky, or narrow its scope to get
   green.
+- **Never declare a task complete while codable work remains.** Before saying "done" on an
+  epic or multi-item goal, re-read the epic / `bd ready` list and enumerate what's left
+  explicitly. Items remain → keep working, don't report completion.
+- **Dry-run before bulk.** Any bulk edit, mass rename, or long generation/eval run gets a
+  validation pass on a small sample first (a dry-run flag, 3–5 items, a `--limit`) before
+  the full run. Most expensive buggy output comes from unvalidated bulk runs.
 - When the repo has an issue tracker, link the PR/MR back on the issue.
 - Create worktrees with `workmux`, not hand-rolled `git worktree add`. Agent-created
   sessions should default to
@@ -48,7 +86,11 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
   copy/symlink ops. Pass the flag.
 - When sidemux is available, run heavy commands through the sidemux MCP `run` tool instead of
   invoking `sidemux` from the shell. Shell `sidemux`/`workmux sidebar` commands are user-control
-  commands, not the default path for agent validation.
+  commands, not the default path for agent validation. Anything likely to run >30s or emit
+  long output belongs in sidemux, not inline Bash — it keeps the main context lean. When a
+  project defines named scripts in `.sidemux.toml` (e.g. `web:lint`), prefer them over raw
+  commands: pane reuse works better and output stays scoped. When reading results back,
+  read the tail/decisive lines, not the whole pane buffer.
 
 ## Issue tracking — beads (`bd`)
 
@@ -138,6 +180,18 @@ thought of.
   old secret's deletion leaves it live.
 - Same care in the other direction: don't type credentials into a page on someone's behalf, and
   don't ask for a password to do it. Hand the human the tab.
+
+## Third-party services — API-first, browser last
+
+- For any third-party setup or admin task (Stripe, Meta, Shopify, DNS, cloud consoles),
+  **check for an official API, CLI, or terraform provider first** and use it. Browser
+  automation against third-party consoles — especially consent/permission dialogs — is the
+  last resort; it stalls on overlays and burns sessions retrying clicks.
+- If only the web UI works, do NOT loop on browser automation: output a numbered manual
+  checklist (exact URLs, field names, values to paste, which 1Password refs to fill
+  afterward) and hand the human the tab.
+- When a service keeps coming up in the workflow, **suggest its official MCP server** (or
+  CLI) once, so the capability becomes durable instead of re-automated per session.
 
 ## Prose and editorial content
 
