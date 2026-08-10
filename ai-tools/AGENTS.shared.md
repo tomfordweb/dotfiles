@@ -19,11 +19,18 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
 
 ## Validation and landing work
 
-- **Run the repo's own gate before opening a PR/MR and before any push aimed at the default
-  branch** — `bin/ci`, `nx affected -t lint,test,build`, `pnpm test`, whatever that repo
-  actually has. Never open an MR on unvalidated work.
-- **Rebase onto the default branch first**, then re-run the gate. A green run against a stale base
-  proves nothing.
+- **The gate runs ONCE, at push time — not after every edit.** If the repo enforces its gate
+  in a pre-push hook (check `.git/hooks/pre-push`, `core.hooksPath`, husky), the hook IS the
+  gate: do not run the full gate manually before pushing, and never bypass the hook
+  (`--no-verify`, skip env vars) to land work. Only when a repo has no gate hook do you run
+  its gate yourself — `bin/ci`, `nx affected -t lint,test,build`, `pnpm test`, whatever it
+  actually has — once, before opening the PR/MR. Never open an MR on unvalidated work.
+- **While iterating, run only targeted checks** for what you touched — a single project's
+  test/lint target, one spec file. Do not run the whole affected graph mid-task, at every
+  commit, or as a session-close ritual; the "quality gates" step of any session-close
+  checklist is satisfied by the pre-push hook firing at push time.
+- **Rebase onto the default branch first**, then push (the hook gates the rebased state).
+  A green run against a stale base proves nothing.
 - Report failures. Do not route around a failing gate, mark it flaky, or narrow its scope to get
   green.
 - When the repo has an issue tracker, link the PR/MR back on the issue.
