@@ -71,26 +71,18 @@ bd close <id>         # Complete work
 
 ## Session Completion
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, complete the steps below. Conservative by
+default: commit locally; push ONLY with Tom's explicit per-push approval in that
+moment (hard rule — bd memory `hard-rule-set-by-tom-2026-07-15`).
 
-**MANDATORY WORKFLOW:**
+**WORKFLOW:**
 
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
+2. **Validate** (if code changed) - Targeted checks for what you touched only; where
+   a pre-push hook runs the repo's gate, the hook validates the push — do NOT re-run
+   the full gate as a session-close step
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+4. **Commit locally** - Conventional Commits; leave the branch ready to push
+5. **Hand off** - Report state, list the exact push/MR commands you propose, and
+   wait for Tom's approval before pushing
 <!-- END BEADS INTEGRATION -->
