@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
-# Stop hook: surface claimed (in_progress) beads work before the agent stops.
-# Nudges exactly once per stop attempt: on the retry stop_hook_active is set
-# and we pass, so this can never loop the agent. Silent when bd/repo/issues
+# Stop hook: surface claimed (in_progress) beads work THIS SESSION claimed.
+#
+# Scoped on purpose: an unfiltered `bd list --status=in_progress` dumps the whole
+# repo backlog on every stop, which reads as "you have 20 unfinished P0s" even
+# when the session's own goals are done. So we intersect in_progress issues with
+# the IDs this session MUTATED — ids naming a `bd` command that claims, updates,
+# starts or closes them. Nothing in common = silence.
+#
+# Why mutations and not "the id appears in the transcript": every `bd ready` /
+# `bd list` result pastes the entire backlog's ids into the transcript, so a
+# presence test re-creates the exact noise this filter exists to kill. Only the
+# commands the agent typed count, never tool results.
+#
+# Nudges exactly once per stop attempt: on the retry stop_hook_active is set and
+# we pass, so this can never loop the agent. Silent when bd/repo/jq/transcript
 # are absent — it must not add noise to non-beads sessions.
 set -u
 input=$(cat 2>/dev/null || true)
@@ -9,14 +21,47 @@ case "$input" in
   *'"stop_hook_active":true'* | *'"stop_hook_active": true'*) exit 0 ;;
 esac
 command -v bd >/dev/null 2>&1 || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
 git rev-parse --git-common-dir >/dev/null 2>&1 || exit 0
-open=$(bd list --status=in_progress 2>/dev/null | head -20) || exit 0
-case "$open" in
-  '' | *"Total: 0 issues"*) exit 0 ;;
-esac
+
+transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+[ -n "$transcript" ] && [ -r "$transcript" ] || exit 0
+
+ids=$(bd list --status=in_progress --json 2>/dev/null | jq -r '.[].id' 2>/dev/null)
+[ -n "$ids" ] || exit 0
+
+# Bash commands the agent actually ran (tool_use inputs only — never results).
+commands=$(jq -r '
+  select(.message.content != null)
+  | .message.content
+  | if type == "array" then .[] else empty end
+  | select(.type == "tool_use" and .name == "Bash")
+  | .input.command // empty
+' "$transcript" 2>/dev/null)
+[ -n "$commands" ] || exit 0
+
+# Keep only the ones that move an issue's state.
+mutations=$(printf '%s\n' "$commands" |
+  grep -E 'bd +(update|close|start|create|defer|supersede|human)\b|--claim' 2>/dev/null)
+[ -n "$mutations" ] || exit 0
+
+touched=""
+while IFS= read -r id; do
+  [ -n "$id" ] || continue
+  case "$mutations" in
+    *"$id"*) touched="$touched,$id" ;;
+  esac
+done <<EOF
+$ids
+EOF
+touched=${touched#,}
+[ -n "$touched" ] || exit 0
+
+listing=$(bd list --status=in_progress --id "$touched" 2>/dev/null | head -20)
+[ -n "$listing" ] || exit 0
 {
   echo "in_progress beads issues remain:"
-  echo "$open"
+  echo "$listing"
   echo "If any are codable now, continue working. Otherwise checkpoint each one (bd update <id> --notes with state + exact next action) or close it, then stop."
 } >&2
 exit 2
