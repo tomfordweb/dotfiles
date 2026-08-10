@@ -20,7 +20,7 @@ Same rule for anything else that can prompt: pass the flag that makes it fail in
 ## Validation and landing work
 
 - **Run the repo's own gate before opening a PR/MR and before any push aimed at the default
-  branch** — `bin/ci`, `nx affected -t lint,test,e2e,build`, `pnpm test`, whatever that repo
+  branch** — `bin/ci`, `nx affected -t lint,test,build`, `pnpm test`, whatever that repo
   actually has. Never open an MR on unvalidated work.
 - **Rebase onto the default branch first**, then re-run the gate. A green run against a stale base
   proves nothing.
