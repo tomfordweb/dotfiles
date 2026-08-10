@@ -117,9 +117,12 @@ beads_only_push() {
 printf '%s' "$command" | grep -Eq '(^|[;&|[:space:]])git([[:space:]]|$)' || exit 0
 
 # --- push to a protected branch ---
-if printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bpush\b'; then
+## Matching is segment-bounded ([^;&|]* instead of .*): a compound command like
+## `git ls-remote ...; bd dolt push` must not be read as one "git ... push" —
+## the dangerous tokens have to appear in the SAME shell segment as `git`.
+if printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*\bpush\b'; then
   # Force push always blocks first — the beads exception never applies to it.
-  if printf '%s' "$command" | grep -Eq '(--force\b|--force-with-lease\b|[[:space:]]-f\b)'; then
+  if printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*(--force(-with-lease)?\b|[[:space:]]-f\b)'; then
     block "force push"
   fi
   # Protected-branch push. Signal = the CURRENT branch (a bare `git push` targets
@@ -130,15 +133,15 @@ if printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bpush\b'; then
   # (rare, deliberate) — force-push and on-branch pushes are.
   cur="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
   if [ "$cur" = "main" ] || [ "$cur" = "master" ] \
-     || printf '%s' "$command" | grep -Eq '(:(main|master)\b|HEAD:(main|master)\b)'; then
+     || printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*(:(main|master)\b|HEAD:(main|master)\b)'; then
     beads_only_push && exit 0   # beads-only chore push to main → allowed
     block "push to protected branch (main/master)"
   fi
 fi
 
 # --- history rewrite / destructive resets ---
-printf '%s' "$command" | grep -Eq 'git[[:space:]].*\breset\b.*--hard\b'   && block "git reset --hard"
-printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bfilter-branch\b'     && block "git filter-branch"
-printf '%s' "$command" | grep -Eq 'git[[:space:]].*\bcommit\b.*--amend\b' && block "git commit --amend"
+printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*\breset\b[^;&|]*--hard\b'   && block "git reset --hard"
+printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*\bfilter-branch\b'          && block "git filter-branch"
+printf '%s' "$command" | grep -Eq 'git[[:space:]][^;&|]*\bcommit\b[^;&|]*--amend\b' && block "git commit --amend"
 
 exit 0

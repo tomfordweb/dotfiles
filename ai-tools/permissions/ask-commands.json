@@ -1,8 +1,5 @@
 [
-  "bd delete",
-  "bd rename",
   "bd init",
-  "bd dolt push",
   "graphify install",
   "graphify uninstall",
   "workmux rm",

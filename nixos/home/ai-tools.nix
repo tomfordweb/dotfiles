@@ -169,12 +169,14 @@ let
   # forge CLIs). Versioned JSON manifests are rendered into each tool's own
   # permission dialect below, so policy changes cannot drift between agents.
   #
-  #   allowedCommands — safe to run unattended. Reads, plus the beads
-  #     mutations the agent workflow is made of (create/update/close): being
-  #     asked to confirm every `bd update --claim` defeats the tracker.
-  #   askCommands     — destructive or publishing; always confirm. Listed
-  #     explicitly because a plain prefix like "bd" would otherwise swallow
-  #     `bd delete`.
+  #   allowedCommands — safe to run unattended. Reads, plus everything beads:
+  #     the whole `bd` prefix is allowed (Tom 2026-08-10 — agents never ask to
+  #     interact with the beads DB; that includes delete/rename/dolt push).
+  #   askCommands     — destructive or publishing; always confirm. `bd init`
+  #     stays here deliberately: creating a NEW beads DB in a worktree is the
+  #     documented corruption vector, and ask outranks allow in Claude, so it
+  #     survives the blanket `bd` allow. (In dialects where allow wins on
+  #     overlap, the AGENTS.shared.md never-init-in-worktree rule is the guard.)
   #
   # Node installs execute arbitrary lifecycle scripts. Keep package installs,
   # rebuilds, and one-off runners in ask-commands.json rather than auto-allowing
