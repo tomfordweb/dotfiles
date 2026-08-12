@@ -15,8 +15,9 @@
 #               automatically EXCLUDED from @storage snapshots
 #   @snapshots  btrbk snapshot home
 #
-# The backup scripts (ops/files/downloadBackups, backupLocalState)
-# write to /mnt/storage/{droplet,local}-backups — unchanged paths.
+# The installed backup commands (/usr/local/bin/download-droplet-backups,
+# backup-local-state) write to /mnt/storage/{droplet,local}-backups —
+# unchanged paths. check-backup-freshness reads the same trees.
 #
 # Preconditions (manual, once):
 #   sudo parted /dev/sdX -- mklabel gpt mkpart storage 1MiB 100%

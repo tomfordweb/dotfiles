@@ -163,23 +163,34 @@ in
                          # (AMS, multicolor). Kept alongside as a fallback.
   ];
 
-  # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
-  # NixOS has no /etc/cron.daily; run the ops scripts from the code
-  # drive via systemd timers instead. Scripts stay in ops (single source
-  # of truth); ConditionPathExists keeps boots clean before the code
-  # drive is mounted/cloned. Both write to /mnt/storage. Machine-local SSH
+  # ---- Daily offsite/local backups
+  # NixOS has no /etc/cron.daily, so these run as systemd timers.
+  #
+  # The units name INSTALLED COMMANDS under /usr/local/bin, not scripts inside
+  # a checkout. A unit pointing into a working copy is a unit that stops
+  # existing when a branch is switched or a directory is moved, and
+  # ConditionPathExists turns that into a skipped run, which is not a failure,
+  # which means OnFailure= never fires. The provisioning that installs these
+  # three commands owns their content; this file only schedules them.
+  #
+  # ConditionPathExists still guards each one so a machine that has never been
+  # provisioned boots clean. All three write to /mnt/storage. Machine-local SSH
   # target details live in /etc/nixos-secrets/ops-droplet.env:
   #   OPS_DROPLET_SSH_HOST=<local ssh alias>
+  # The nightly pull authenticates with a dedicated passphrase-less key at
+  # ~/.ssh/id_droplet_backup (the script's default) because this unit is a root
+  # oneshot at midnight and cannot answer an interactive agent unlock. Override
+  # with BACKUP_SSH_KEY in the EnvironmentFile if it ever lives elsewhere.
   systemd.services.download-droplet-backups = {
     description = "Sync production droplet backups to /mnt/storage";
     path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
     serviceConfig = {
       Type = "oneshot";
       EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+      ExecStart = "/usr/local/bin/download-droplet-backups";
     };
     unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+      ConditionPathExists = "/usr/local/bin/download-droplet-backups";
       # never write into an unmounted /mnt/storage (root subvol)
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
@@ -199,10 +210,10 @@ in
       ++ [ "/run/wrappers" ];  # su (for the desktop notification)
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+      ExecStart = "/usr/local/bin/backup-local-state";
     };
     unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+      ConditionPathExists = "/usr/local/bin/backup-local-state";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
     };
@@ -211,6 +222,39 @@ in
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
+      Persistent = true;
+    };
+  };
+
+  # Reads what the two units above left on disk and alarms when a tree is
+  # stale. It exists because both of them once reported success for a week
+  # while writing nothing: a job that checks its own work cannot catch the
+  # case where it never ran, so this is a separate unit on a separate
+  # schedule with the same OnFailure=.
+  #
+  # ConditionPathIsMountPoint matters more here than anywhere else. Without
+  # it an unmounted drive makes every tree look missing and the alarm fires
+  # for the wrong reason, which is how people learn to ignore an alarm.
+  systemd.services.check-backup-freshness = {
+    description = "Alarm when the backup trees on /mnt/storage go stale";
+    path = with pkgs; [ bash coreutils findutils getent libnotify ]
+      ++ [ "/run/wrappers" ];  # su (for the desktop notification)
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "/usr/local/bin/check-backup-freshness";
+    };
+    unitConfig = {
+      ConditionPathExists = "/usr/local/bin/check-backup-freshness";
+      ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
+    };
+  };
+  systemd.timers.check-backup-freshness = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # Midday, hours after the nightly pull, so it reports on a finished run
+      # rather than racing one.
+      OnCalendar = "12:00";
       Persistent = true;
     };
   };
