@@ -201,6 +201,7 @@ in
       # never write into an unmounted /mnt/storage (root subvol)
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.download-droplet-backups = {
@@ -223,6 +224,7 @@ in
       ConditionPathExists = "/usr/local/bin/backup-local-state";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.backup-local-state = {
@@ -254,6 +256,7 @@ in
       ConditionPathExists = "/usr/local/bin/check-backup-freshness";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.check-backup-freshness = {
@@ -283,6 +286,7 @@ in
       ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/sync-3d-downloads";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.sync-3d-downloads = {
@@ -310,13 +314,72 @@ in
       Environment = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus";
     };
     scriptArgs = "%i";
+    # One live alert per failing unit, keyed on the unit's own name.
+    #
+    # These are critical and never expire, so a job failing nightly left a toast
+    # per night. 110 had accumulated across all the backup notifications before
+    # anyone counted, and a wall of identical unread alarms is wallpaper: the
+    # one that matters is somewhere in it, and clearing them is manual work
+    # nobody does.
+    #
+    # The synchronous hint makes mako REPLACE the toast carrying the same tag
+    # rather than stack beside it. Tagged per unit (%i) so a download failure
+    # never hides a local-state failure — they are different jobs and both need
+    # to be visible. Repeat failures of the same unit collapse into one.
+    #
+    # Clearing it on recovery is backup-notify-recovered@ below, hung off the
+    # same units' OnSuccess=.
     script = ''
+      # Marker so the recovery unit knows there was something to clear. In
+      # XDG_RUNTIME_DIR, which is tmpfs: it dies at reboot, and so does the
+      # toast it describes, so the two cannot disagree.
+      mkdir -p "/run/user/1000/backup-alerts"
+      : >"/run/user/1000/backup-alerts/$1"
       ${pkgs.libnotify}/bin/notify-send \
         --urgency=critical --expire-time=0 --icon=dialog-error \
         --app-name=backup-monitor \
+        --hint=string:x-canonical-private-synchronous:"backup-failure-$1" \
         "🔥🔥 BACKUP FAILED 🔥🔥" \
         "$1 exited non-zero — data may NOT be backed up.
       Check: journalctl -u $1 -n 30"
+    '';
+  };
+
+  # ---- and take the alert back down when the job recovers -------------------
+  # A critical toast that never expires has to be dismissed by something, and
+  # "the human, eventually" is how 110 of them accumulated. The failure alert
+  # above outlives the failure, so a job that broke on Tuesday and has worked
+  # every night since still shows Tuesday's alarm.
+  #
+  # There is no "dismiss by tag" call, but the synchronous hint gives one for
+  # free: a NEW notification carrying the same tag replaces the old one, and if
+  # it also carries a short expiry it then disappears on its own. So this sends
+  # a brief, quiet "recovered" toast on the failure's tag, which removes the red
+  # one and leaves nothing behind.
+  #
+  # Hung off OnSuccess= of the same units, so it fires exactly when the thing
+  # that failed starts working again. systemd has no notion of "recovered", so
+  # the failure unit drops a marker and this one only speaks when that marker is
+  # there. Without that check every nightly success would emit its own toast and
+  # the fix for notification noise would be four more notifications a day.
+  systemd.services."backup-notify-recovered@" = {
+    description = "clear the failure alert once %i succeeds";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "tom";
+      Environment = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus";
+    };
+    scriptArgs = "%i";
+    script = ''
+      marker="/run/user/1000/backup-alerts/$1"
+      [ -e "$marker" ] || exit 0
+      rm -f "$marker"
+      ${pkgs.libnotify}/bin/notify-send \
+        --urgency=low --expire-time=4000 --icon=dialog-information \
+        --app-name=backup-monitor \
+        --hint=string:x-canonical-private-synchronous:"backup-failure-$1" \
+        "Backup recovered" \
+        "$1 completed successfully."
     '';
   };
 }
