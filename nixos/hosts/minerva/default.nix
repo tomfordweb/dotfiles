@@ -163,26 +163,45 @@ in
                          # (AMS, multicolor). Kept alongside as a fallback.
   ];
 
-  # ---- Daily offsite/local backups (was ops/local.backup-strategy.yml)
-  # NixOS has no /etc/cron.daily; run the ops scripts from the code
-  # drive via systemd timers instead. Scripts stay in ops (single source
-  # of truth); ConditionPathExists keeps boots clean before the code
-  # drive is mounted/cloned. Both write to /mnt/storage. Machine-local SSH
+  # ---- Daily offsite/local backups
+  # NixOS has no /etc/cron.daily, so these run as systemd timers.
+  #
+  # The units name INSTALLED COMMANDS under /usr/local/bin, not scripts inside
+  # a checkout. A unit pointing into a working copy is a unit that stops
+  # existing when a branch is switched or a directory is moved, and
+  # ConditionPathExists turns that into a skipped run, which is not a failure,
+  # which means OnFailure= never fires. The provisioning that installs these
+  # three commands owns their content; this file only schedules them.
+  #
+  # ConditionPathExists still guards each one so a machine that has never been
+  # provisioned boots clean. All three write to /mnt/storage. Machine-local SSH
   # target details live in /etc/nixos-secrets/ops-droplet.env:
   #   OPS_DROPLET_SSH_HOST=<local ssh alias>
+  # The nightly pull authenticates with a dedicated passphrase-less key at
+  # ~/.ssh/id_droplet_backup (the script's default) because this unit is a root
+  # oneshot at midnight and cannot answer an interactive agent unlock. Override
+  # with BACKUP_SSH_KEY in the EnvironmentFile if it ever lives elsewhere.
   systemd.services.download-droplet-backups = {
     description = "Sync production droplet backups to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
+    # gnugrep, gnused and bzip2 are not in coreutils and the script uses all
+    # three. A unit's PATH is only what it declares, so a tool that is on the
+    # human's PATH is absent here and the run dies at the first line that needs
+    # it, part-way through, having already done some of the work. That is how
+    # this was found: `awk: command not found` mid-run, and the empty output it
+    # produced was then misread as a different fault entirely. The scripts now
+    # check their own dependencies up front and name what is missing.
+    path = with pkgs; [ bash coreutils findutils gnugrep gnused bzip2 rsync openssh getent libnotify ];
     serviceConfig = {
       Type = "oneshot";
       EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+      ExecStart = "/usr/local/bin/download-droplet-backups";
     };
     unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/downloadBackups";
+      ConditionPathExists = "/usr/local/bin/download-droplet-backups";
       # never write into an unmounted /mnt/storage (root subvol)
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.download-droplet-backups = {
@@ -199,18 +218,53 @@ in
       ++ [ "/run/wrappers" ];  # su (for the desktop notification)
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash ${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+      ExecStart = "/usr/local/bin/backup-local-state";
     };
     unitConfig = {
-      ConditionPathExists = "${homeDir}/code/tomfordweb/ops/files/backupLocalState";
+      ConditionPathExists = "/usr/local/bin/backup-local-state";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.backup-local-state = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
+      Persistent = true;
+    };
+  };
+
+  # Reads what the two units above left on disk and alarms when a tree is
+  # stale. It exists because both of them once reported success for a week
+  # while writing nothing: a job that checks its own work cannot catch the
+  # case where it never ran, so this is a separate unit on a separate
+  # schedule with the same OnFailure=.
+  #
+  # ConditionPathIsMountPoint matters more here than anywhere else. Without
+  # it an unmounted drive makes every tree look missing and the alarm fires
+  # for the wrong reason, which is how people learn to ignore an alarm.
+  systemd.services.check-backup-freshness = {
+    description = "Alarm when the backup trees on /mnt/storage go stale";
+    path = with pkgs; [ bash coreutils findutils getent libnotify ]
+      ++ [ "/run/wrappers" ];  # su (for the desktop notification)
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "/usr/local/bin/check-backup-freshness";
+    };
+    unitConfig = {
+      ConditionPathExists = "/usr/local/bin/check-backup-freshness";
+      ConditionPathIsMountPoint = "/mnt/storage";
+      OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
+    };
+  };
+  systemd.timers.check-backup-freshness = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # Midday, hours after the nightly pull, so it reports on a finished run
+      # rather than racing one.
+      OnCalendar = "12:00";
       Persistent = true;
     };
   };
@@ -232,6 +286,7 @@ in
       ConditionPathExists = "${homeDir}/code/tomfordweb/dotfiles/bin/sync-3d-downloads";
       ConditionPathIsMountPoint = "/mnt/storage";
       OnFailure = "backup-notify-failure@%n.service";
+      OnSuccess = "backup-notify-recovered@%n.service";
     };
   };
   systemd.timers.sync-3d-downloads = {
@@ -259,13 +314,72 @@ in
       Environment = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus";
     };
     scriptArgs = "%i";
+    # One live alert per failing unit, keyed on the unit's own name.
+    #
+    # These are critical and never expire, so a job failing nightly left a toast
+    # per night. 110 had accumulated across all the backup notifications before
+    # anyone counted, and a wall of identical unread alarms is wallpaper: the
+    # one that matters is somewhere in it, and clearing them is manual work
+    # nobody does.
+    #
+    # The synchronous hint makes mako REPLACE the toast carrying the same tag
+    # rather than stack beside it. Tagged per unit (%i) so a download failure
+    # never hides a local-state failure — they are different jobs and both need
+    # to be visible. Repeat failures of the same unit collapse into one.
+    #
+    # Clearing it on recovery is backup-notify-recovered@ below, hung off the
+    # same units' OnSuccess=.
     script = ''
+      # Marker so the recovery unit knows there was something to clear. In
+      # XDG_RUNTIME_DIR, which is tmpfs: it dies at reboot, and so does the
+      # toast it describes, so the two cannot disagree.
+      mkdir -p "/run/user/1000/backup-alerts"
+      : >"/run/user/1000/backup-alerts/$1"
       ${pkgs.libnotify}/bin/notify-send \
         --urgency=critical --expire-time=0 --icon=dialog-error \
         --app-name=backup-monitor \
+        --hint=string:x-canonical-private-synchronous:"backup-failure-$1" \
         "🔥🔥 BACKUP FAILED 🔥🔥" \
         "$1 exited non-zero — data may NOT be backed up.
       Check: journalctl -u $1 -n 30"
+    '';
+  };
+
+  # ---- and take the alert back down when the job recovers -------------------
+  # A critical toast that never expires has to be dismissed by something, and
+  # "the human, eventually" is how 110 of them accumulated. The failure alert
+  # above outlives the failure, so a job that broke on Tuesday and has worked
+  # every night since still shows Tuesday's alarm.
+  #
+  # There is no "dismiss by tag" call, but the synchronous hint gives one for
+  # free: a NEW notification carrying the same tag replaces the old one, and if
+  # it also carries a short expiry it then disappears on its own. So this sends
+  # a brief, quiet "recovered" toast on the failure's tag, which removes the red
+  # one and leaves nothing behind.
+  #
+  # Hung off OnSuccess= of the same units, so it fires exactly when the thing
+  # that failed starts working again. systemd has no notion of "recovered", so
+  # the failure unit drops a marker and this one only speaks when that marker is
+  # there. Without that check every nightly success would emit its own toast and
+  # the fix for notification noise would be four more notifications a day.
+  systemd.services."backup-notify-recovered@" = {
+    description = "clear the failure alert once %i succeeds";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "tom";
+      Environment = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus";
+    };
+    scriptArgs = "%i";
+    script = ''
+      marker="/run/user/1000/backup-alerts/$1"
+      [ -e "$marker" ] || exit 0
+      rm -f "$marker"
+      ${pkgs.libnotify}/bin/notify-send \
+        --urgency=low --expire-time=4000 --icon=dialog-information \
+        --app-name=backup-monitor \
+        --hint=string:x-canonical-private-synchronous:"backup-failure-$1" \
+        "Backup recovered" \
+        "$1 completed successfully."
     '';
   };
 }
