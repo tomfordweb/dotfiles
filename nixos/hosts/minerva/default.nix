@@ -183,7 +183,14 @@ in
   # with BACKUP_SSH_KEY in the EnvironmentFile if it ever lives elsewhere.
   systemd.services.download-droplet-backups = {
     description = "Sync production droplet backups to /mnt/storage";
-    path = with pkgs; [ bash coreutils findutils rsync openssh getent ];
+    # gnugrep, gnused and bzip2 are not in coreutils and the script uses all
+    # three. A unit's PATH is only what it declares, so a tool that is on the
+    # human's PATH is absent here and the run dies at the first line that needs
+    # it, part-way through, having already done some of the work. That is how
+    # this was found: `awk: command not found` mid-run, and the empty output it
+    # produced was then misread as a different fault entirely. The scripts now
+    # check their own dependencies up front and name what is missing.
+    path = with pkgs; [ bash coreutils findutils gnugrep gnused bzip2 rsync openssh getent libnotify ];
     serviceConfig = {
       Type = "oneshot";
       EnvironmentFile = "-/etc/nixos-secrets/ops-droplet.env";
