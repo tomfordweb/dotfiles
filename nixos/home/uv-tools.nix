@@ -10,7 +10,9 @@
 #
 # The extras matter, not just the package: without [sql], graphify parses
 # no .sql files and reports them as "contributed nothing to the graph
-# because a dependency is missing: tree_sitter_sql not installed". Recording
+# because a dependency is missing: tree_sitter_sql not installed". Without
+# [openai], `graphify extract --backend openai` fails every semantic chunk
+# with "the 'openai' package is required for this backend". Recording
 # the extra here is the point — a uv receipt on one machine is not a
 # declaration.
 #
@@ -26,7 +28,7 @@ let
   #        All must exist, or the tool is (re)installed: a tool that gained
   #        an entrypoint upstream is otherwise never repaired.
   tools = [
-    { name = "graphifyy"; spec = "graphifyy[sql]"; bins = [ "graphify" "graphify-mcp" ]; }
+    { name = "graphifyy"; spec = "graphifyy[sql,openai]"; bins = [ "graphify" "graphify-mcp" ]; }
   ];
 
   uvBinDir = "${config.home.homeDirectory}/.local/bin";
