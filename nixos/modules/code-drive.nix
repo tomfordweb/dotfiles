@@ -20,6 +20,11 @@ let
   codeLabel   = "code";
   codeUser    = "tom";
   codeMount   = "/home/${codeUser}/code";
+  andromedaRoot = "${codeMount}/tomfordweb/andromeda";
+  andromedaWorktrees = "${andromedaRoot}/.worktrees";
+  andromedaClaudeWorktrees = "${andromedaRoot}/.claude/worktrees";
+  andromedaWorktreesMount = "home-tom-code-tomfordweb-andromeda-.worktrees.mount";
+  andromedaClaudeWorktreesMount = "home-tom-code-tomfordweb-andromeda-.claude-worktrees.mount";
   btrTop      = "/mnt/code-btr";
   btrTopUnit  = "mnt-code\\x2dbtr.mount"; # systemd escapes '-' as \x2d
   commonOpts  = [ "noatime" "compress=zstd:1" "ssd" "discard=async" "space_cache=v2" "nofail" ];
@@ -41,6 +46,24 @@ in
     options = commonOpts ++ [ "subvol=@code" ];
   };
 
+  # Worktrees are disposable. Keep them in sibling subvolumes so snapshots of
+  # @code retain the canonical checkout but not every worktree's dependencies,
+  # caches, and build outputs. Btrfs does not recurse into nested subvolumes.
+  #
+  # Migration order matters: move existing worktrees into these subvolumes
+  # before activating this configuration, otherwise the mounts hide them.
+  fileSystems.${andromedaWorktrees} = {
+    device = "/dev/disk/by-label/${codeLabel}";
+    fsType = "btrfs";
+    options = commonOpts ++ [ "subvol=@andromeda-worktrees" ];
+  };
+
+  fileSystems.${andromedaClaudeWorktrees} = {
+    device = "/dev/disk/by-label/${codeLabel}";
+    fsType = "btrfs";
+    options = commonOpts ++ [ "subvol=@andromeda-claude-worktrees" ];
+  };
+
   # ---- First-boot subvolume bootstrap ------------------------------
   # NixOS declarative mounts don't create subvolumes. This oneshot
   # runs after the top mount is up and creates @code + @snapshots
@@ -51,19 +74,30 @@ in
     after = [ btrTopUnit ];
     requires = [ btrTopUnit ];
     unitConfig.ConditionPathIsMountPoint = btrTop;
-    before = [ "home-${codeUser}-code.mount" ];
+    # The child mounts require this service. Without that ordering a first boot
+    # races the mount units against subvolume creation and fails on the missing
+    # subvolumes.
+    before = [
+      "home-${codeUser}-code.mount"
+      andromedaWorktreesMount
+      andromedaClaudeWorktreesMount
+    ];
+    requiredBy = [ andromedaWorktreesMount andromedaClaudeWorktreesMount ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
     };
     script = ''
-      for sv in @code @snapshots; do
+      for sv in @code @snapshots @andromeda-worktrees @andromeda-claude-worktrees; do
         if [ ! -e "${btrTop}/$sv" ]; then
           ${pkgs.btrfs-progs}/bin/btrfs subvolume create "${btrTop}/$sv"
         fi
       done
-      # ~/code lives on @code; make sure ${codeUser} owns it.
-      ${pkgs.coreutils}/bin/chown ${codeUser}:users "${btrTop}/@code"
+      # ~/code and disposable-worktree subvolumes are writable by ${codeUser}.
+      ${pkgs.coreutils}/bin/chown ${codeUser}:users \
+        "${btrTop}/@code" \
+        "${btrTop}/@andromeda-worktrees" \
+        "${btrTop}/@andromeda-claude-worktrees"
     '';
   };
 
