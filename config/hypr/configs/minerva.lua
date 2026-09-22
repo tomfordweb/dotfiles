@@ -10,7 +10,7 @@
 --     mounted PORTRAIT, so transform 1 (90° left). Unscaled: logical
 --     1440x3440.
 --   - DP-5 / DP-4: two Dell S2719DGF (2560x1440) stacked vertically to
---     the right of it, DP-5 on top, DP-4 directly below.
+--     the right of it, DP-4 on top, DP-5 directly below.
 --
 -- CRITICAL — HDMI-A-3 IS 3440x1440, NOT 4K. It advertises a 3840x2160 mode
 -- and will happily accept it, then rescale the signal onto its real
@@ -35,7 +35,7 @@
 --
 -- The portrait panel (3440 logical tall) is TALLER than the 2880-tall Dell
 -- stack, so the Dells are centered against IT, not the reverse:
--- (3440 - 2880) / 2 = 280, hence DP-5 at y=280 and DP-4 at y=1720.
+-- (3440 - 2880) / 2 = 280, hence DP-4 at y=280 and DP-5 at y=1720.
 --
 -- The Dells are 1440p, NOT 4K — do not put 3840x2160 back here (that was a
 -- stale mode that fell back to preferred and left a vertical gap). DP-5 runs
@@ -55,8 +55,8 @@
 -- 165Hz caused intermittent signal loss over this HDMI connection.
 -- Keep 60Hz for stable operation.
 hl.monitor({ output = "HDMI-A-3", mode = "3440x1440@60", position = "0x0",       scale = 1, transform = 1 })
-hl.monitor({ output = "DP-5",     mode = "2560x1440@144", position = "1440x280",  scale = 1 })
-hl.monitor({ output = "DP-4",     mode = "2560x1440@60",  position = "1440x1720", scale = 1 })
+hl.monitor({ output = "DP-4",     mode = "2560x1440@60",  position = "1440x280",  scale = 1 })
+hl.monitor({ output = "DP-5",     mode = "2560x1440@144", position = "1440x1720", scale = 1 })
 
 -- Anything unmatched: auto-place at preferred res.
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })

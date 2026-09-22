@@ -126,8 +126,14 @@
     "format": "{}% "
   },
   "temperature": {
+    // Must be pinned to coretemp. Waybar's default is thermal_zone0, which on
+    // this board is INT3400 — a DPTF policy device, not a sensor. It reports a
+    // hardcoded 20°C (68°F) forever, so the module looks alive but never moves.
+    // hwmon-path-abs takes the parent dir so the hwmon* number can shift on boot.
+    "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
+    "input-filename": "temp1_input",
     "critical-threshold": 80,
-    "format": "{temperatureF}°F {icon}",
+    "format": "{temperatureC}°C {icon}",
     "format-icons": [
       "",
       "",

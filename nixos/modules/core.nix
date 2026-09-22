@@ -108,6 +108,9 @@
     htop
     pciutils
     usbutils
+    lm_sensors     # die temps: sensors / sensors-detect (thermal-throttle triage)
+    btop           # system monitor with per-core temp readouts
+    s-tui          # temp/clock/power graphed over time; built-in stress test
     unzip
     gcc            # nvim treesitter parser compiles + Mason builds
     gnumake        # same
