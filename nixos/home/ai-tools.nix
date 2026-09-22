@@ -298,6 +298,17 @@ in
   programs.zsh.initContent = lib.mkAfter ''
     export PLAYWRIGHT_CHROMIUM_EXECUTABLE="$(echo "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux64/chrome)"
 
+    # Agent-run shells must not pollute the human shell history. Claude Code
+    # (and codex/opencode) run their Bash tool through this same .zshrc, so
+    # SHARE_HISTORY was writing every agent command into ~/.zsh_history and
+    # every interactive shell then imported them. Detect the agent shell and
+    # make it history-less; interactive human shells are untouched.
+    if [ -n "''${CLAUDECODE-}" ] || [ -n "''${AI_AGENT-}" ] || [ -n "''${CODEX_SANDBOX-}" ]; then
+      unset HISTFILE
+      SAVEHIST=0
+      unsetopt SHARE_HISTORY INC_APPEND_HISTORY APPEND_HISTORY 2>/dev/null
+    fi
+
     # Pinned/vendored AI tooling staleness. The banner is CACHE-ONLY (no network,
     # no git) so it costs nothing at login; the refresh that populates that cache
     # is detached and rate-limited to once a day. AI_TOOLS_CHECK=0 disables both.
