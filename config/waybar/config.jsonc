@@ -33,9 +33,17 @@
     "custom/docker-status",
     "clock",
     "tray",
+    "custom/recording-light",
     "custom/rice-mode",
     "custom/control-center"
   ],
+  "custom/recording-light": {
+    "format": "{}",
+    "exec": "recording-light waybar",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "recording-light toggle"
+  },
   // rice (cycling wallpapers + glass) <-> pro (static image, flat, no blur).
   // bin/rice-mode restarts waybar on toggle, so the module only needs to run
   // once at startup; RTMIN+8 is there for out-of-band `rice-mode set` calls.

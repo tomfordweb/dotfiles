@@ -61,6 +61,7 @@ window#waybar.hidden {
 #custom-nvidia-smi,
 #custom-control-center,
 #custom-rice-mode,
+#custom-recording-light,
 #power-profiles-daemon,
 #mpd {
   padding: 0 10px;
@@ -73,6 +74,16 @@ window#waybar.hidden {
   background-image: linear-gradient(135deg, #cba6f7, #22d3ee);
   color: #11111b;
   font-weight: 700;
+}
+
+#custom-recording-light.active {
+  color: #74c7ec;
+}
+#custom-recording-light.busy {
+  color: #f9e2af;
+}
+#custom-recording-light.error {
+  color: #f38ba8;
 }
 
 #window {
