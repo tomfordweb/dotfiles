@@ -475,6 +475,34 @@ journalctl -u btrbk-code.service -n 50
 
 Missing drive is safe: all mounts are `nofail`.
 
+## Local inference model store (minerva)
+
+`modules/ai.nix` creates `/var/lib/llama-models` on the root btrfs pool,
+owned by `tom` and readable by inference services. GGUF downloads stay
+outside the Nix store. `bin/llm-pull` uses the Hugging Face `hf` CLI,
+which the same module installs.
+
+```bash
+llm-pull <owner/repo> <file.gguf> [revision]
+```
+
+Use a commit SHA for `revision` to pin a download. Files land under
+`/var/lib/llama-models/<owner>/<repo>/<revision>/`, so repositories and
+revisions cannot overwrite each other's files. Repeating the command
+reuses the download; interrupted transfers resume through `hf`.
+Slashes in revision names are stored as `%2F`.
+
+Before applying the NixOS configuration, use a writable directory:
+
+```bash
+LLM_MODELS_DIR="$HOME/.local/share/llama-models" \
+  uv run --no-project --with huggingface-hub -- \
+  ./bin/llm-pull <owner/repo> <file.gguf> <commit-sha>
+```
+
+Downloading a model does not load it into VRAM. Check runtime support and
+available GPU memory before starting inference.
+
 ## Troubleshooting
 
 - **`Path 'nixos/...' is not tracked by Git`** — `git add nixos/` (staging

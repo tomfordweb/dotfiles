@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Download one Hugging Face file into the local inference model store.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: llm-pull <owner/repo> <file> [revision]
+
+Downloads a single file with hf, resuming interrupted transfers and reusing
+cached downloads. Use a commit SHA as revision for a reproducible download.
+Files land in $LLM_MODELS_DIR/<owner>/<repo>/<revision>/<file>.
+LLM_MODELS_DIR defaults to /var/lib/llama-models; revision defaults to main.
+Slashes in revision names are stored as %2F.
+EOF
+}
+
+if [[ $# == 1 && ( $1 == --help || $1 == -h ) ]]; then
+  usage
+  exit 0
+fi
+if (( $# < 2 || $# > 3 )); then
+  usage >&2
+  exit 2
+fi
+
+repo=$1
+file=$2
+revision=${3:-main}
+store=${LLM_MODELS_DIR:-/var/lib/llama-models}
+
+if [[ ! $repo =~ ^[[:alnum:]][[:alnum:]_.-]*/[[:alnum:]][[:alnum:]_.-]*$ ]]; then
+  echo 'llm-pull: repository must be owner/repo' >&2
+  exit 2
+fi
+# Reject paths that could escape the store, glob patterns, and CLI options.
+for path in "$file" "$revision"; do
+  if [[ ! $path =~ ^[[:alnum:]_][[:alnum:]_./-]*$ || /$path/ == */../* || /$path/ == */./* || $path == */ || $path == *//* ]]; then
+    echo 'llm-pull: file and revision must be relative paths without . or .. components or glob patterns' >&2
+    exit 2
+  fi
+done
+
+if ! command -v hf >/dev/null 2>&1; then
+  echo 'llm-pull: hf is missing; apply the NixOS config or run through uv run --with huggingface-hub' >&2
+  exit 1
+fi
+
+umask 022
+revision_directory=${revision//\//%2F}
+destination="$store/$repo/$revision_directory"
+if ! mkdir -p -- "$destination"; then
+  echo 'llm-pull: model store is not writable; apply the NixOS config or set LLM_MODELS_DIR to a writable directory' >&2
+  exit 1
+fi
+
+exec hf download "$repo" "$file" --revision "$revision" --local-dir "$destination"

@@ -8,6 +8,12 @@
 # updates them without a rebuild, nix-ld runs their native binaries).
 
 {
+  # Downloads belong on the root btrfs pool, outside the Nix store.
+  # Tom maintains the files; inference services only need read access.
+  systemd.tmpfiles.rules = [
+    "d /var/lib/llama-models 0755 tom users - -"
+  ];
+
   # ollama with CUDA (was ops/local.ollama.yml: tarball + user unit)
   # Models live at the default /var/lib/private/ollama/models (root btrfs
   # pool). A copy on the code drive (/mnt/code-btr/ollama-models) is kept
@@ -31,6 +37,7 @@
     beads
     # bubblewrap provides bwrap for cocdex sandboxing.
     bubblewrap
+    python3Packages.huggingface-hub
     llama-cpp
   ];
 }
