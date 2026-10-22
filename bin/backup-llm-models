@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Archive completed local model downloads on the storage drive.
+set -euo pipefail
+
+dry_run=0
+verify=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) dry_run=1 ;;
+    --verify) verify=1 ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: backup-llm-models [--dry-run] [--verify]
+
+Copies /var/lib/llama-models and the user's XDG data llama-models directory
+to /mnt/storage/llama-models, under primary/ and user/ respectively.
+LLM_MODELS_DIR overrides the primary source; LLM_BACKUP_DIR overrides the
+destination, which must remain below the mounted /mnt/storage drive.
+
+--dry-run  Show changes without writing files or creating directories.
+--verify   Compare checksums instead of only file size and modification time.
+
+Caches, locks and unfinished transfers are excluded. Source files and
+archived models removed from the source are retained.
+EOF
+      exit 0 ;;
+    *) echo "backup-llm-models: unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
+
+for dependency in mountpoint realpath rsync flock; do
+  if ! command -v "$dependency" >/dev/null 2>&1; then
+    echo "backup-llm-models: missing command: $dependency" >&2
+    exit 1
+  fi
+done
+
+storage=/mnt/storage
+if ! mountpoint -q "$storage"; then
+  echo "backup-llm-models: $storage is not mounted" >&2
+  exit 1
+fi
+storage=$(realpath -e -- "$storage")
+destination=$(realpath -m -- "${LLM_BACKUP_DIR:-$storage/llama-models}")
+case "$destination" in
+  "$storage"/*) ;;
+  *) echo "backup-llm-models: destination must be below $storage" >&2; exit 1 ;;
+esac
+
+candidates=("${LLM_MODELS_DIR:-/var/lib/llama-models}" "${XDG_DATA_HOME:-$HOME/.local/share}/llama-models")
+labels=(primary user)
+sources=()
+targets=()
+for index in "${!candidates[@]}"; do
+  [[ -d ${candidates[$index]} ]] || continue
+  source=$(realpath -e -- "${candidates[$index]}")
+  if [[ ${#sources[@]} -gt 0 && $source == "${sources[0]}" ]]; then
+    continue
+  fi
+  case "$destination/" in
+    "$source/"*) echo 'backup-llm-models: destination overlaps a source' >&2; exit 1 ;;
+  esac
+  case "$source/" in
+    "$destination/"*) echo 'backup-llm-models: source overlaps destination' >&2; exit 1 ;;
+  esac
+  sources+=("$source")
+  targets+=("$destination/${labels[$index]}")
+done
+if (( ${#sources[@]} == 0 )); then
+  echo 'backup-llm-models: no model stores found' >&2
+  exit 1
+fi
+
+printf 'Model stores to back up (%s):\n' "${#sources[@]}"
+for index in "${!sources[@]}"; do
+  printf '  %s -> %s\n' "${sources[$index]}" "${targets[$index]}"
+done
+
+if (( ! dry_run )); then
+  umask 022
+  mkdir -p -- "$destination"
+  exec 9>"$destination/.backup.lock"
+  flock -n 9 || { echo 'backup-llm-models: another backup is running' >&2; exit 1; }
+fi
+
+options=(-aL --no-owner --no-group --mkpath --itemize-changes --human-readable
+  --partial-dir=.rsync-partial --exclude=.rsync-partial/ --exclude=.cache/
+  '--exclude=*.incomplete' '--exclude=*.lock' '--exclude=*.part' '--exclude=*.partial')
+(( ! dry_run )) || options+=(--dry-run)
+(( ! verify )) || options+=(--checksum)
+for index in "${!sources[@]}"; do
+  mountpoint -q "$storage" || { echo 'backup-llm-models: storage became unmounted' >&2; exit 1; }
+  rsync "${options[@]}" -- "${sources[$index]}/" "${targets[$index]}/"
+done
+if (( ! dry_run )); then
+  date -u +'%Y-%m-%dT%H:%M:%SZ' > "$destination/.last-success"
+fi

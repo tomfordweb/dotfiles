@@ -503,6 +503,32 @@ LLM_MODELS_DIR="$HOME/.local/share/llama-models" \
 Downloading a model does not load it into VRAM. Check runtime support and
 available GPU memory before starting inference.
 
+### Model backups
+
+`backup-llm-models` copies completed downloads to `/mnt/storage/llama-models`.
+The primary store (`/var/lib/llama-models`, or `LLM_MODELS_DIR`) lands under
+`primary/`; the user's XDG data store lands under `user/`. Caches, lock files
+and unfinished downloads are excluded. Files removed from a source remain
+in the archive.
+
+```bash
+backup-llm-models --dry-run
+backup-llm-models
+backup-llm-models --dry-run --verify
+```
+
+`--verify` compares file checksums. Combined with `--dry-run`, it reports
+differences without changing the archive. The command refuses to run if
+`/mnt/storage` is unmounted or the destination resolves outside that mount.
+`LLM_BACKUP_DIR` can select another directory below `/mnt/storage`.
+
+After applying the NixOS configuration, a daily timer runs at 03:30 with
+up to 15 minutes of random delay and catches up after downtime. The unit
+runs the installed script from the Nix store and uses the existing backup
+failure and recovery notifications. Run it manually with
+`systemctl start backup-llm-models.service`; inspect its schedule with
+`systemctl list-timers backup-llm-models.timer`.
+
 ## Troubleshooting
 
 - **`Path 'nixos/...' is not tracked by Git`** — `git add nixos/` (staging
