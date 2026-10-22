@@ -22,6 +22,7 @@ declare -A OUTPUTS=(
   [fzf-colors.tmpl]="config/tmux/fzf-colors.env"
   [ghostty-colors.tmpl]="config/ghostty/themes/cyberdream"
   [mako.tmpl]="config/mako/config"
+  [yazi-theme.toml.tmpl]="config/yazi/theme.toml"
 )
 
 # Build one sed script: colors first, then roles resolved to their hex.

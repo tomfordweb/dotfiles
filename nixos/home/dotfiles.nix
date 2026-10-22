@@ -30,6 +30,7 @@ in
     "ghostty".source       = link "config/ghostty";
     "nvim".source          = link "config/nvim";
     "lazygit".source       = link "config/lazygit";
+    "yazi".source          = link "config/yazi";
     "gh".source            = link "config/gh";
     "git".source           = link "config/git";
     "starship.toml".source = link "config/starship.toml";
