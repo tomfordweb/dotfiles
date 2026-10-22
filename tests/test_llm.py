@@ -30,11 +30,16 @@ class API(http.server.BaseHTTPRequestHandler):
     requests = []
     incomplete = False
     failure = False
+    redirect = None
 
     def log_message(self, *_):
         pass
 
     def do_GET(self):
+        if self.path == "/redirect-target":
+            API.requests.append((self.path, None, self.headers.get("Authorization")))
+        if self.redirect_response():
+            return
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'{"data": [{"id": "served-model"}]}')
@@ -42,6 +47,8 @@ class API(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         API.requests.append((self.path, body, self.headers.get("Authorization")))
+        if self.redirect_response():
+            return
         if API.failure:
             self.send_response(400)
             self.end_headers()
@@ -61,6 +68,15 @@ class API(http.server.BaseHTTPRequestHandler):
             self.wfile.write(b'{"data":[{"embedding":[0.1,0.2]}]}')
         else:
             self.wfile.write(b'{"choices":[{"message":{"content":"ok","tool_calls":[{"id":"call1","type":"function","function":{"name":"lookup","arguments":"{}"}}]}}]}')
+
+    def redirect_response(self):
+        if API.redirect and self.path != "/redirect-target":
+            code, target = API.redirect
+            self.send_response(code)
+            self.send_header("Location", target)
+            self.end_headers()
+            return True
+        return False
 
 
 class ModelCLI(unittest.TestCase):
@@ -86,6 +102,7 @@ class ModelCLI(unittest.TestCase):
         self.addCleanup(self.env.stop)
         API.requests.clear()
         API.incomplete = API.failure = False
+        API.redirect = None
         self.call("endpoint", "test", f"http://127.0.0.1:{self.api.server_port}/v1", "--key-env", "TEST_LLM_KEY")
         self.call("add", "demo", "served-model", "--runtime", "test", "--format", "endpoint")
 
@@ -159,6 +176,44 @@ class ModelCLI(unittest.TestCase):
         self.assertIn("demo", llm.load_config()["models"])
         self.call("endpoint", "bad", "http://secret:password@host/v1", code=1)
         self.assertNotIn("bad", llm.load_config()["runtimes"])
+
+    def test_authenticated_api_refuses_all_redirects(self):
+        runtime = llm.runtime_config(llm.load_config(), "test")
+        for host in ("127.0.0.1", "localhost"):
+            for code in (301, 302, 303, 307, 308):
+                for body in (None, {"prompt": "private prompt"}):
+                    with self.subTest(host=host, code=code, body=body):
+                        API.requests.clear()
+                        API.redirect = (code, f"http://{host}:{self.api.server_port}/redirect-target")
+                        with self.assertRaisesRegex(ValueError, f"API HTTP {code}") as error:
+                            llm.request_json(runtime, "/models", body)
+                        self.assertFalse(any(path == "/redirect-target" for path, _, _ in API.requests))
+                        self.assertNotIn("fixture-key", str(error.exception))
+                        self.assertNotIn("private prompt", str(error.exception))
+
+    def test_scan_registers_only_first_split_shard(self):
+        for index in (1, 2, 3, 10):
+            (self.root / f"model-{index:05d}-of-00010.gguf").write_text("GGUF")
+        (self.root / "single.gguf").write_text("GGUF")
+        self.call("scan", str(self.root), "--register")
+        self.call("scan", str(self.root), "--register")
+        sources = {model["source"] for model in llm.load_config()["models"].values()}
+        self.assertEqual(sources, {"served-model", str(self.root / "model-00001-of-00010.gguf"), str(self.root / "single.gguf")})
+
+    def test_gpu_preflight_counts_all_shards(self):
+        source = self.root / "model-00001-of-00003.gguf"
+        for index in range(1, 4):
+            with source.with_name(f"model-{index:05d}-of-00003.gguf").open("wb") as shard:
+                shard.truncate(1024**3)
+        model = {"source": str(source), "format": "gguf"}
+        with patch.object(llm, "request_json", return_value={"models": []}), patch.object(llm.shutil, "which", return_value="nvidia-smi"), patch.object(llm.subprocess, "check_output", return_value="4096\n"):
+            with self.assertRaisesRegex(ValueError, "exceed free VRAM"):
+                llm.gpu_preflight(model, llm.load_config())
+        source.with_name("model-00003-of-00003.gguf").unlink()
+        with self.assertRaisesRegex(ValueError, "Incomplete split GGUF"):
+            llm.gguf_shards(source)
+        with self.assertRaisesRegex(ValueError, "first GGUF shard"):
+            llm.gguf_shards(source.with_name("model-00002-of-00003.gguf"))
 
     def test_formats_and_literal_arguments(self):
         model = self.root / "model; touch BAD.gguf"

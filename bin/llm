@@ -93,6 +93,11 @@ def model_config(config, name):
     return model, runtime
 
 
+class NoRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def http(runtime, path, body=None, timeout=30):
     headers = {"Content-Type": "application/json"}
     key_env = runtime.get("api_key_env")
@@ -103,9 +108,10 @@ def http(runtime, path, body=None, timeout=30):
     request = urllib.request.Request(runtime["url"] + path,
                                      data=None if body is None else json.dumps(body).encode(), headers=headers)
     try:
-        return urllib.request.urlopen(request, timeout=timeout)
+        return urllib.request.build_opener(NoRedirects()).open(request, timeout=timeout)
     except urllib.error.HTTPError as error:
         # Response bodies can echo prompts or credentials. Report status only.
+        error.close()
         raise ValueError(f"API HTTP {error.code} {error.reason} at {runtime['url']}{path}") from None
 
 
@@ -115,6 +121,23 @@ def request_json(runtime, path, body=None, timeout=30):
     if isinstance(result, dict) and result.get("error"):
         raise ValueError("API returned an error response")
     return result
+
+
+def gguf_shards(source):
+    path = Path(source).expanduser()
+    match = re.fullmatch(r"(.+)-(\d{5})-of-(\d{5})\.gguf", path.name)
+    if not match:
+        return [path]
+    stem, shard, total = match.groups()
+    if int(shard) != 1:
+        raise ValueError("Register the first GGUF shard (00001), not a later shard")
+    if int(total) < 1:
+        raise ValueError("Invalid GGUF shard count")
+    shards = [path.with_name(f"{stem}-{index:05d}-of-{total}.gguf")
+              for index in range(1, int(total) + 1)]
+    if any(not shard.is_file() for shard in shards):
+        raise ValueError(f"Incomplete split GGUF: {path}")
+    return shards
 
 
 def scan(args):
@@ -129,6 +152,9 @@ def scan(args):
         with edit_config() as config:
             known = {m["source"] for m in config["models"].values()}
             for path in files:
+                match = re.search(r"-(\d{5})-of-\d{5}\.gguf$", path)
+                if match and match[1] != "00001":
+                    continue
                 if path in known:
                     continue
                 stem = re.sub(r"[^a-z0-9-]+", "-", Path(path).stem.lower()).strip("-") or "model"
@@ -225,7 +251,7 @@ def gpu_preflight(model, config):
     query = subprocess.check_output(["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"], text=True)
     free = int(query.splitlines()[0]) * 1024 * 1024
     # A lower bound only: context, backend workspaces and architecture still matter.
-    if model["format"] == "gguf" and Path(model["source"]).stat().st_size + 2 * 1024**3 > free:
+    if model["format"] == "gguf" and sum(path.stat().st_size for path in gguf_shards(model["source"])) + 2 * 1024**3 > free:
         raise ValueError("Weights plus 2 GiB reserve exceed free VRAM. Use CPU or a smaller quant/model.")
 
 
