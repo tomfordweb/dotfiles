@@ -22,7 +22,7 @@ fix(app): gate booking status to Pro
 Beads: romi-pq32.4
 ```
 
-One id per commit, on its own line, after a blank line. Several ids go on several `Beads:` lines rather than a comma list.
+One id per `Beads:` line, after a blank line. For several ids, repeat the line rather than using a comma list.
 
 The trailer is how a deploy pipeline can close the issue when the code actually reaches production, so write it even when you also close the issue by hand. A `bd close` says the work is finished, the trailer says which release carried it. A repo whose pipeline reads these will warn on a branch that has none, and will never close anything for a deploy that failed.
 
