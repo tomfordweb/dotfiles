@@ -475,6 +475,168 @@ journalctl -u btrbk-code.service -n 50
 
 Missing drive is safe: all mounts are `nofail`.
 
+## Local inference model store (minerva)
+
+`modules/ai.nix` creates `/var/lib/llama-models` on the root btrfs pool,
+owned by `tom` and readable by inference services. GGUF downloads stay
+outside the Nix store. `bin/llm-pull` uses the Hugging Face `hf` CLI,
+which the same module installs.
+
+```bash
+llm-pull <owner/repo> <file.gguf> [revision]
+```
+
+Use a commit SHA for `revision` to pin a download. Files land under
+`/var/lib/llama-models/<owner>/<repo>/<revision>/`, so repositories and
+revisions cannot overwrite each other's files. Repeating the command
+reuses the download; interrupted transfers resume through `hf`.
+Slashes in revision names are stored as `%2F`.
+
+Before applying the NixOS configuration, use a writable directory:
+
+```bash
+LLM_MODELS_DIR="$HOME/.local/share/llama-models" \
+  uv run --no-project --with huggingface-hub -- \
+  ./bin/llm-pull <owner/repo> <file.gguf> <commit-sha>
+```
+
+Downloading a model does not load it into VRAM. Check runtime support and
+available GPU memory before starting inference.
+
+### Generic model CLI
+
+`llm` uses a user registry at `$XDG_CONFIG_HOME/llm/config.json` (normally
+`~/.config/llm/config.json`). Set `LLM_CONFIG` to use a separate registry.
+It requires Python 3.10 or later and has no Python package dependencies.
+Minerva's NixOS configuration installs it; before activation, run
+`./bin/llm` from the dotfiles checkout.
+
+```bash
+llm init
+llm scan                         # list GGUF files without changing anything
+llm scan --register              # register discovered files by filename
+llm list
+llm doctor --probe               # check launchers and /v1/models, no generation
+llm add small /path/to/model.gguf
+llm serve small --context 4096   # CPU, foreground; Ctrl-C stops the child
+```
+
+`llm pull owner/repo model.gguf commit-sha` forwards to the downloader. If
+the system store is not writable, it uses the user data store automatically.
+`LLM_MODELS_DIR` overrides this choice. Chat requests to llama.cpp verify
+that the selected alias appears in its model list before sending a prompt.
+
+In another terminal, use the same alias for requests:
+
+```bash
+llm chat small 'Explain this error' --input error.log
+git diff | llm chat small
+llm chat small 'Extract name and date as JSON' --input note.txt --json
+llm chat small 'Extract this record' --input note.txt --schema record.schema.json
+llm chat small --request request.json --raw
+llm bench small 'Write a short Python function' --runs 3 --output bench.json
+llm backup --dry-run
+```
+
+`--request` accepts a Chat Completions JSON body, including conversation
+history, tools, images, and backend-specific parameters. The selected alias
+sets the API model ID. Model and runtime support determine which features
+work. Tool calls are returned as JSON for the caller to handle. `--raw`
+returns the complete API response, including reasoning and usage.
+Per-model defaults can be set at registration, for example
+`llm add small /path/model.gguf --request-defaults '{"chat_template_kwargs":{"enable_thinking":false}}'`.
+A request file overrides these defaults. Thinking controls depend on the
+model template and engine. Explicit `--temperature` and `--max-tokens`
+override both the defaults and the request file.
+
+`--json` requests a JSON object; `--schema` requests strict JSON Schema.
+The CLI forwards these constraints to the backend. It does not validate
+returned objects against the schema. Backend rejections exit nonzero.
+An embedding model on a compatible endpoint can use
+`llm embed embedding-alias 'text to index'`; the chat downloads are not
+embedding models.
+
+The benchmark reports each run's time to first content, reasoning, or tool
+token, total latency, token usage, and completion tokens per second over the
+whole request. This rate includes prefill; it is not a decode-only speed.
+One warmup runs by default; use `--warmup 0` to measure a cold request.
+Reports save a request hash rather than prompt text. They do not score quality
+or change which model the backend has loaded.
+
+### Runtime profiles and ports
+
+| Runtime | Model registration | Default loopback port | Launch method |
+| --- | --- | --- | --- |
+| llama.cpp | local GGUF | 18080 | `llm serve alias`, CPU unless `--gpu` |
+| Ollama | Ollama model tag | 11434 | existing Ollama service |
+| vLLM | HF model ID or directory | 18081 | `llm serve alias --gpu` |
+| SGLang | HF model ID or directory | 18082 | `llm serve alias --gpu` |
+| TabbyAPI | local EXL3 directory | 18083 | configured launcher, then `llm serve alias --gpu` |
+| LM Studio | model ID exposed by its API | 1234 | LM Studio or headless `llmster`/`lms` |
+
+These profiles do not install alternate engines or convert model weights.
+`llm doctor` links each engine's official setup documentation. Its installed
+field checks the launcher executable; a successful API probe checks the server.
+GGUF registration is restricted to llama.cpp here. Native HF weights are the
+default route for vLLM/SGLang; Tabby uses EXL3. Match the engine version to the
+model architecture before benchmarking.
+
+```bash
+llm add ollama-qwen qwen3:14b --runtime ollama --format ollama
+llm add hf-small owner/model --runtime vllm --format hf
+llm runtime vllm --command '["/path/to/venv/bin/vllm"]'
+llm serve hf-small --gpu --dry-run
+llm endpoint llama http://127.0.0.1:18180/v1
+llm endpoint office https://model-host.example/v1 --key-env OFFICE_LLM_KEY
+llm add office-model served-model-id --runtime office --format endpoint
+```
+
+Set `--served-name` on `llm add` when the backend model ID differs from the
+source or alias. For Tabby, the default API ID is the model directory name.
+Configure a checkout launcher with
+`llm runtime tabby --command '["/path/venv/bin/python","/path/tabbyAPI/main.py"]' --cwd /path/tabbyAPI`.
+Its normal authentication remains enabled; configure `--key-env` on the
+Tabby endpoint. LM Studio uses `llm add alias api-model-id --runtime lmstudio
+--format endpoint` once its server is running. Engine arguments such as a
+tool parser or reasoning parser belong in `llm runtime NAME --command '[...]'
+--args '["--flag","value"]'`. Arguments are passed directly, without a shell.
+
+Managed servers bind loopback, reject an occupied port, and hold one shared
+lock until their child exits. GPU launches require an explicit `--gpu`, reject
+models already loaded by Ollama, and check NVIDIA free memory. GGUF weights
+must leave at least 2 GiB free. This is a lower bound, not an assurance that
+context and workspaces fit. HF engines default to 75% GPU memory and one
+active request. Unmanaged runtimes and later Ollama requests do not acquire
+this lock; avoid starting those concurrently. `--gpu` also checks that the
+llama.cpp launcher exposes a CUDA device. The current plain Nix llama.cpp
+package is CPU.
+
+### Model backups
+
+`backup-llm-models` copies completed downloads to `/mnt/storage/llama-models`.
+The primary store (`/var/lib/llama-models`, or `LLM_MODELS_DIR`) lands under
+`primary/`; the user's XDG data store lands under `user/`. Caches, lock files
+and unfinished downloads are excluded. Files removed from a source remain
+in the archive.
+
+```bash
+backup-llm-models --dry-run
+backup-llm-models
+backup-llm-models --dry-run --verify
+```
+
+`--verify` compares file checksums. Combined with `--dry-run`, it reports
+differences without changing the archive. The command refuses to run if
+`/mnt/storage` is unmounted or the destination resolves outside that mount.
+`LLM_BACKUP_DIR` can select another directory below `/mnt/storage`.
+
+After applying the NixOS configuration, a daily timer runs at 03:30 with
+up to 15 minutes of random delay and catches up after downtime. The unit
+runs the installed script from the Nix store and uses the existing backup
+failure and recovery notifications. Run it manually with
+`systemctl start backup-llm-models.service`; inspect its schedule with
+`systemctl list-timers backup-llm-models.timer`.
+
 ## Troubleshooting
 
 - **`Path 'nixos/...' is not tracked by Git`** — `git add nixos/` (staging

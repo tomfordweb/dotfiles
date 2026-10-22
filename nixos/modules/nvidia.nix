@@ -23,7 +23,13 @@
   # 6.12 LTS is the sweet spot: new enough for Arrow Lake, old enough
   # for the NVIDIA driver to build. Bump deliberately once a driver
   # release supports a newer kernel.
-  boot.kernelPackages = pkgs.linuxPackages_6_12;
+  boot.kernelPackages = pkgs.linuxPackages_6_12.extend (_: previous: {
+    # The module's install target runs depmod in its private output, creating
+    # indexes that conflict with the kernel's. NixOS indexes the combined tree.
+    v4l2loopback = previous.v4l2loopback.overrideAttrs (old: {
+      makeFlags = (old.makeFlags or []) ++ [ "DEPMOD=true" ];
+    });
+  });
 
   # ----------------------------------------------------------------
   # Use the NVIDIA driver. On a desktop the dGPU is the primary output,
