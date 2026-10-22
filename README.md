@@ -13,7 +13,7 @@ goes on `$PATH`. How the symlinks get created depends on the machine:
 ## Repo map
 
 ```
-bin/          portable scripts (hypr-host-config, devserver, wtport, ...)
+bin/          scripts (llm, recording-light, devserver, wtport, ...)
 config/       app configs — hypr, waybar, wofi, tmux, ghostty, nvim*, git, ...
 docs/         personal wiki (submodule)
 install/      bootstrap.sh (non-nix), macos-terminfo.sh, rice.sh, docker/
@@ -60,12 +60,35 @@ sh install/macos-terminfo.sh
 tmux kill-server
 ```
 
+## Scripts
+
+| Command | Use |
+| --- | --- |
+| [`llm`](bin/llm) | Register and serve models, chat, request JSON or embeddings, and benchmark. Start with `llm doctor`, `llm scan --register`, and `llm list`. |
+| [`llm-pull OWNER/REPO FILE [REVISION]`](bin/llm-pull) | Download a Hugging Face file. Pin a commit SHA for reproducible downloads. |
+| [`backup-llm-models --dry-run --verify`](bin/backup-llm-models) | Preview a checksum-based model backup to `/mnt/storage/llama-models`. Omit `--dry-run` to copy. Requires `/mnt/storage` mounted. Also available as `llm backup`. |
+| [`recording-light toggle`](bin/recording-light) | Dim external DDC/CI monitors to 20%, then restore saved brightness on the next toggle. `off` restores; `on --dry-run` previews targets. See [Waybar setup](config/waybar/README.md#recording-light). |
+
+For a local GGUF model:
+
+```sh
+llm add demo /path/to/model.gguf
+llm serve demo                  # foreground server, CPU by default
+llm chat demo "Hello"           # run in another terminal
+```
+
+Minerva declares model tools in [`nixos/modules/ai.nix`](nixos/modules/ai.nix).
+Other hosts need Python 3, a model runtime, `hf` for downloads, and `rsync`
+for backups. Downloads default to `/var/lib/llama-models`; set
+`LLM_MODELS_DIR` to use another store. Use each command's `--help` for options.
+
 ## Claude
 
-```bash
-ln -s ~/code/tomfordweb/dotfiles/claude/settings.json ~/.claude/settings.json
-ln -s ~/code/tomfordweb/dotfiles/claude/skills ~/.claude/skills
-```
+On NixOS, Home Manager wires skills from `ai-tools/`. Policy in
+[`ai-tools/settings.json`](ai-tools/settings.json) becomes system managed
+settings after a rebuild. `~/.claude/settings.json` stays writable for
+Claude's runtime preferences; Home Manager seeds it only when missing or
+replacing the old Nix store symlink.
 
 ## Ricing
 
@@ -76,4 +99,6 @@ directly):
 ./install/rice.sh    # sass --watch for waybar + wofi themes
 ```
 
-Shared palette lives in `rice/rice.scss`.
+Palette colors live in `rice/palette.json`. After editing it, run
+`bin/rice-build` to regenerate app themes, including Yazi, then recompile SCSS
+with `install/rice.sh`.
