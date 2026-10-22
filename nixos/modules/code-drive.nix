@@ -27,7 +27,17 @@ let
   andromedaClaudeWorktreesMount = "home-tom-code-tomfordweb-andromeda-.claude-worktrees.mount";
   btrTop      = "/mnt/code-btr";
   btrTopUnit  = "mnt-code\\x2dbtr.mount"; # systemd escapes '-' as \x2d
-  commonOpts  = [ "noatime" "compress=zstd:1" "ssd" "discard=async" "space_cache=v2" "nofail" ];
+  # nofail drops the implicit Before=local-fs.target, which left these mounts
+  # unordered against the user session: at shutdown they unmounted in
+  # parallel with it, failed "target is busy" (tmux/agent cwds under ~/code),
+  # and kept /home busy too. Ordering before systemd-user-sessions makes stop
+  # wait until the session and user@ are gone. The short device timeout keeps
+  # a missing drive (T480) from holding up login for the default 90s.
+  commonOpts  = [
+    "noatime" "compress=zstd:1" "ssd" "discard=async" "space_cache=v2" "nofail"
+    "x-systemd.before=systemd-user-sessions.service"
+    "x-systemd.device-timeout=10s"
+  ];
 in
 {
   # ---- Mounts ------------------------------------------------------
