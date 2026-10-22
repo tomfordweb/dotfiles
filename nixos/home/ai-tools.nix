@@ -378,7 +378,15 @@ in
       # symlink. Hooks, statusLine and permissions are system-scope managed
       # settings (modules/claude-code.nix); this only seeds preferences once,
       # replacing the old store symlink, and never overwrites a real file.
-      if [ -L "$claude/settings.json" ] || [ ! -e "$claude/settings.json" ]; then
+      seedSettings=false
+      if [ -L "$claude/settings.json" ]; then
+        case "$(readlink "$claude/settings.json")" in
+          /nix/store/*) seedSettings=true ;;
+        esac
+      elif [ ! -e "$claude/settings.json" ]; then
+        seedSettings=true
+      fi
+      if "$seedSettings"; then
         $DRY_RUN_CMD rm -f "$claude/settings.json"
         $DRY_RUN_CMD install -m 644 "${claudeSeedFile}" "$claude/settings.json"
       fi
