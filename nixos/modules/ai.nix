@@ -13,6 +13,19 @@ let
     runtimeInputs = with pkgs; [ coreutils rsync util-linux ];
     text = builtins.readFile ../../bin/backup-llm-models;
   };
+  modelPull = pkgs.writeShellApplication {
+    name = "llm-pull";
+    runtimeInputs = with pkgs; [ coreutils python3Packages.huggingface-hub ];
+    text = builtins.readFile ../../bin/llm-pull;
+  };
+  modelCli = pkgs.writeScriptBin "llm" (
+    "#!${pkgs.python3}/bin/python3\n"
+    + builtins.readFile ../../bin/llm
+  );
+  modelTools = pkgs.symlinkJoin {
+    name = "llm-tools";
+    paths = [ modelCli modelPull modelBackup ];
+  };
 in
 {
   # Downloads belong on the root btrfs pool, outside the Nix store.
@@ -71,5 +84,5 @@ in
     bubblewrap
     python3Packages.huggingface-hub
     llama-cpp
-  ] ++ [ modelBackup ];
+  ] ++ [ modelTools ];
 }
