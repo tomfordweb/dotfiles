@@ -15,7 +15,7 @@
   # DBeaver / a manual op-read on first connect — passwords never stored).
   systemd.user.services.dbeaver-droplet-tunnel = {
     Unit = {
-      Description = "SSH tunnel to droplet MySQL for DBeaver (127.0.0.1:13306 -> droplet 127.0.0.1:3306)";
+      Description = "SSH tunnel to droplet DBs for DBeaver (MySQL 127.0.0.1:13306, umami postgres 127.0.0.1:15432)";
       After = [ "network-online.target" ];
       Wants = [ "network-online.target" ];
     };
@@ -26,11 +26,22 @@
         + " -o ExitOnForwardFailure=yes"
         + " -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
         + " -o StrictHostKeyChecking=accept-new"
-        + " -L 127.0.0.1:13306:127.0.0.1:3306 droplet";
+        + " -L 127.0.0.1:13306:127.0.0.1:3306"
+        + " -L 127.0.0.1:15432:127.0.0.1:5433"
+        + " droplet";
       Restart = "on-failure";
       RestartSec = 5;
     };
     Install.WantedBy = [ "default.target" ];
+  };
+
+  # USB automount. udisks2 is on system-wide but nothing mounted drives on
+  # plug-in; udiskie does, under /run/media/$USER, with a tray icon to eject.
+  services.udiskie = {
+    enable = true;
+    automount = true;
+    notify = true;
+    tray = "auto";
   };
 
   # Cursor theme — Bibata Modern Ice (white, rounded edges). home.pointerCursor
@@ -69,5 +80,10 @@
 
     # Anonymity — pairs with the system tor daemon (modules/tor.nix)
     tor-browser
-  ];
+  ]
+  # ArtCraft apps (Photo/Light/Film/Vector/PrintCraft); upstream AppImages,
+  # not in nixpkgs. See pkgs/craft-apps.nix.
+  # (callPackage tacks override functions onto the set; keep only packages.)
+  ++ pkgs.lib.filter pkgs.lib.isDerivation
+    (builtins.attrValues (pkgs.callPackage ../pkgs/craft-apps.nix { }));
 }
