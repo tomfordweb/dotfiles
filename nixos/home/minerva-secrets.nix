@@ -39,7 +39,7 @@
   # `${pkgs._1password-cli}/bin/op`.
   home.packages = [
     (pkgs.writeShellScriptBin "ai-env" ''
-      exec op run --env-file="$HOME/.config/ai/keys.env" -- "$@"
+      exec ${pkgs.coreutils}/bin/env -u OP_SERVICE_ACCOUNT_TOKEN op run --env-file="$HOME/.config/ai/keys.env" -- "$@"
     '')
   ];
 
