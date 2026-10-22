@@ -66,6 +66,7 @@
             ./modules/core.nix
             ./modules/hyprland.nix
             ./modules/tor.nix
+            ./modules/claude-code.nix
 
             # Home Manager as a NixOS module so `nixos-rebuild switch`
             # also rebuilds user env in one shot.

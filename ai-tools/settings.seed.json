@@ -1,0 +1,11 @@
+{
+  "model": "opus[1m]",
+  "theme": "dark",
+  "effortLevel": "medium",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "voiceEnabled": true,
+  "switchModelsOnFlag": false
+}
