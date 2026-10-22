@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Dim external monitors through DDC/CI and restore their saved brightness."""
+
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "recording-light"
+STATE_FILE = STATE_DIR / "state.json"
+
+
+def load_state():
+    if not STATE_FILE.exists():
+        return {"originals": {}, "error": ""}
+    # Fail closed on damaged state: never overwrite the only restore values.
+    state = json.loads(STATE_FILE.read_text())
+    if not isinstance(state.get("originals"), dict):
+        raise ValueError("Invalid saved brightness state")
+    for value in state["originals"].values():
+        if type(value) is not int or not 0 <= value <= 65535:
+            raise ValueError("Invalid saved brightness value")
+    return state
+
+
+def save_state(state):
+    temp = STATE_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps(state) + "\n")
+    temp.replace(STATE_FILE)
+
+
+def ddc(*args):
+    binary = shutil.which("ddcutil")
+    if not binary:
+        raise RuntimeError("Install ddcutil to control external display brightness")
+    result = subprocess.run(
+        [binary, *map(str, args)], capture_output=True, text=True, timeout=20,
+        env={**os.environ, "LC_ALL": "C"},
+    )
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(detail or "Display did not respond to brightness control")
+    return result.stdout
+
+
+def displays():
+    found = {}
+    bus = None
+    valid = False
+    for line in ddc("detect", "--brief").splitlines():
+        if re.match(r"^\S", line):
+            bus = None
+            valid = bool(re.match(r"^Display \d+\s*$", line))
+        if not valid:
+            continue
+        match = re.search(r"I2C bus:\s+/dev/i2c-(\d+)", line)
+        if match:
+            bus = int(match[1])
+        match = re.search(r"Monitor:\s+(.+)", line)
+        if match and bus is not None:
+            identity = match[1].strip()
+            if identity in found:
+                raise RuntimeError("Displays have duplicate identities; cannot safely restore brightness")
+            found[identity] = bus
+    if not found:
+        raise RuntimeError("No DDC/CI displays found. Check monitor DDC/CI settings and I2C permissions")
+    return found
+
+
+def brightness(bus):
+    output = ddc("--bus", bus, "getvcp", "10", "--brief")
+    match = re.search(r"^VCP 10 C (\d+) (\d+)\s*$", output, re.MULTILINE)
+    if not match:
+        raise RuntimeError(f"Cannot read brightness on I2C bus {bus}")
+    current, maximum = map(int, match.groups())
+    if maximum <= 0 or current > maximum:
+        raise RuntimeError(f"Invalid brightness range on I2C bus {bus}")
+    return current, maximum
+
+
+def apply(state, action, level, dry_run=False):
+    originals = state["originals"]
+    restoring = action == "off" or (action == "toggle" and bool(originals))
+    if (restoring and not originals) or (action == "on" and originals):
+        print("Already " + ("restored" if restoring else "dimmed"))
+        return
+    monitors = displays()
+    if restoring:
+        targets = [(name, monitors[name], value) for name, value in originals.items() if name in monitors]
+    else:
+        targets = []
+        snapshot = {}
+        for name, bus in monitors.items():
+            current, maximum = brightness(bus)
+            snapshot[name] = current
+            # Entering recording mode must never brighten an already dim display.
+            targets.append((name, bus, min(current, round(maximum * level / 100))))
+    print(f"{'Restore' if restoring else 'Dim'} targets ({len(targets)}):", flush=True)
+    for name, bus, value in targets:
+        print(f"  {name} (I2C {bus}): brightness {value}", flush=True)
+    if dry_run:
+        return
+    if not restoring:
+        state.update(originals=snapshot, error="", level=level)
+        save_state(state)  # Persist recovery values before the first hardware write.
+    errors = []
+    for name, bus, value in targets:
+        try:
+            ddc("--bus", bus, "setvcp", "10", value)
+            if restoring:
+                del originals[name]
+                save_state(state)
+        except (RuntimeError, subprocess.TimeoutExpired) as exc:
+            errors.append(f"{name}: {exc}")
+    if restoring and originals:
+        errors.append("Restore pending for: " + ", ".join(originals))
+    state["error"] = "; ".join(errors)
+    save_state(state)
+    if errors:
+        raise RuntimeError(state["error"])
+    print("Original brightness restored" if restoring else "Recording light enabled")
+
+
+def notify(message, error=False):
+    if shutil.which("notify-send"):
+        try:
+            subprocess.run(
+                ["notify-send", "-u", "critical" if error else "normal", "Recording light", message],
+                timeout=3, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired:
+            pass
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=["toggle", "on", "off", "waybar", "status"], nargs="?", default="status")
+    parser.add_argument("--level", type=int, default=20, help="Recording brightness percentage (default: 20)")
+    parser.add_argument("--dry-run", action="store_true", help="Print targets without changing brightness or saved state")
+    args = parser.parse_args()
+    if not 1 <= args.level <= 100:
+        parser.error("--level must be between 1 and 100")
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    with (STATE_DIR / "lock").open("a") as lock:
+        busy = False
+        reading = args.action in ("waybar", "status")
+        mode = fcntl.LOCK_SH if reading else fcntl.LOCK_EX
+        deadline = time.monotonic() + 2
+        while True:
+            try:
+                fcntl.flock(lock, mode | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if reading or time.monotonic() >= deadline:
+                    busy = True
+                    break
+                time.sleep(0.05)
+        try:
+            state = load_state()
+        except (ValueError, OSError) as exc:
+            if args.action == "waybar":
+                print(json.dumps({"text": "Light error", "class": "error", "tooltip": str(exc)}))
+                return 0
+            print(f"recording-light: {exc}", file=sys.stderr)
+            return 1
+        if args.action == "waybar":
+            active = bool(state["originals"])
+            error = state.get("error", "")
+            text, style = ("Recording light", "active") if active else ("Display light", "normal")
+            if error:
+                text, style = "Light error", "error"
+            if busy:
+                text, style = "Adjusting light", "busy"
+            print(json.dumps({"text": text, "class": style, "tooltip": error or ("Restore display brightness" if active else "Dim displays for recording")}))
+            return 0
+        if args.action == "status":
+            print(json.dumps({**state, "busy": busy}, indent=2))
+            return 0
+        if busy:
+            notify("Brightness adjustment already running; try again shortly", error=True)
+            print("recording-light: brightness adjustment already running", file=sys.stderr)
+            return 1
+        try:
+            apply(state, args.action, args.level, args.dry_run)
+        except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
+            if not args.dry_run:
+                state["error"] = str(exc)
+                save_state(state)
+                notify(str(exc), error=True)
+            print(f"recording-light: {exc}", file=sys.stderr)
+            return 1
+        if not args.dry_run:
+            notify("Displays dimmed" if state["originals"] else "Original brightness restored")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

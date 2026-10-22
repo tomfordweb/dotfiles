@@ -75,6 +75,7 @@
 
     # Desktop utils
     pavucontrol
+    ddcutil    # recording-light external monitor brightness
     networkmanagerapplet
     yazi       # $fileManager in hyprland.conf (runs in ghostty)
 

@@ -44,6 +44,10 @@ let
   };
 in
 {
+  # recording-light controls external monitors through DDC/CI on desktop hosts.
+  hardware.i2c.enable = true;
+  users.users.tom.extraGroups = [ "i2c" ];
+
   # ------------------------------------------------------------------
   # Hyprland (Wayland tiling compositor)
   # ------------------------------------------------------------------

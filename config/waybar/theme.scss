@@ -76,6 +76,7 @@ window#waybar {
 #custom-nvidia-smi,
 #custom-control-center,
 #custom-rice-mode,
+#custom-recording-light,
 #power-profiles-daemon,
 #mpd {
   @extend .chip;
@@ -84,6 +85,12 @@ window#waybar {
 #clock {
   @include theme.neon-gradient;
   font-weight: 700;
+}
+
+#custom-recording-light {
+  &.active { color: theme.$sapphire; }
+  &.busy { color: theme.$yellow; }
+  &.error { color: theme.$danger; }
 }
 
 #window {
