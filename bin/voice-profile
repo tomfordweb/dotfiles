@@ -242,6 +242,9 @@ def write_preferences(turns):
 
 
 def main():
+    # Disabled 2026-10-21 alongside voice-capture: the ollama call shares VRAM
+    # with the desktop and hung minerva. Delete to re-enable.
+    return
     turns = load()
     os.makedirs(VOICE_DIR, exist_ok=True)
     if "--preferences" not in sys.argv:

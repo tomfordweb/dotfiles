@@ -104,6 +104,9 @@ def read_stdin():
 
 
 def main():
+    # Disabled 2026-10-21: the 25-prompt rebuild loaded qwen2.5:14b (~9.5 GiB)
+    # into the same VRAM as the desktop and hung minerva. Delete to re-enable.
+    return
     text, payload = read_stdin()
     if not text.strip():
         return

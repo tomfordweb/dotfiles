@@ -27,27 +27,11 @@ let
   mcpHome = "${home}/.local/share/tomfordweb-mcp";
   xdgConfigHome = "${home}/.config";
   opencodeLive = "${xdgConfigHome}/opencode";
-  permissionsDir = ../../ai-tools/permissions;
-  readPermissionList = name:
-    builtins.fromJSON (builtins.readFile (permissionsDir + "/${name}.json"));
-  allowedCommands = readPermissionList "allowed-commands";
-  askCommands = readPermissionList "ask-commands";
-  allowedMcpTools = readPermissionList "allowed-mcp-tools";
-  askMcpTools = readPermissionList "ask-mcp-tools";
-  # `"tool": "*"` gates a WHOLE server. Claude spells that as the bare
-  # `mcp__<server>` (no tool suffix, no glob); a literal `mcp__server__*`
-  # matches nothing and would silently grant the server instead of gating it.
-  claudeMcpToolName = tool:
-    if tool.tool == "*" then "mcp__${tool.server}" else "mcp__${tool.server}__${tool.tool}";
-  claudeSettings = (builtins.fromJSON (builtins.readFile ../../ai-tools/settings.json)) // {
-    permissions = {
-      allow = (map (command: "Bash(${command}:*)") allowedCommands)
-        ++ (map claudeMcpToolName allowedMcpTools);
-      ask = (map (command: "Bash(${command}:*)") askCommands)
-        ++ (map claudeMcpToolName askMcpTools);
-    };
-  };
-  claudeSettingsFile = pkgs.writeText "claude-settings.json" (builtins.toJSON claudeSettings);
+  # Permission lists are shared with the system-scope Claude managed settings
+  # (modules/claude-code.nix); codex and opencode render them below.
+  claudeSettings = import ../lib/claude-settings.nix;
+  inherit (claudeSettings) allowedCommands askCommands allowedMcpTools askMcpTools;
+  claudeSeedFile = pkgs.writeText "claude-settings-seed.json" (builtins.toJSON claudeSettings.seed);
 
   # Mirrors the old ops `ai_mcp_servers` registry. npm-backed servers launch
   # `node <mcpHome>/node_modules/<entry>` (no npx — ~10x faster per-launch);
@@ -368,7 +352,8 @@ in
       Persistent = true;
       RandomizedDelaySec = "30m";
     };
-    Install.WantedBy = [ "timers.target" ];
+    # Disabled 2026-10-21 (ollama VRAM contention hung minerva). Restore to re-enable.
+    # Install.WantedBy = [ "timers.target" ];
   };
 
   home.activation.tomfordwebAiWiring = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -388,9 +373,15 @@ in
         [ -e "$a" ] || continue
         $DRY_RUN_CMD ln -sfn "$a" "$claude/agents/$(basename "$a")"
       done
-      # settings.json is the tracked base; command and MCP permissions come from
-      # ai-tools/permissions/*.json and are rendered into this generated file.
-      $DRY_RUN_CMD ln -sfn "${claudeSettingsFile}" "$claude/settings.json"
+      # settings.json belongs to Claude: it rewrites the file at runtime
+      # (/config, /model, autocompact), which fails with EROFS on a /nix/store
+      # symlink. Hooks, statusLine and permissions are system-scope managed
+      # settings (modules/claude-code.nix); this only seeds preferences once,
+      # replacing the old store symlink, and never overwrites a real file.
+      if [ -L "$claude/settings.json" ] || [ ! -e "$claude/settings.json" ]; then
+        $DRY_RUN_CMD rm -f "$claude/settings.json"
+        $DRY_RUN_CMD install -m 644 "${claudeSeedFile}" "$claude/settings.json"
+      fi
       $DRY_RUN_CMD ln -sfn "$aiTools/CLAUDE.md" "$claude/CLAUDE.md"
 
       # ---- codex: skills + always-on global instructions.
