@@ -20,13 +20,12 @@ recording. It changes the monitors' hardware brightness, so screen captures
 keep their original colors and brightness. Click Recording light to restore
 each monitor's previous setting. The button shows progress and errors.
 
-Install `ddcutil` and enable DDC/CI in the monitors' menus. The current user
-needs access to their `/dev/i2c-*` devices. On Minerva, the existing OpenRGB
-setup already provides access. Install the command without a system rebuild:
-
-```sh
-nix profile add nixpkgs#ddcutil
-```
+Enable DDC/CI in the monitors' menus. NixOS desktop configurations install
+`ddcutil`, enable I2C, and add `tom` to the `i2c` group. Rebuild and log in
+again to apply these dependencies. On non-Nix Linux hosts, install `ddcutil`
+with the distribution's package manager and grant the current user access
+to `/dev/i2c-*`. Laptop panels do not support DDC/CI; connect an external
+monitor that supports it.
 
 The same control is available from a terminal:
 

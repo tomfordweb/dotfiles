@@ -2,8 +2,12 @@
 
 import importlib.machinery
 import importlib.util
+import contextlib
+import fcntl
+import io
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -21,6 +25,9 @@ class RecordingLightTests(unittest.TestCase):
         self.state_patch = patch.object(light, "STATE_FILE", Path(self.temp.name) / "state.json")
         self.state_patch.start()
         self.addCleanup(self.state_patch.stop)
+        self.dir_patch = patch.object(light, "STATE_DIR", Path(self.temp.name))
+        self.dir_patch.start()
+        self.addCleanup(self.dir_patch.stop)
 
     def test_dry_run_never_writes_or_saves(self):
         state = light.load_state()
@@ -77,6 +84,45 @@ class RecordingLightTests(unittest.TestCase):
         with patch.object(light, "ddc", return_value=text + "Display 2\n   I2C bus: /dev/i2c-10\n   Monitor: Good\n"):
             with self.assertRaisesRegex(RuntimeError, "duplicate"):
                 light.displays()
+
+    def test_other_display_blocks_do_not_reuse_valid_display(self):
+        for header in ("Phantom display", "Removed display", "DDC disabled", "Unknown display"):
+            with self.subTest(header=header):
+                text = ("Display 1\n   I2C bus: /dev/i2c-9\n   Monitor: Good\n"
+                        + header + "\n   I2C bus: /dev/i2c-10\n   Monitor: Good\n"
+                        + "Display 2\n   I2C bus: /dev/i2c-11\n   Monitor: Second\n")
+                with patch.object(light, "ddc", return_value=text):
+                    self.assertEqual(light.displays(), {"Good": 9, "Second": 11})
+
+    def test_status_can_share_another_readers_lock(self):
+        with (light.STATE_DIR / "lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            with patch("sys.argv", ["recording-light", "status"]), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(light.main(), 0)
+            self.assertIn('"busy": false', output.getvalue())
+
+    def test_toggle_waits_for_poll_to_release_lock(self):
+        with (light.STATE_DIR / "lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_SH)
+            release = threading.Timer(0.1, fcntl.flock, args=(lock, fcntl.LOCK_UN))
+            release.start()
+            try:
+                with patch("sys.argv", ["recording-light", "toggle", "--dry-run"]), patch.object(light, "apply") as apply:
+                    self.assertEqual(light.main(), 0)
+                apply.assert_called_once()
+            finally:
+                release.join()
+
+    def test_busy_writer_reports_status_and_notifies_toggle(self):
+        with (light.STATE_DIR / "lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with patch("sys.argv", ["recording-light", "waybar"]), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(light.main(), 0)
+            self.assertIn('"class": "busy"', output.getvalue())
+            with patch("sys.argv", ["recording-light", "toggle"]), patch.object(light, "notify") as notify, patch.object(light.time, "monotonic", side_effect=[0, 3]), patch.object(light, "apply") as apply, contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(light.main(), 1)
+            notify.assert_called_once()
+            apply.assert_not_called()
 
 
 if __name__ == "__main__":
