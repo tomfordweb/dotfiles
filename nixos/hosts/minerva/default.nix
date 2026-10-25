@@ -7,6 +7,24 @@ let
   # Official Bambu Studio from the upstream AppImage (NVIDIA-EGL fixed). The
   # nixpkgs bambu-studio build renders a blank 3D bed here — see the pkg file.
   bambu-studio-appimage = pkgs.callPackage ../../pkgs/bambu-studio-appimage.nix { };
+
+  # OrcaSlicer's GTK3/wxWidgets build dies on launch under native Wayland
+  # ("Error 71 (Protocol error) dispatching to Wayland display") -- the
+  # wx GL canvas + Hyprland combination is a known upstream problem. Forcing
+  # the X11 backend (XWayland) makes it start and render. The webkit flag
+  # stops the embedded device/web pages from spamming "Failed to create GBM
+  # buffer" on the NVIDIA stack. The .desktop file execs bare `orca-slicer`,
+  # so wrapping the binary covers both the launcher and the CLI.
+  orca-slicer-wrapped = pkgs.symlinkJoin {
+    name = "orca-slicer-wrapped";
+    paths = [ pkgs.orca-slicer ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/orca-slicer \
+        --set GDK_BACKEND x11 \
+        --set WEBKIT_DISABLE_DMABUF_RENDERER 1
+    '';
+  };
 in
 
 # ------------------------------------------------------------------
@@ -182,8 +200,9 @@ in
     # bug — GL stack is fine: glxgears/glxinfo work, blank even under sw-render).
     # The AppImage needed an NVIDIA-EGL fix to render — details in the pkg file.
     bambu-studio-appimage
-    pkgs.orca-slicer     # Bambu Studio fork — alternative slicer for the A1
+    orca-slicer-wrapped  # Bambu Studio fork — alternative slicer for the A1
                          # (AMS, multicolor). Kept alongside as a fallback.
+                         # Wrapped above: native Wayland crashes on launch.
   ];
 
   # ---- Daily offsite/local backups
