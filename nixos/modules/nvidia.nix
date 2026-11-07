@@ -49,7 +49,9 @@
     nvidiaSettings = true;
     powerManagement.enable = true;      # cleaner suspend/resume
 
-    # NOTE 2 — driver PINNED to 595.45.04 (>= 570, the first Blackwell branch).
+    # NOTE 2 — driver PINNED to 615.78.08 (nixpkgs `latest`/new_feature as of
+    # 2026-11-07; bumped from 595.45.04 after Bodycam segfaulted inside
+    # libnvidia-glcore.so.595.45.04, dotfiles-i5y).
     # Previously `nvidiaPackages.beta`, a MOVING label that jumps to a new
     # version on every `nix flake update`. Hard-pinned here (hashes lifted
     # from nixpkgs' `beta` attr; verified green on kernel 6.12) so an
@@ -59,12 +61,12 @@
     # To BUMP: change `version`, run `nixos-rebuild build` (it prints the
     # correct `sha256-…` on hash mismatch), paste the new hashes, then switch.
     package = config.boot.kernelPackages.nvidiaPackages.mkDriver {
-      version            = "595.45.04";
-      sha256_64bit       = "sha256-zUllSSRsuio7dSkcbBTuxF+dN12d6jEPE0WgGvVOj14=";
-      sha256_aarch64     = "sha256-jl6lQWsgF6ya22sAhYPpERJ9r+wjnWzbGnINDpUMzsk=";
-      openSha256         = "sha256-uqNfImwTKhK8gncUdP1TPp0D6Gog4MSeIJMZQiJWDoE=";
-      settingsSha256     = "sha256-Y45pryyM+6ZTJyRaRF3LMKaiIWxB5gF5gGEEcQVr9nA=";
-      persistencedSha256 = "sha256-5FoeUaRRMBIPEWGy4Uo0Aho39KXmjzQsuAD9m/XkNpA=";
+      version            = "615.78.08";
+      sha256_64bit       = "sha256-Pj9t3cLudnoIGFMAr3vjyyhuznZpjS3eNSRZl4LQf/4=";
+      sha256_aarch64     = "sha256-UHYBE1AYHoGgMfD9AS/jX+S+N8eCDWUft6qolK9Eejc=";
+      openSha256         = "sha256-HBINiOjL0ZJLIAJeNIBYHBnwgUXtNwPPtnFpAI1YwF4=";
+      settingsSha256     = "sha256-inDRpG02sdDgHmlqgu/DsgK8OFdOt1fZIYyXdhlGC/c=";
+      persistencedSha256 = "sha256-RzeR6Ldct6MUxjnXRyThdh5Y3jjMehTVg85MtwuWNX4=";
     };
   };
 
