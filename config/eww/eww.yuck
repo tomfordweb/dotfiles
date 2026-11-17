@@ -146,7 +146,9 @@
       (sm-head :icon "󰍛" :title "memory"
                :value "${round(EWW_RAM.used_mem / 1073741824, 1)} / ${round(EWW_RAM.total_mem / 1073741824, 1)} GiB"
                :temp {sys.mem_temp})
-      (sm-graph-temp :kind "mem" :value {EWW_RAM.used_mem_perc} :temp {sys.mem_temp}))
+      ;; no temperature trace here: DIMM temp is near-flat and sat on top of
+      ;; the usage line. The header figure is enough.
+      (sm-graph :kind "mem" :value {EWW_RAM.used_mem_perc}))
 
     (box :orientation "v" :space-evenly false :spacing 6 :visible {sys.gpu.has}
       (sm-head :icon "󰢮" :title {sys.gpu.name}
