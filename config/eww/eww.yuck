@@ -1,4 +1,5 @@
-;; cyberdream — eww widgets: ghosted desktop calendar + control center.
+;; cyberdream — eww widgets: desktop calendar + system monitor (bg layer),
+;; control center (overlay).
 ;; Styles: theme.scss (sass, rice palette) -> eww.css. Never add an
 ;; eww.scss here — eww would prefer it and can't resolve the rice import.
 
@@ -20,15 +21,115 @@
   "playerctl metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo ''")
 
 ;; ── ghosted desktop calendar ─────────────────────────────────────────
+;; :namespace "eww-desk" is what the glass-eww-desk blur layer rule in
+;; hyprland.lua matches; calendar and sysmon share width + right edge.
 (defwindow calendar-ghost
   :monitor 0
   :stacking "bg"
+  :namespace "eww-desk"
   :focusable false
   :exclusive false
   :geometry (geometry :anchor "top right" :x "32px" :y "72px"
-                      :width "340px" :height "320px")
+                      :width "400px" :height "320px")
   (box :class "cal-ghost ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
     (calendar :class "cal")))
+
+;; ── desktop system monitor ───────────────────────────────────────────
+;; CPU/RAM load: eww's EWW_CPU / EWW_RAM. Everything else (GPU, network,
+;; temps, disks, processes): one JSON line per 2s from scripts/sysmon.
+(deflisten sys
+  :initial '{"cpu_temp":0,"mem_temp":0,"gpu":{"has":false,"name":"","util":0,"mem_used":"0","mem_total":"0","mem_pct":0,"temp":0,"power":0,"fan":0},"net":{"iface":"","down":0,"up":0,"down_h":"0B/s","up_h":"0B/s"},"disks":[],"procs":[]}'
+  "~/.config/eww/scripts/sysmon")
+
+(defwidget sm-head [icon title value ?temp]
+  (box :class "sm-head" :space-evenly false
+    (label :class "sm-icon" :text icon)
+    (label :class "sm-title" :halign "start" :hexpand true :truncate true :text title)
+    (label :class "sm-value" :halign "end" :text value)
+    (label :class "sm-temp-val" :halign "end" :visible {(temp ?: 0) > 0}
+           :text "${temp ?: 0}°C")))
+
+(defwidget sm-graph [value kind ?dynamic]
+  (box :class "sm-plot ${kind}"
+    (graph :class "sm-graph" :height 46 :hexpand true
+           :value value :min 0 :max 100 :dynamic {dynamic ?: false}
+           :thickness 2 :time-range "120s" :line-style "round")))
+
+;; Load graph with the temperature trace drawn over it. Both share the
+;; 0-100 axis (percent / °C); the trace takes the colour of the °C figure
+;; in the header, which is the only legend it needs. A reading of 0 means
+;; the host has no such sensor: figure and trace both hide.
+(defwidget sm-graph-temp [value temp kind]
+  (box :class "sm-plot ${kind}"
+    (overlay :hexpand true
+      (graph :class "sm-graph" :height 46 :hexpand true
+             :value value :min 0 :max 100
+             :thickness 2 :time-range "120s" :line-style "round")
+      (graph :class "sm-graph-temp" :visible {temp > 0}
+             :value temp :min 0 :max 100
+             :thickness 1.5 :time-range "120s" :line-style "round"))))
+
+(defwindow sysmon
+  :monitor 0
+  :stacking "bg"
+  :namespace "eww-desk"
+  :focusable false
+  :exclusive false
+  :geometry (geometry :anchor "top right" :x "32px" :y "408px" :width "400px")
+  (box :class "sm ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
+       :space-evenly false :spacing 14
+
+    (box :orientation "v" :space-evenly false :spacing 6
+      (sm-head :icon "󰻠" :title "cpu"
+               :value "${round(EWW_CPU.avg, 0)}%" :temp {sys.cpu_temp})
+      (sm-graph-temp :kind "cpu" :value {EWW_CPU.avg} :temp {sys.cpu_temp})
+      (box :class "sm-cores" :spacing 3
+        (for core in {EWW_CPU.cores}
+          (progress :class "sm-core" :orientation "v" :flipped true
+                    :value {core.usage}))))
+
+    (box :orientation "v" :space-evenly false :spacing 6
+      (sm-head :icon "󰍛" :title "memory"
+               :value "${round(EWW_RAM.used_mem / 1073741824, 1)} / ${round(EWW_RAM.total_mem / 1073741824, 1)} GiB"
+               :temp {sys.mem_temp})
+      (sm-graph-temp :kind "mem" :value {EWW_RAM.used_mem_perc} :temp {sys.mem_temp}))
+
+    (box :orientation "v" :space-evenly false :spacing 6 :visible {sys.gpu.has}
+      (sm-head :icon "󰢮" :title {sys.gpu.name}
+               :value "${sys.gpu.util}%  ${sys.gpu.power}W" :temp {sys.gpu.temp})
+      (sm-graph-temp :kind "gpu" :value {sys.gpu.util} :temp {sys.gpu.temp})
+      (box :class "sm-row" :space-evenly false :spacing 10
+        (label :class "sm-key" :text "vram")
+        (progress :class "sm-bar gpu" :hexpand true :valign "center"
+                  :value {sys.gpu.mem_pct})
+        (label :class "sm-num" :text "${sys.gpu.mem_used} / ${sys.gpu.mem_total} GiB")))
+
+    (box :orientation "v" :space-evenly false :spacing 6
+      (sm-head :icon "󰈀" :title {sys.net.iface != "" ? sys.net.iface : "offline"}
+               :value "󰁅 ${sys.net.down_h}  󰁝 ${sys.net.up_h}")
+      (box :spacing 8
+        (sm-graph :kind "down" :value {sys.net.down} :dynamic true)
+        (sm-graph :kind "up" :value {sys.net.up} :dynamic true)))
+
+    (box :orientation "v" :space-evenly false :spacing 5
+      (for disk in {sys.disks}
+        (box :class "sm-row" :space-evenly false :spacing 10
+          (label :class "sm-mount" :xalign 0 :width 120 :truncate true :text {disk.mount})
+          (progress :class "sm-bar ${disk.pct > 90 ? 'hot' : ''}" :hexpand true
+                    :valign "center" :value {disk.pct})
+          (label :class "sm-num" :xalign 1 :width 96
+                 :text "${disk.used} / ${disk.total}"))))
+
+    (box :class "sm-table" :orientation "v" :space-evenly false :spacing 3
+      (box :class "sm-th" :space-evenly false
+        (label :xalign 0 :hexpand true :text "process")
+        (label :xalign 1 :width 64 :text "cpu %")
+        (label :xalign 1 :width 72 :text "mem"))
+      (for proc in {sys.procs}
+        (box :class "sm-tr" :space-evenly false
+          (label :xalign 0 :hexpand true :truncate true :text {proc.name})
+          (label :class "sm-num" :xalign 1 :width 64 :text {proc.cpu})
+          (label :class "sm-num" :xalign 1 :width 72 :text {proc.mem}))))))
 
 ;; ── control center (toggled from the waybar chip) ────────────────────
 ;; Open via `eww open-many --toggle cc-closer control-center` so the

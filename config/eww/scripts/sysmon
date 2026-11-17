@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""Feed for the eww `sysmon` desktop widget (deflisten in eww.yuck).
+
+Prints one JSON object per line every INTERVAL seconds: GPU (nvidia-smi,
+optional), network rate on the default-route interface, CPU package and
+hottest-DIMM temperature, local disks and the busiest processes. CPU and RAM load come
+from eww's own EWW_CPU / EWW_RAM, not from here.
+
+Host-agnostic on purpose: no GPU, no coretemp or a different NIC just
+yields zeros / has=false and the widget hides that part.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+
+INTERVAL = 2.0
+DISK_EVERY = 15  # ticks between disk refreshes
+TOP_N = 6
+CLK_TCK = os.sysconf("SC_CLK_TCK")
+PAGE = os.sysconf("SC_PAGE_SIZE")
+NCPU = os.cpu_count() or 1
+REAL_FS = {"btrfs", "ext4", "ext3", "ext2", "xfs", "zfs", "f2fs", "bcachefs", "ntfs", "ntfs3", "exfat"}
+CPU_SENSORS = ("coretemp", "k10temp", "zenpower")
+MEM_SENSORS = ("spd5118", "jc42")  # DDR5 / DDR4 DIMM thermal sensors
+GPU_QUERY = "name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,fan.speed"
+
+gpu = {"has": False, "name": "", "util": 0, "mem_used": "0", "mem_total": "0",
+       "mem_pct": 0, "temp": 0, "power": 0, "fan": 0}
+
+
+def num(text):
+    try:
+        return float(text)
+    except ValueError:  # "[N/A]" on cards without that sensor
+        return 0.0
+
+
+def human(n, units=("B", "K", "M", "G", "T")):
+    n = float(n)
+    for unit in units:
+        if n < 1024 or unit == units[-1]:
+            return f"{n:.0f}{unit}" if n >= 100 or unit == units[0] else f"{n:.1f}{unit}"
+        n /= 1024
+
+
+def gpu_reader():
+    """One long-lived nvidia-smi in loop mode; cheaper than a spawn per tick."""
+    exe = shutil.which("nvidia-smi")
+    if not exe:
+        return
+    while True:
+        try:
+            proc = subprocess.Popen(
+                [exe, f"--query-gpu={GPU_QUERY}", "--format=csv,noheader,nounits",
+                 "-i", "0", "-l", str(int(INTERVAL))],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            for line in proc.stdout:
+                f = [x.strip() for x in line.split(",")]
+                if len(f) < 7:
+                    continue
+                used, total = num(f[2]), num(f[3])  # MiB
+                gpu.update(
+                    has=True,
+                    name=f[0].replace("NVIDIA ", "").replace("GeForce ", ""),
+                    util=round(num(f[1])),
+                    mem_used=f"{used / 1024:.1f}", mem_total=f"{total / 1024:.1f}",
+                    mem_pct=round(100 * used / total) if total else 0,
+                    temp=round(num(f[4])), power=round(num(f[5])), fan=round(num(f[6])))
+            proc.wait()
+        except OSError:
+            pass
+        gpu["has"] = False
+        time.sleep(10)  # driver reload / suspend: retry quietly
+
+
+def temp_paths(names):
+    """temp1_input of every hwmon chip whose driver name is in `names`."""
+    base = "/sys/class/hwmon"
+    found = []
+    try:
+        for entry in sorted(os.listdir(base)):
+            with open(f"{base}/{entry}/name") as fh:
+                if fh.read().strip() in names:
+                    found.append(f"{base}/{entry}/temp1_input")
+    except OSError:
+        pass
+    return found
+
+
+def hottest(paths):
+    """Hottest of several sensors in whole °C; 0 when there are none."""
+    return round(max((read_int(p) for p in paths), default=0) / 1000)
+
+
+def read_int(path):
+    try:
+        with open(path) as fh:
+            return int(fh.read())
+    except (OSError, ValueError, TypeError):
+        return 0
+
+
+def default_iface():
+    try:
+        with open("/proc/net/route") as fh:
+            for line in fh.readlines()[1:]:
+                f = line.split()
+                if f[1] == "00000000":
+                    return f[0]
+    except OSError:
+        pass
+    return ""
+
+
+def disks():
+    seen = {}
+    try:
+        with open("/proc/mounts") as fh:
+            for line in fh:
+                dev, mount, fstype = line.split()[:3]
+                if fstype not in REAL_FS:
+                    continue
+                mount = mount.replace("\\040", " ")
+                # btrfs subvolumes share a device: keep the shortest mountpoint
+                if dev not in seen or len(mount) < len(seen[dev]):
+                    seen[dev] = mount
+    except OSError:
+        return []
+    out = []
+    for mount in sorted(seen.values()):
+        try:
+            st = os.statvfs(mount)
+        except OSError:
+            continue
+        total = st.f_blocks * st.f_frsize
+        if not total:
+            continue
+        used = total - st.f_bfree * st.f_frsize
+        out.append({"mount": mount, "used": human(used), "total": human(total),
+                    "pct": round(100 * used / total)})
+    return out
+
+
+def proc_sample():
+    """pid -> (comm, cpu ticks, rss bytes)"""
+    sample = {}
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            with open(f"/proc/{pid}/stat") as fh:
+                stat = fh.read()
+        except OSError:
+            continue
+        lp, rp = stat.find("("), stat.rfind(")")
+        rest = stat[rp + 2:].split()
+        try:
+            sample[pid] = (stat[lp + 1:rp], int(rest[11]) + int(rest[12]), int(rest[21]) * PAGE)
+        except (IndexError, ValueError):
+            continue
+    return sample
+
+
+def top_procs(prev, cur, dt):
+    """Busiest programs, summed by name (a browser is one row, not forty)."""
+    agg = {}
+    for pid, (comm, ticks, rss) in cur.items():
+        before = prev.get(pid)
+        delta = ticks - before[1] if before and before[0] == comm else 0
+        entry = agg.setdefault(comm, [0, 0])
+        entry[0] += max(delta, 0)
+        entry[1] += rss
+    rows = sorted(agg.items(), key=lambda kv: (kv[1][0], kv[1][1]), reverse=True)[:TOP_N]
+    # percent of the whole machine, so it reads against the CPU graph above
+    return [{"name": name, "cpu": f"{100 * t / CLK_TCK / dt / NCPU:.1f}", "mem": human(rss)}
+            for name, (t, rss) in rows]
+
+
+def main():
+    threading.Thread(target=gpu_reader, daemon=True).start()
+    cpu_paths = temp_paths(CPU_SENSORS)[:1]
+    mem_paths = temp_paths(MEM_SENSORS)
+    iface = default_iface()
+    rx = tx = 0
+    prev_procs = proc_sample()
+    prev_t = time.monotonic()
+    disk_rows = disks()
+    tick = 0
+    while True:
+        time.sleep(INTERVAL)
+        now = time.monotonic()
+        dt = now - prev_t
+        prev_t = now
+        tick += 1
+
+        cur_iface = default_iface()
+        new_rx = read_int(f"/sys/class/net/{cur_iface}/statistics/rx_bytes") if cur_iface else 0
+        new_tx = read_int(f"/sys/class/net/{cur_iface}/statistics/tx_bytes") if cur_iface else 0
+        if cur_iface != iface or tick == 1:
+            down = up = 0.0  # no baseline yet for this interface
+        else:
+            down, up = max(new_rx - rx, 0) / dt, max(new_tx - tx, 0) / dt
+        iface, rx, tx = cur_iface, new_rx, new_tx
+
+        if tick % DISK_EVERY == 0:
+            disk_rows = disks()
+        cur_procs = proc_sample()
+        procs = top_procs(prev_procs, cur_procs, dt)
+        prev_procs = cur_procs
+
+        out = {
+            "cpu_temp": hottest(cpu_paths),
+            "mem_temp": hottest(mem_paths),  # hottest DIMM
+            "gpu": dict(gpu),
+            "net": {"iface": iface, "down": round(down / 1024, 1), "up": round(up / 1024, 1),
+                    "down_h": human(down) + "/s", "up_h": human(up) + "/s"},
+            "disks": disk_rows,
+            "procs": procs,
+        }
+        try:
+            print(json.dumps(out, separators=(",", ":")), flush=True)
+        except BrokenPipeError:  # eww daemon went away
+            sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

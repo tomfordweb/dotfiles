@@ -6,12 +6,18 @@
 }
 
 .cal-ghost {
-  background-color: transparent;
+  background-color: rgba(20, 20, 32, 0.72);
+  border: 1px solid rgba(203, 166, 247, 0.22);
+  border-radius: 18px;
+  padding: 12px 14px;
 }
 .cal-ghost .cal {
   background-color: transparent;
-  color: rgba(205, 214, 244, 0.4);
+  color: #cdd6f4;
   font-size: 16px;
+}
+.cal-ghost .cal:indeterminate {
+  color: #6c7086;
 }
 .cal-ghost .cal:selected {
   color: #11111b;
@@ -19,11 +25,110 @@
   border-radius: 8px;
 }
 .cal-ghost .cal.header {
-  color: rgba(203, 166, 247, 0.6);
+  color: #cba6f7;
   font-weight: 700;
 }
 .cal-ghost .cal.highlight {
-  color: rgba(34, 211, 238, 0.7);
+  color: #22d3ee;
+  font-weight: 700;
+}
+
+.sm {
+  background-color: rgba(20, 20, 32, 0.72);
+  border: 1px solid rgba(203, 166, 247, 0.22);
+  border-radius: 18px;
+  padding: 16px;
+}
+.sm label {
+  font-size: 13px;
+}
+
+.sm-icon {
+  color: #cba6f7;
+  font-size: 15px;
+  margin-right: 8px;
+}
+
+.sm-title {
+  font-weight: 700;
+}
+
+.sm-value,
+.sm-num {
+  color: #bac2de;
+}
+
+.sm-temp-val {
+  color: #f9e2af;
+  margin-left: 10px;
+}
+
+.sm-key,
+.sm-mount {
+  color: #a6adc8;
+}
+
+.sm-plot {
+  background-color: rgba(13, 13, 22, 0.55);
+  border-radius: 9px;
+  padding: 3px 0;
+}
+.sm-plot.cpu .sm-graph {
+  color: #cba6f7;
+}
+.sm-plot.mem .sm-graph {
+  color: #22d3ee;
+}
+.sm-plot.gpu .sm-graph {
+  color: #ff6ac1;
+}
+.sm-plot.down .sm-graph {
+  color: #94e2d5;
+}
+.sm-plot.up .sm-graph {
+  color: #fab387;
+}
+.sm-plot .sm-graph-temp {
+  color: #f9e2af;
+}
+
+.sm-bar trough {
+  background-color: rgba(13, 13, 22, 0.8);
+  border-radius: 4px;
+  min-height: 6px;
+  min-width: 40px;
+}
+.sm-bar progress {
+  background-color: #74c7ec;
+  border-radius: 4px;
+  min-height: 6px;
+}
+.sm-bar.gpu progress {
+  background-color: #ff6ac1;
+}
+.sm-bar.hot progress {
+  background-color: #f38ba8;
+}
+
+.sm-core trough {
+  background-color: rgba(13, 13, 22, 0.8);
+  border-radius: 3px;
+  min-height: 22px;
+  min-width: 6px;
+}
+.sm-core progress {
+  background-color: #cba6f7;
+  border-radius: 3px;
+  min-width: 6px;
+}
+
+.sm-table {
+  border-top: 1px solid rgba(69, 71, 90, 0.6);
+  padding-top: 10px;
+}
+
+.sm-th label {
+  color: #7f849c;
   font-weight: 700;
 }
 
@@ -139,13 +244,40 @@
   color: #a6adc8;
 }
 
-.cal-ghost.flat .cal {
-  color: rgba(205, 214, 244, 0.28);
+.cal-ghost.flat,
+.sm.flat {
+  background-color: #181825;
+  border-color: #45475a;
 }
+
 .cal-ghost.flat .cal.header, .cal-ghost.flat .cal.highlight {
-  color: rgba(166, 173, 200, 0.5);
+  color: #a6adc8;
 }
 .cal-ghost.flat .cal:selected {
   background-image: none;
+  background-color: #74c7ec;
+}
+
+.sm.flat .sm-icon {
+  color: #a6adc8;
+}
+.sm.flat .sm-plot {
+  background-color: #29293a;
+}
+.sm.flat .sm-plot .sm-graph {
+  color: #74c7ec;
+}
+.sm.flat .sm-plot .sm-graph-temp {
+  color: #a6adc8;
+}
+.sm.flat .sm-temp-val {
+  color: #a6adc8;
+}
+.sm.flat .sm-bar trough,
+.sm.flat .sm-core trough {
+  background-color: #29293a;
+}
+.sm.flat .sm-bar progress,
+.sm.flat .sm-core progress {
   background-color: #74c7ec;
 }
