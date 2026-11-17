@@ -70,7 +70,7 @@ def gpu_reader():
                     util=round(num(f[1])),
                     mem_used=f"{used / 1024:.1f}", mem_total=f"{total / 1024:.1f}",
                     mem_pct=round(100 * used / total) if total else 0,
-                    temp=round(num(f[4])), power=round(num(f[5])), fan=round(num(f[6])))
+                    temp=fahrenheit(num(f[4])), power=round(num(f[5])), fan=round(num(f[6])))
             proc.wait()
         except OSError:
             pass
@@ -92,9 +92,14 @@ def temp_paths(names):
     return found
 
 
+def fahrenheit(celsius):
+    """Whole °F; 0 stays 0 because the widget reads 0 as "no sensor"."""
+    return round(celsius * 9 / 5 + 32) if celsius else 0
+
+
 def hottest(paths):
-    """Hottest of several sensors in whole °C; 0 when there are none."""
-    return round(max((read_int(p) for p in paths), default=0) / 1000)
+    """Hottest of several sensors in whole °F; 0 when there are none."""
+    return fahrenheit(max((read_int(p) for p in paths), default=0) / 1000)
 
 
 def read_int(path):

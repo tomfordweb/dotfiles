@@ -47,7 +47,7 @@
     (label :class "sm-title" :halign "start" :hexpand true :truncate true :text title)
     (label :class "sm-value" :halign "end" :text value)
     (label :class "sm-temp-val" :halign "end" :visible {(temp ?: 0) > 0}
-           :text "${temp ?: 0}°C")))
+           :text "${temp ?: 0}°F")))
 
 (defwidget sm-graph [value kind ?dynamic]
   (box :class "sm-plot ${kind}"
@@ -55,9 +55,9 @@
            :value value :min 0 :max 100 :dynamic {dynamic ?: false}
            :thickness 2 :time-range "120s" :line-style "round")))
 
-;; Load graph with the temperature trace drawn over it. Both share the
-;; 0-100 axis (percent / °C); the trace takes the colour of the °C figure
-;; in the header, which is the only legend it needs. A reading of 0 means
+;; Load graph with the temperature trace drawn over it. Load runs 0-100 %,
+;; the trace 32-212 °F (freezing to boiling) on the same height; the trace
+;; takes the colour of the °F figure in the header, which is the only legend it needs. A reading of 0 means
 ;; the host has no such sensor: figure and trace both hide.
 (defwidget sm-graph-temp [value temp kind]
   (box :class "sm-plot ${kind}"
@@ -66,7 +66,7 @@
              :value value :min 0 :max 100
              :thickness 2 :time-range "120s" :line-style "round")
       (graph :class "sm-graph-temp" :visible {temp > 0}
-             :value temp :min 0 :max 100
+             :value temp :min 32 :max 212
              :thickness 1.5 :time-range "120s" :line-style "round"))))
 
 (defwindow sysmon
