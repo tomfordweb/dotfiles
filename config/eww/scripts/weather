@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Feed for the eww `weather` desktop widget (defpoll in eww.yuck).
+
+Prints one JSON object: current conditions, the next few hours and the
+coming days, from Open-Meteo (free, no API key).
+
+The location is machine-local, never in the repo:
+  $XDG_CONFIG_HOME/rice/weather.json
+  {"name": "Some Town, ST", "lat": 12.34, "lon": -56.78}
+No file -> {"ok": false} and the widget draws nothing.
+
+The last good answer is cached, so a network blip (or a poll that fires
+before the network is up at login) shows slightly stale weather instead
+of an empty panel.
+"""
+
+import datetime
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+
+HOME = os.path.expanduser("~")
+CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME", f"{HOME}/.config"), "rice", "weather.json")
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", f"{HOME}/.cache"), "eww-weather.json")
+API = "https://api.open-meteo.com/v1/forecast"
+HOURS = 6       # hourly columns
+HOUR_STEP = 3   # hours between columns
+DAYS = 5        # forecast rows, starting tomorrow
+
+# Nerd Font (Material Design) weather glyphs
+SUN, MOON = "\U000f0599", "\U000f0594"
+PARTLY, PARTLY_NIGHT = "\U000f0595", "\U000f0f31"
+CLOUD, FOG = "\U000f0590", "\U000f0591"
+RAIN, POUR, SLEET = "\U000f0597", "\U000f0596", "\U000f067f"
+SNOW, SNOW_HEAVY = "\U000f0598", "\U000f0f36"
+STORM = "\U000f0593"
+
+# WMO weather code -> (day glyph, night glyph, text)
+WMO = {
+    0: (SUN, MOON, "Clear"),
+    1: (SUN, MOON, "Mostly clear"),
+    2: (PARTLY, PARTLY_NIGHT, "Partly cloudy"),
+    3: (CLOUD, CLOUD, "Overcast"),
+    45: (FOG, FOG, "Fog"),
+    48: (FOG, FOG, "Freezing fog"),
+    51: (RAIN, RAIN, "Light drizzle"),
+    53: (RAIN, RAIN, "Drizzle"),
+    55: (RAIN, RAIN, "Heavy drizzle"),
+    56: (SLEET, SLEET, "Freezing drizzle"),
+    57: (SLEET, SLEET, "Freezing drizzle"),
+    61: (RAIN, RAIN, "Light rain"),
+    63: (RAIN, RAIN, "Rain"),
+    65: (POUR, POUR, "Heavy rain"),
+    66: (SLEET, SLEET, "Freezing rain"),
+    67: (SLEET, SLEET, "Freezing rain"),
+    71: (SNOW, SNOW, "Light snow"),
+    73: (SNOW, SNOW, "Snow"),
+    75: (SNOW_HEAVY, SNOW_HEAVY, "Heavy snow"),
+    77: (SNOW, SNOW, "Snow grains"),
+    80: (RAIN, RAIN, "Light showers"),
+    81: (RAIN, RAIN, "Showers"),
+    82: (POUR, POUR, "Heavy showers"),
+    85: (SNOW, SNOW, "Snow showers"),
+    86: (SNOW_HEAVY, SNOW_HEAVY, "Heavy snow showers"),
+    95: (STORM, STORM, "Thunderstorm"),
+    96: (STORM, STORM, "Thunderstorm, hail"),
+    99: (STORM, STORM, "Thunderstorm, hail"),
+}
+
+
+def look(code, is_day=True):
+    day, night, text = WMO.get(code, (CLOUD, CLOUD, "Unknown"))
+    return (day if is_day else night), text
+
+
+def fetch(lat, lon):
+    query = urllib.parse.urlencode({
+        "latitude": lat, "longitude": lon,
+        "current": "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,"
+                   "relative_humidity_2m,is_day",
+        "hourly": "temperature_2m,weather_code,is_day",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,"
+                 "precipitation_probability_max",
+        "temperature_unit": "fahrenheit", "wind_speed_unit": "mph",
+        "timezone": "auto", "forecast_days": DAYS + 2,
+    })
+    last = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(f"{API}?{query}", timeout=10) as resp:
+                return json.load(resp)
+        except OSError as err:  # URLError, timeouts, DNS not up yet
+            last = err
+            time.sleep(4 * (attempt + 1))
+    raise last
+
+
+def shape(name, raw):
+    cur, hourly, daily = raw["current"], raw["hourly"], raw["daily"]
+    icon, text = look(cur["weather_code"], cur["is_day"])
+
+    # first hourly slot after "now" (current.time is quarter-hour local time)
+    now_hour = cur["time"][:13]
+    start = next((i for i, t in enumerate(hourly["time"]) if t[:13] > now_hour), 0)
+    hours = []
+    for i in range(start + HOUR_STEP - 1, len(hourly["time"]), HOUR_STEP)[:HOURS]:
+        when = datetime.datetime.fromisoformat(hourly["time"][i])
+        hours.append({
+            "time": when.strftime("%-I%p").lower(),
+            "icon": look(hourly["weather_code"][i], hourly["is_day"][i])[0],
+            "temp": round(hourly["temperature_2m"][i]),
+        })
+
+    days = []
+    for i in range(1, min(DAYS + 1, len(daily["time"]))):
+        day_icon, day_text = look(daily["weather_code"][i])
+        days.append({
+            "day": datetime.date.fromisoformat(daily["time"][i]).strftime("%a"),
+            "icon": day_icon, "text": day_text,
+            "hi": round(daily["temperature_2m_max"][i]),
+            "lo": round(daily["temperature_2m_min"][i]),
+            "rain": daily["precipitation_probability_max"][i] or 0,
+        })
+
+    return {
+        "ok": True, "name": name, "icon": icon, "text": text,
+        "temp": round(cur["temperature_2m"]),
+        "feels": round(cur["apparent_temperature"]),
+        "wind": round(cur["wind_speed_10m"]),
+        "humidity": round(cur["relative_humidity_2m"]),
+        "hi": round(daily["temperature_2m_max"][0]),
+        "lo": round(daily["temperature_2m_min"][0]),
+        "hours": hours, "days": days,
+    }
+
+
+def main():
+    try:
+        with open(CONFIG) as fh:
+            place = json.load(fh)
+        lat, lon = float(place["lat"]), float(place["lon"])
+    except (OSError, ValueError, KeyError):
+        print(json.dumps({"ok": False}))
+        return
+    try:
+        out = shape(place.get("name", ""), fetch(lat, lon))
+        with open(CACHE, "w") as fh:
+            json.dump(out, fh)
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as err:
+        print(f"weather: {err}", file=sys.stderr)
+        try:
+            with open(CACHE) as fh:
+                out = json.load(fh)
+        except (OSError, ValueError):
+            out = {"ok": False}
+    print(json.dumps(out, separators=(",", ":")))
+
+
+if __name__ == "__main__":
+    main()

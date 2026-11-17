@@ -45,6 +45,61 @@
   }
 }
 
+// ── desktop weather ───────────────────────────────────────────────────
+.wx {
+  background-color: theme.$glass-bg;
+  border: 1px solid theme.$glass-border;
+  border-radius: 18px;
+  padding: 16px;
+
+  label {
+    font-size: 13px;
+  }
+}
+
+.wx .wx-icon {
+  font-size: 46px;
+  color: theme.$yellow;
+}
+
+.wx .wx-temp {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.wx .wx-text {
+  color: theme.$subtext1;
+}
+
+.wx .wx-place {
+  color: theme.$mauve;
+  font-weight: 700;
+}
+
+.wx .wx-meta {
+  color: theme.$subtext0;
+}
+
+.wx-hours {
+  background-color: rgba(theme.$crust, 0.55);
+  border-radius: 9px;
+  padding: 8px 4px;
+}
+
+.wx .wx-hour-icon,
+.wx .wx-day-icon {
+  font-size: 17px;
+  color: theme.$cyan;
+}
+
+.wx .wx-day {
+  font-weight: 700;
+}
+
+.wx .wx-rain {
+  color: theme.$sapphire;
+}
+
 // ── desktop system monitor ────────────────────────────────────────────
 $sm-cpu: theme.$mauve;
 $sm-mem: theme.$cyan;
@@ -278,6 +333,7 @@ $sm-temp: theme.$yellow;
 }
 
 .cal-ghost.flat,
+.wx.flat,
 .sm.flat {
   background-color: theme.$mantle;
   border-color: theme.$surface1;
@@ -292,6 +348,20 @@ $sm-temp: theme.$yellow;
   &:selected {
     background-image: none;
     background-color: theme.$sapphire;
+  }
+}
+
+.wx.flat {
+  .wx-icon,
+  .wx-place,
+  .wx-hour-icon,
+  .wx-day-icon,
+  .wx-rain {
+    color: theme.$subtext0;
+  }
+
+  .wx-hours {
+    background-color: theme.$mantle2;
   }
 }
 

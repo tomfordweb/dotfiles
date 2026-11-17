@@ -33,6 +33,59 @@
   font-weight: 700;
 }
 
+.wx {
+  background-color: rgba(20, 20, 32, 0.72);
+  border: 1px solid rgba(203, 166, 247, 0.22);
+  border-radius: 18px;
+  padding: 16px;
+}
+.wx label {
+  font-size: 13px;
+}
+
+.wx .wx-icon {
+  font-size: 46px;
+  color: #f9e2af;
+}
+
+.wx .wx-temp {
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.wx .wx-text {
+  color: #bac2de;
+}
+
+.wx .wx-place {
+  color: #cba6f7;
+  font-weight: 700;
+}
+
+.wx .wx-meta {
+  color: #a6adc8;
+}
+
+.wx-hours {
+  background-color: rgba(13, 13, 22, 0.55);
+  border-radius: 9px;
+  padding: 8px 4px;
+}
+
+.wx .wx-hour-icon,
+.wx .wx-day-icon {
+  font-size: 17px;
+  color: #22d3ee;
+}
+
+.wx .wx-day {
+  font-weight: 700;
+}
+
+.wx .wx-rain {
+  color: #74c7ec;
+}
+
 .sm {
   background-color: rgba(20, 20, 32, 0.72);
   border: 1px solid rgba(203, 166, 247, 0.22);
@@ -245,6 +298,7 @@
 }
 
 .cal-ghost.flat,
+.wx.flat,
 .sm.flat {
   background-color: #181825;
   border-color: #45475a;
@@ -256,6 +310,17 @@
 .cal-ghost.flat .cal:selected {
   background-image: none;
   background-color: #74c7ec;
+}
+
+.wx.flat .wx-icon,
+.wx.flat .wx-place,
+.wx.flat .wx-hour-icon,
+.wx.flat .wx-day-icon,
+.wx.flat .wx-rain {
+  color: #a6adc8;
+}
+.wx.flat .wx-hours {
+  background-color: #29293a;
 }
 
 .sm.flat .sm-icon {

@@ -1,4 +1,4 @@
-;; cyberdream — eww widgets: desktop calendar + system monitor (bg layer),
+;; cyberdream — eww widgets: desktop calendar + weather + system monitor (bg layer),
 ;; control center (overlay).
 ;; Styles: theme.scss (sass, rice palette) -> eww.css. Never add an
 ;; eww.scss here — eww would prefer it and can't resolve the rice import.
@@ -20,6 +20,12 @@
 (defpoll now-playing :interval "2s"
   "playerctl metadata --format '{{artist}} — {{title}}' 2>/dev/null || echo ''")
 
+;; Today, for the calendar selection. Without it the widget keeps the day it
+;; was created on (no midnight rollover) and a stray click moves the
+;; selection for good; bound to this, it returns to today on the next change.
+(defpoll today :interval "60s" :initial '{"d":1,"m":1,"y":2026}'
+  "date '+{\"d\":%-d,\"m\":%-m,\"y\":%Y}'")
+
 ;; ── ghosted desktop calendar ─────────────────────────────────────────
 ;; :namespace "eww-desk" is what the glass-eww-desk blur layer rule in
 ;; hyprland.lua matches; calendar and sysmon share width + right edge.
@@ -32,7 +38,54 @@
   :geometry (geometry :anchor "top right" :x "32px" :y "72px"
                       :width "400px" :height "320px")
   (box :class "cal-ghost ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
-    (calendar :class "cal")))
+    (calendar :class "cal" :day {today.d} :month {today.m} :year {today.y})))
+
+;; ── desktop weather ──────────────────────────────────────────────────
+;; scripts/weather: Open-Meteo, location from the machine-local
+;; ~/.config/rice/weather.json. No location or no data yet -> ok=false and
+;; the panel is not drawn at all.
+(defpoll weather :interval "15m" :initial '{"ok":false,"hours":[],"days":[]}'
+  "~/.config/eww/scripts/weather")
+
+(defwindow weather
+  :monitor 0
+  :stacking "bg"
+  :namespace "eww-desk"
+  :focusable false
+  :exclusive false
+  :geometry (geometry :anchor "top right" :x "32px" :y "408px" :width "400px")
+  (box :class "wx ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
+       :space-evenly false :spacing 14 :visible {weather.ok}
+
+    (box :space-evenly false :spacing 14
+      (label :class "wx-icon" :valign "center" :text {weather.icon})
+      (box :orientation "v" :space-evenly false :valign "center" :hexpand true
+        (label :class "wx-temp" :xalign 0 :text "${weather.temp}°")
+        (label :class "wx-text" :xalign 0 :text {weather.text}))
+      (box :orientation "v" :space-evenly false :valign "center" :spacing 2
+        (label :class "wx-place" :xalign 1 :text {weather.name})
+        (label :class "wx-meta" :xalign 1
+               :text "feels ${weather.feels}°  󰁝 ${weather.hi}°  󰁅 ${weather.lo}°")
+        (label :class "wx-meta" :xalign 1
+               :text "󰖝 ${weather.wind} mph  󰖎 ${weather.humidity}%")))
+
+    (box :class "wx-hours" :homogeneous true
+      (for hour in {weather.hours}
+        (box :orientation "v" :space-evenly false :spacing 3
+          (label :class "wx-meta" :text {hour.time})
+          (label :class "wx-hour-icon" :text {hour.icon})
+          (label :text "${hour.temp}°"))))
+
+    (box :class "wx-days" :orientation "v" :space-evenly false :spacing 5
+      (for day in {weather.days}
+        (box :space-evenly false :spacing 10
+          (label :class "wx-day" :xalign 0 :width 40 :text {day.day})
+          (label :class "wx-day-icon" :width 24 :text {day.icon})
+          (label :class "wx-meta" :xalign 0 :hexpand true :truncate true :text {day.text})
+          (label :class "wx-rain" :xalign 1 :width 52
+                 :text {day.rain >= 10 ? "󰖎 ${day.rain}%" : ""})
+          (label :class "wx-meta" :xalign 1 :width 34 :text "${day.lo}°")
+          (label :xalign 1 :width 34 :text "${day.hi}°"))))))
 
 ;; ── desktop system monitor ───────────────────────────────────────────
 ;; CPU/RAM load: eww's EWW_CPU / EWW_RAM. Everything else (GPU, network,
@@ -75,7 +128,8 @@
   :namespace "eww-desk"
   :focusable false
   :exclusive false
-  :geometry (geometry :anchor "top right" :x "32px" :y "408px" :width "400px")
+  ;; y = weather's y (408) + its height (345) + 16px gap
+  :geometry (geometry :anchor "top right" :x "32px" :y "769px" :width "400px")
   (box :class "sm ${rice-mode == 'pro' ? 'flat' : ''}" :orientation "v"
        :space-evenly false :spacing 14
 

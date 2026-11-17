@@ -81,8 +81,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("rice-mode apply")
     -- Sleep a bit — hopefully everything was initialized. Then loop wallpapers.
     hl.exec_cmd("sleep 5; hyprwallpapers_loop 300")
-    -- eww desktop widgets: calendar + system monitor (control center is toggled from waybar)
-    hl.exec_cmd("eww daemon && eww open-many calendar-ghost sysmon")
+    -- eww desktop widgets: calendar, weather, system monitor (control center is toggled from waybar)
+    hl.exec_cmd("eww daemon && eww open-many calendar-ghost weather sysmon")
     hl.dispatch(hl.dsp.focus({ workspace = 1 }))
 end)
 
@@ -454,7 +454,7 @@ hl.layer_rule({
     ignore_alpha = 0.2,
 })
 
--- eww desktop widgets (calendar, system monitor) share this namespace.
+-- eww desktop widgets (calendar, weather, system monitor) share this namespace.
 hl.layer_rule({
     name  = "glass-eww-desk",
     match = { namespace = "eww-desk" },
