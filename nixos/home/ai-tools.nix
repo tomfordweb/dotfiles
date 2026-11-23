@@ -589,10 +589,14 @@ $marker_end"
       # No repo names are hardcoded: scan for real git repo roots (a `.git`
       # DIRECTORY — submodules mount as a `.git` FILE, so this filter
       # already skips them) whose origin remote is under the tomfordweb org.
-        $DRY_RUN_CMD find "${home}/code" \
+      # find exits 1 on any directory it cannot read (a root-owned data dir
+      # is enough), and activation runs under pipefail, so an unguarded find
+      # here fails the whole home-manager switch. The repos it did reach are
+      # still printed; tolerate the exit status.
+        { $DRY_RUN_CMD find "${home}/code" \
           -path "${home}/code/tomfordweb" -prune -o \
           -name node_modules -prune -o \
-          -name .git -type d -print 2>/dev/null | while read -r gitdir; do
+          -name .git -type d -print 2>/dev/null || true; } | while read -r gitdir; do
           repo="$(dirname "$gitdir")"
           remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
           case "$remote" in
