@@ -16,16 +16,16 @@
 # ai-tools/vendored.json).
 
 beads.overrideAttrs (old: rec {
-  version = "1.1.2";
+  version = "1.3.4";
 
   src = fetchFromGitHub {
     owner = "gastownhall";
     repo = "beads";
     tag = "v${version}";
-    hash = "sha256-5oDI2MunHrOKx1m5mC0ZaIqZ9+f1YBQotMBUj6U5H1I=";
+    hash = "sha256-nfPAhOrqmEMHHmkrLzxFHbldeUrRRyJiPYtwOVoC6ao=";
   };
 
-  vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
+  vendorHash = "sha256-nSOmq+SQ5d2rtS1XwetSN8i9rxlqlECgeofPKf0PjW0=";
 
   # Upstream's suite assumes a writable HOME, network, and a real git identity;
   # nixpkgs already skips one test for a version-gap assertion that this bump
