@@ -122,5 +122,25 @@
           extraModules = [ ./hosts/minerva-live ];
         };
       };
+
+      # Standalone home-manager for non-NixOS boxes (headless work Ubuntu).
+      # Links only: the same dev-core symlinks the NixOS hosts get from
+      # home/dotfiles.nix, minus the desktop set. No packages — apt owns
+      # those there. Applied with install/home-manager.sh, not nixos-rebuild.
+      homeConfigurations.work = home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.${system};
+        modules = [
+          ./home/dotfiles.nix
+          {
+            home.username = "tom";
+            home.homeDirectory = "/home/tom";
+            # Don't change after first activation (same rule as home/default.nix).
+            home.stateVersion = "25.11";
+            dotfiles.desktop.enable = false;
+            targets.genericLinux.enable = true;  # XDG_DATA_DIRS etc. on non-NixOS
+            programs.home-manager.enable = true; # `home-manager` CLI for later runs
+          }
+        ];
+      };
     };
 }

@@ -46,6 +46,12 @@ export PATH="$HOME/code/tomfordweb/dotfiles/bin:$PATH"
 The script refuses to clobber real files — if it prints `SKIP`, move the
 existing `~/.config/<app>` aside and re-run. It is idempotent.
 
+**Or, with home-manager (headless Linux work box):** instead of
+`bootstrap.sh --minimal`, run `install/home-manager.sh`. It installs Nix if
+needed and applies `nixos/flake.nix#homeConfigurations.work`: the same
+dev-core links from `nixos/home/dotfiles.nix` (desktop set off), plus PATH
+and `EDITOR`. Links only, no packages. Use one mechanism, not both.
+
 Tools the configs expect (install via apt/brew): git, tmux, neovim,
 ghostty, lazygit, ripgrep, fd, fzf, jq, starship. On NixOS these are
 declared in `nixos/home/`.

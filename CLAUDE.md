@@ -15,7 +15,9 @@ into the repo:
   for the module map and install/rebuild docs.
 - **Non-nix hosts** (work Ubuntu/Debian, mac): `install/bootstrap.sh`
   (`--minimal` for the dev core only). Keep its app list in sync with
-  `dotfiles.nix`.
+  `dotfiles.nix`. A headless Linux box can instead use standalone
+  home-manager (`install/home-manager.sh` → `nixos#homeConfigurations.work`,
+  which reuses `dotfiles.nix` with `dotfiles.desktop.enable = false`).
 
 Because both are symlinks into the repo, config edits are live — no rebuild.
 Rebuilds (`sudo nixos-rebuild switch --flake ./nixos#<host>`) are only
