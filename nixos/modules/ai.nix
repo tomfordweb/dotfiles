@@ -71,7 +71,32 @@ in
     # context guard assumes this matches (HARNESS_CONTEXT_TOKENS=16384).
     # (Declared here so it survives rebuilds, not a systemd user drop-in.)
     environmentVariables.OLLAMA_CONTEXT_LENGTH = "16384";
+    # Listen on every interface so Docker containers can reach it through
+    # host.docker.internal. Ollama has no auth, so the firewall rule below
+    # is what keeps it off the LAN: 11434 is opened on Docker bridges only.
+    host = "0.0.0.0";
   };
+
+  # Containers reach the host over docker0 (default bridge) or a per-project
+  # br-<id> bridge (compose networks). "br-+" is the iptables wildcard. Opened
+  # on the bridges ONLY, so none of this is reachable from the LAN:
+  #   - 11434: host Ollama, for the ARTEX container's LLM calls.
+  #   - 4200-5200: local app ports (dev / serve-prod / e2e, per the local
+  #     port registry), so the ARTEX container can reach an app
+  #     under test at host.docker.internal:<port>. Note this also means a
+  #     container can reach any host service in that band, which is the
+  #     internal-SSRF surface ARTEX is meant to probe on a target.
+  networking.firewall.interfaces =
+    let
+      bridge = {
+        allowedTCPPorts = [ 11434 ];
+        allowedTCPPortRanges = [ { from = 4200; to = 5200; } ];
+      };
+    in
+    {
+      "docker0" = bridge;
+      "br-+" = bridge;
+    };
 
   # beads (bd) — graph-based issue tracker driving the agent workflow.
   # llama-cpp — local GGUF inference (llama-cli/llama-server), replacing the
